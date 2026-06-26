@@ -1,0 +1,9 @@
+# Placeholders — ces répertoires seront peuplés par les équipes
+# qui travaillent sur chaque service.
+
+# apps/backend/    → Backend NestJS + Prisma (équipe Backend)
+# apps/frontend/   → Frontend React + Vite + TypeScript (équipe Frontend)
+# apps/edge-cv/    → Computer Vision FastAPI + YOLOv8 (équipe CV)
+# apps/smartqueue-ml/ → ML Service FastAPI + scikit-learn (équipe ML)
+
+# Structure minimale créée pour le CI/CD et Docker Compose.

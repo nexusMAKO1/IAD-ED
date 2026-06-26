@@ -1,0 +1,219 @@
+{
+  "developer": "Rayen",
+  "sprint": 0,
+  "audit_date": "2026-06-26",
+  "auditor": "Antigravity — IA Senior Technical Auditor",
+  "global_progress": 83,
+  "global_status": "NOT_VALIDATED",
+  "tasks": [
+    {
+      "id": "T-002",
+      "title": "Setup Environnements (Docker Compose, GitHub, .env)",
+      "status": "COMPLETED",
+      "progress": 97,
+      "files_found": [
+        "docker-compose.yml",
+        ".env.example",
+        "apps/backend/Dockerfile",
+        "apps/frontend/Dockerfile",
+        "apps/edge-cv/Dockerfile",
+        "apps/smartqueue-ml/Dockerfile",
+        "scripts/start.sh",
+        "scripts/stop.sh",
+        "scripts/reset.sh",
+        "scripts/seed.sh",
+        "infrastructure/docker/postgres/init.sql",
+        "infrastructure/docker/mosquitto/mosquitto.conf",
+        "infrastructure/docker/mosquitto/passwd"
+      ],
+      "implemented": [
+        "docker-compose.yml avec 10 services (postgres, redis, mosquitto, minio, backend, frontend, edge-cv, smartqueue-ml, prometheus, grafana)",
+        "2 reseaux Docker isoles (iad_core, iad_monitoring)",
+        "Volumes nommes persistants (postgres_data, redis_data, minio_data, etc.)",
+        ".env.example avec 140 lignes, toutes variables documentees, marqueurs CHANGE_ME",
+        "Dockerfiles multi-stage (base > dependencies > development > production) pour les 4 services",
+        "Images production avec utilisateurs non-root (securite)",
+        "start.sh : verification Docker, copie .env, demarrage sequentiellement avec healthchecks",
+        "stop.sh : docker compose down --remove-orphans",
+        "reset.sh : confirmation RESET + suppression volumes + nettoyage data/",
+        "seed.sh : migrations Prisma + seed + creation buckets MinIO",
+        "init.sql PostgreSQL : extensions timescaledb, uuid-ossp, pgcrypto"
+      ],
+      "missing": [
+        "pnpm-lock.yaml non versionne visible",
+        "apps/frontend non initialise (pas de code source React/Vite, seulement Dockerfile + nginx.conf)",
+        "MinIO image tag RELEASE.2024-01-01T00-00-00.000000000Z potentiellement introuvable"
+      ],
+      "risks": [
+        {
+          "level": "MEDIUM",
+          "description": "Conflit port 9001 : Mosquitto WebSocket ET MinIO Console declarent le meme port hote 9001 dans docker-compose.yml"
+        },
+        {
+          "level": "LOW",
+          "description": "Valeurs CHANGE_ME presentes dans .env.example — acceptable en developpement, risque si deploye tel quel"
+        }
+      ]
+    },
+    {
+      "id": "T-003",
+      "title": "POC Detection de Personnes YOLOv8n",
+      "status": "COMPLETED",
+      "progress": 92,
+      "files_found": [
+        "apps/edge-cv/app/detector.py",
+        "apps/edge-cv/app/main.py",
+        "apps/edge-cv/app/video_stream.py",
+        "apps/edge-cv/app/utils.py",
+        "apps/edge-cv/requirements.txt",
+        "apps/edge-cv/Dockerfile"
+      ],
+      "implemented": [
+        "Classe PersonDetector : ultralytics YOLOv8n, filtre classe 0 (person) uniquement",
+        "Detection device automatique : cuda > mps > cpu",
+        "Support FP16 half-precision pour GPU",
+        "Warm-up pass dummy au demarrage pour reduire latence",
+        "DetectionResult avec bounding boxes (x1,y1,x2,y2), confidence, inference_ms",
+        "Export ONNX disponible (export_onnx())",
+        "VideoStream thread-safe avec thread daemon dedie",
+        "Support sources : webcam (index 0-64), RTSP/RTSPS, fichiers locaux",
+        "Validation source avec regex allow-list securisee",
+        "CLI complet : --source, --model, --conf, --device, --half, --headless, --log-csv, --export-onnx, --width, --height",
+        "FPSCounter rolling average 30 frames",
+        "LatencyTracker rolling average + max en ms",
+        "PerformanceLogger CSV (timestamp, fps, latency_ms, person_count)",
+        "HUD OpenCV : FPS, latence (rouge si >200ms), compteur personnes",
+        "Graceful shutdown SIGINT/SIGTERM",
+        "Mode headless pour benchmarking sans ecran",
+        "ultralytics==8.2.0, torch==2.3.0, opencv-python-headless==4.9.0.80 dans requirements.txt",
+        "Dockerfile telecharge yolov8n.pt au build"
+      ],
+      "missing": [
+        "Endpoint FastAPI manquant : main.py est un script CLI, pas une API REST. Le Dockerfile lance uvicorn app.main:app mais aucun objet app ASGI n'est defini",
+        "Dossier tests/ absent — aucun test pytest pour edge-cv",
+        "Modele yolov8n.pt non commite (normal, telcharge au build)"
+      ],
+      "risks": [
+        {
+          "level": "HIGH",
+          "description": "Incompatibilite critique Dockerfile vs code : CMD uvicorn app.main:app mais main.py ne definit pas d'objet ASGI app — le container iad_edge_cv ne demarrera pas"
+        },
+        {
+          "level": "MEDIUM",
+          "description": "opencv-python-headless utilise mais cv2.imshow() appele en mode GUI — incompatible sans display en container Docker"
+        },
+        {
+          "level": "LOW",
+          "description": "Absence de tests unitaires pour PersonDetector"
+        }
+      ]
+    },
+    {
+      "id": "T-006",
+      "title": "Schema PostgreSQL + TimescaleDB",
+      "status": "COMPLETED",
+      "progress": 88,
+      "files_found": [
+        "apps/backend/prisma/schema.prisma",
+        "apps/backend/prisma/migrations/000000000000_init/migration.sql",
+        "apps/backend/prisma/seed.ts",
+        "infrastructure/docker/postgres/init.sql"
+      ],
+      "implemented": [
+        "schema.prisma avec 7 modeles : Site, Device, User, Campaign, AudienceEvent, Ticket, MLModel",
+        "5 enums : DeviceType (TOTEM/SCREEN/KIOSK/CAMERA), DeviceStatus, UserRole, TicketStatus, MLModelType",
+        "Cle primaire composite (id, timestamp) sur AudienceEvent — requis pour TimescaleDB hypertable",
+        "Index sur siteId, deviceId, timestamp, status, createdAt sur les entites concernees",
+        "Relations avec CASCADE delete (Site → Device, Ticket, AudienceEvent) et SetNull (User.siteId)",
+        "migration.sql : CREATE TABLE pour les 7 tables, 5 enums, tous les index et foreign keys",
+        "migration.sql ligne 151 : SELECT create_hypertable('audience_events', 'timestamp') — integration TimescaleDB reelle",
+        "init.sql : CREATE EXTENSION timescaledb CASCADE, uuid-ossp, pgcrypto",
+        "seed.ts : 1 Site, 2 Devices, 1 Admin User (bcrypt 12 rounds), 3 Campaigns, 10 Tickets, 100 AudienceEvents (createMany), 2 MLModels",
+        "Seed idempotent avec deleteMany au debut pour repeater sans doublons"
+      ],
+      "missing": [
+        "Nom de migration 000000000000_init non-standard (Prisma genere normalement un timestamp)",
+        "Campaign non liee a Site ou Device — relation metier manquante",
+        "Device sans champ name lisible",
+        "previewFeatures non configure (non bloquant)"
+      ],
+      "risks": [
+        {
+          "level": "MEDIUM",
+          "description": "Nom de migration non-standard peut perturber prisma migrate status et la gestion future"
+        },
+        {
+          "level": "MEDIUM",
+          "description": "create_hypertable dans la migration Prisma necessite que TimescaleDB soit installe AVANT — dependance implicite a l'ordre init.sql → migrate"
+        },
+        {
+          "level": "LOW",
+          "description": "Campaign.mediaUrl type String non valide — risque injection URL cote applicatif"
+        }
+      ]
+    },
+    {
+      "id": "T-007",
+      "title": "CI/CD GitHub Actions",
+      "status": "PARTIAL",
+      "progress": 65,
+      "files_found": [
+        ".github/workflows/ci.yml"
+      ],
+      "implemented": [
+        "ci.yml avec 7 jobs : lint-backend, lint-frontend, lint-python, test-backend, test-python, build-images, security-scan",
+        "Triggers : push sur main/develop/feature/**/fix/**, PR vers main/develop",
+        "concurrency avec cancel-in-progress: true",
+        "needs chain correcte : lint > test > build > security",
+        "Services PostgreSQL + Redis natifs dans test-backend (timescale/timescaledb:latest-pg16)",
+        "prisma generate + prisma migrate deploy dans test-backend",
+        "Cache pip et npm actives",
+        "Upload coverage artifacts (7j retention)",
+        "lint-python : ruff check + ruff format --check + mypy (matrix edge-cv/smartqueue-ml)",
+        "build-images : Docker Buildx + GHCR push + metadata-action + cache GHA",
+        "security-scan : Trivy filesystem scan + upload SARIF vers GitHub Security"
+      ],
+      "missing": [
+        "Script 'lint' absent du apps/backend/package.json (reference ci.yml ligne 54)",
+        "Script 'type-check' absent du apps/backend/package.json (reference ci.yml ligne 57)",
+        "Script 'test:ci' absent du apps/backend/package.json (reference ci.yml ligne 192)",
+        "Script 'test:e2e' absent du apps/backend/package.json (reference ci.yml ligne 195)",
+        "apps/frontend/package.json inexistant — frontend non initialise",
+        "Dossiers tests/ absents dans apps/edge-cv/ et apps/smartqueue-ml/",
+        "pnpm-lock.yaml reference dans Dockerfiles mais non versionne visible"
+      ],
+      "risks": [
+        {
+          "level": "HIGH",
+          "description": "La CI echouera sur npm run lint et npm run test:ci des le premier push — scripts inexistants dans package.json"
+        },
+        {
+          "level": "HIGH",
+          "description": "test-python echouera sur pytest tests/ — dossier tests/ inexistant dans edge-cv et smartqueue-ml"
+        },
+        {
+          "level": "MEDIUM",
+          "description": "lint-frontend echouera si apps/frontend n'a pas de package.json"
+        },
+        {
+          "level": "LOW",
+          "description": "timescale/timescaledb:latest-pg16 tag non versionne en CI — risque de reproductibilite"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "completed_tasks": ["T-002", "T-003", "T-006"],
+    "partial_tasks": ["T-007"],
+    "not_started_tasks": [],
+    "blocking_issues": [
+      "T-007 : Scripts npm lint/type-check/test:ci/test:e2e absents du package.json backend",
+      "T-003 : Dockerfile edge-cv pointe vers uvicorn app.main:app mais aucun objet app FastAPI n'est defini dans main.py"
+    ],
+    "non_blocking_issues": [
+      "T-002 : Conflit port 9001 entre Mosquitto WS et MinIO Console",
+      "T-006 : Nom de migration Prisma non-standard",
+      "T-003 : Absence de tests pytest"
+    ]
+  }
+}

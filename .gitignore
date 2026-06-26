@@ -1,1 +1,195 @@
+# =============================================================================
+# IAD & SmartQueue AI — .gitignore
+# Express Display
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# SECRETS — NEVER COMMIT
+# ---------------------------------------------------------------------------
+.env
+.env.local
+.env.production
+.env.staging
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# ---------------------------------------------------------------------------
+# Node.js / NestJS / React / Vite
+# ---------------------------------------------------------------------------
+node_modules/
+dist/
+build/
+.next/
+out/
+coverage/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm
+.pnpm-store/
+.yarn/cache/
+.cache/
+.parcel-cache/
+vite.config.ts.timestamp-*
+
+# ---------------------------------------------------------------------------
+# Prisma
+# ---------------------------------------------------------------------------
+# Ne pas ignorer les fichiers de migration — ils doivent être versionnés
+# apps/backend/prisma/migrations/ ← KEEP
+apps/backend/prisma/*.db
+apps/backend/prisma/*.db-journal
+
+# ---------------------------------------------------------------------------
+# Python / FastAPI / ML
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+.installed.cfg
+MANIFEST
+*.pyc
+*.pyo
+*.pyd
+
+# Environments Python
+.venv/
+venv/
+env/
+ENV/
+.virtualenv/
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# pytest
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ---------------------------------------------------------------------------
+# Machine Learning — Modèles et données
+# ---------------------------------------------------------------------------
+# Les gros fichiers de modèles ne doivent pas être dans Git → utiliser Git LFS ou MinIO
+*.pt
+*.pth
+*.onnx
+*.pb
+*.h5
+*.pkl
+*.joblib
+data/models/
+data/model_store/
+data/raw/
+data/processed/
+data/uploads/
+
+# ---------------------------------------------------------------------------
+# Docker
+# ---------------------------------------------------------------------------
+# Ne pas ignorer docker-compose.yml — il doit être versionné
+# Ignorer uniquement les overrides locaux
+docker-compose.override.yml
+docker-compose.local.yml
+
+# ---------------------------------------------------------------------------
+# Monitoring — données persistantes
+# ---------------------------------------------------------------------------
+infrastructure/monitoring/grafana/data/
+infrastructure/monitoring/prometheus/data/
+
+# ---------------------------------------------------------------------------
+# Mosquitto — fichiers générés
+# ---------------------------------------------------------------------------
+infrastructure/docker/mosquitto/passwd.bak
+
+# ---------------------------------------------------------------------------
+# OS generated files
+# ---------------------------------------------------------------------------
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V8
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+*~
+
+# ---------------------------------------------------------------------------
+# IDEs & Editors
+# ---------------------------------------------------------------------------
+# VSCode
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json.example
+
+# JetBrains (WebStorm, PyCharm, IntelliJ)
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Vim / Neovim
+*.swp
+*.swo
+*.swn
+Session.vim
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+
+# ---------------------------------------------------------------------------
+# Logs & Debug
+# ---------------------------------------------------------------------------
+logs/
+*.log
+log/
+
+# ---------------------------------------------------------------------------
+# Temporaire & CI artifacts
+# ---------------------------------------------------------------------------
+tmp/
+temp/
+.temp/
+*.tmp
+junit.xml
+test-results/
+reports/

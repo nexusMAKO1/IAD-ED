@@ -1,0 +1,74 @@
+# =============================================================================
+# Prometheus — Configuration de scraping
+# IAD & SmartQueue AI — Express Display
+# =============================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+  external_labels:
+    project: "iad-smartqueue"
+    environment: "development"
+
+# Chargement des règles d'alerting
+rule_files:
+  - "alerts.yml"
+
+# Alertmanager (désactivé par défaut — configurer si nécessaire)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']
+
+# ---------------------------------------------------------------------------
+# Scrape configurations
+# ---------------------------------------------------------------------------
+scrape_configs:
+
+  # Prometheus lui-même
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+        labels:
+          service: "prometheus"
+
+  # Backend NestJS (metrics exposées via /metrics)
+  - job_name: "iad-backend"
+    static_configs:
+      - targets: ["backend:3000"]
+        labels:
+          service: "backend"
+          language: "nodejs"
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # Edge CV Service (FastAPI + prometheus-fastapi-instrumentator)
+  - job_name: "iad-edge-cv"
+    static_configs:
+      - targets: ["edge-cv:8001"]
+        labels:
+          service: "edge-cv"
+          language: "python"
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # SmartQueue ML Service
+  - job_name: "iad-smartqueue-ml"
+    static_configs:
+      - targets: ["smartqueue-ml:8002"]
+        labels:
+          service: "smartqueue-ml"
+          language: "python"
+    metrics_path: /metrics
+    scrape_interval: 15s
+
+  # PostgreSQL Exporter (optionnel — ajouter le service dans docker-compose)
+  # - job_name: "postgres"
+  #   static_configs:
+  #     - targets: ["postgres-exporter:9187"]
+
+  # Redis Exporter (optionnel)
+  # - job_name: "redis"
+  #   static_configs:
+  #     - targets: ["redis-exporter:9121"]

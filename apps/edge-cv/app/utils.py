@@ -1,0 +1,212 @@
+"""
+utils.py — Performance metrics utilities
+IAD & SmartQueue AI — Edge CV Service
+
+Provides:
+- FPS counter with rolling window
+- Latency tracker
+- CSV performance log exporter
+- Overlay drawing helpers (bounding boxes, HUD)
+"""
+
+from __future__ import annotations
+
+import csv
+import time
+from collections import deque
+from pathlib import Path
+
+import cv2
+import numpy as np
+
+try:
+    from app.detector import Detection
+except ImportError:
+    from detector import Detection
+
+
+# ---------------------------------------------------------------------------
+# FPS Counter
+# ---------------------------------------------------------------------------
+
+
+class FPSCounter:
+    """
+    Computes a rolling-average FPS using a fixed-size time deque.
+
+    Args:
+        window: Number of frames to include in the rolling average.
+    """
+
+    def __init__(self, window: int = 30) -> None:
+        if window < 1:
+            raise ValueError("FPS window must be >= 1")
+        self._times: deque[float] = deque(maxlen=window)
+
+    def tick(self) -> None:
+        """Record a frame timestamp."""
+        self._times.append(time.perf_counter())
+
+    @property
+    def fps(self) -> float:
+        """Current rolling-average FPS."""
+        if len(self._times) < 2:
+            return 0.0
+        elapsed = self._times[-1] - self._times[0]
+        return (len(self._times) - 1) / elapsed if elapsed > 0 else 0.0
+
+
+# ---------------------------------------------------------------------------
+# Latency Tracker
+# ---------------------------------------------------------------------------
+
+
+class LatencyTracker:
+    """
+    Tracks inference latency with a rolling average.
+
+    Args:
+        window: Number of samples to average.
+    """
+
+    def __init__(self, window: int = 30) -> None:
+        if window < 1:
+            raise ValueError("Latency window must be >= 1")
+        self._samples: deque[float] = deque(maxlen=window)
+
+    def record(self, latency_ms: float) -> None:
+        """Add a latency sample in milliseconds."""
+        self._samples.append(latency_ms)
+
+    @property
+    def average_ms(self) -> float:
+        """Rolling average latency in milliseconds."""
+        if not self._samples:
+            return 0.0
+        return float(np.mean(self._samples))
+
+    @property
+    def max_ms(self) -> float:
+        """Rolling maximum latency in milliseconds."""
+        if not self._samples:
+            return 0.0
+        return float(np.max(self._samples))
+
+
+# ---------------------------------------------------------------------------
+# CSV Performance Logger
+# ---------------------------------------------------------------------------
+
+
+class PerformanceLogger:
+    """
+    Logs per-frame performance metrics to a CSV file.
+
+    Args:
+        path: Output CSV file path.
+    """
+
+    HEADERS = ["timestamp", "fps", "latency_ms", "person_count"]
+
+    def __init__(self, path: str | Path) -> None:
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._file = self.path.open("w", newline="", encoding="utf-8")
+        self._writer = csv.DictWriter(self._file, fieldnames=self.HEADERS)
+        self._writer.writeheader()
+
+    def log(self, fps: float, latency_ms: float, person_count: int) -> None:
+        """Write one row of metrics."""
+        self._writer.writerow(
+            {
+                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S"),
+                "fps": f"{fps:.1f}",
+                "latency_ms": f"{latency_ms:.1f}",
+                "person_count": person_count,
+            }
+        )
+        self._file.flush()
+
+    def close(self) -> None:
+        self._file.close()
+
+    def __enter__(self) -> "PerformanceLogger":
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        self.close()
+
+
+# ---------------------------------------------------------------------------
+# Overlay drawing helpers
+# ---------------------------------------------------------------------------
+
+# Colour palette (BGR)
+COLOR_BOX = (0, 200, 0)        # Green bounding box
+COLOR_TEXT_BG = (0, 0, 0)     # Black background for text
+COLOR_TEXT = (255, 255, 255)   # White text
+COLOR_HUD_BG = (30, 30, 30)   # Dark HUD background
+COLOR_WARN = (0, 100, 255)     # Orange-red for high latency
+
+FONT = cv2.FONT_HERSHEY_SIMPLEX
+BOX_THICKNESS = 2
+TEXT_SCALE = 0.55
+TEXT_THICKNESS = 1
+
+
+def draw_detections(frame: cv2.typing.MatLike, detections: list[Detection]) -> None:
+    """
+    Draw green bounding boxes and confidence scores for each detection.
+    Mutates the frame in-place.
+    """
+    for det in detections:
+        # Bounding box
+        cv2.rectangle(frame, (det.x1, det.y1), (det.x2, det.y2), COLOR_BOX, BOX_THICKNESS)
+
+        # Label background
+        label = f"{det.label} {det.confidence:.0%}"
+        (tw, th), baseline = cv2.getTextSize(label, FONT, TEXT_SCALE, TEXT_THICKNESS)
+        lx, ly = det.x1, det.y1 - 4
+        cv2.rectangle(
+            frame,
+            (lx, ly - th - baseline),
+            (lx + tw + 2, ly + baseline),
+            COLOR_BOX,
+            cv2.FILLED,
+        )
+        cv2.putText(
+            frame, label, (lx + 1, ly), FONT, TEXT_SCALE, COLOR_TEXT_BG, TEXT_THICKNESS + 1
+        )
+        cv2.putText(frame, label, (lx + 1, ly), FONT, TEXT_SCALE, COLOR_TEXT, TEXT_THICKNESS)
+
+
+def draw_hud(
+    frame: cv2.typing.MatLike,
+    fps: float,
+    latency_ms: float,
+    person_count: int,
+) -> None:
+    """
+    Draw a semi-transparent HUD in the top-left corner with FPS, latency
+    and person count.  Mutates frame in-place.
+    """
+    lines = [
+        f"FPS     : {fps:5.1f}",
+        f"Latency : {latency_ms:5.1f} ms",
+        f"Persons : {person_count}",
+    ]
+
+    padding = 6
+    line_h = 22
+    hud_h = len(lines) * line_h + padding * 2
+    hud_w = 220
+
+    # Semi-transparent dark rectangle
+    overlay = frame.copy()
+    cv2.rectangle(overlay, (0, 0), (hud_w, hud_h), COLOR_HUD_BG, cv2.FILLED)
+    cv2.addWeighted(overlay, 0.6, frame, 0.4, 0, frame)
+
+    for i, line in enumerate(lines):
+        y = padding + (i + 1) * line_h
+        color = COLOR_WARN if (i == 1 and latency_ms > 200) else COLOR_TEXT
+        cv2.putText(frame, line, (padding, y), FONT, TEXT_SCALE, color, TEXT_THICKNESS, cv2.LINE_AA)

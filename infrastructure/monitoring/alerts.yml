@@ -1,0 +1,54 @@
+# =============================================================================
+# Prometheus — Règles d'alerting IAD & SmartQueue AI
+# =============================================================================
+
+groups:
+  - name: iad_infrastructure
+    interval: 30s
+    rules:
+      # Service down
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} est down"
+          description: "Le service {{ $labels.job }} ({{ $labels.instance }}) est inaccessible depuis plus d'1 minute."
+
+      # Haute utilisation CPU
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_seconds_total[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU élevé sur {{ $labels.job }}"
+          description: "Utilisation CPU > 80% pendant 5 minutes sur {{ $labels.job }}."
+
+  - name: iad_application
+    rules:
+      # Taux d'erreur HTTP élevé
+      - alert: HighErrorRate
+        expr: |
+          rate(http_requests_total{status=~"5.."}[5m]) /
+          rate(http_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Taux d'erreur HTTP élevé sur {{ $labels.job }}"
+          description: "Plus de 5% des requêtes retournent 5xx sur {{ $labels.job }}."
+
+      # Latence API élevée
+      - alert: HighAPILatency
+        expr: |
+          histogram_quantile(0.95,
+            rate(http_request_duration_seconds_bucket[5m])
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Latence API élevée sur {{ $labels.job }}"
+          description: "P95 latence > 1s sur {{ $labels.job }}."

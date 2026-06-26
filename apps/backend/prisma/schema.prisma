@@ -1,0 +1,143 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum DeviceType {
+  TOTEM
+  SCREEN
+  KIOSK
+  CAMERA
+}
+
+enum DeviceStatus {
+  ONLINE
+  OFFLINE
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  AGENT
+}
+
+enum TicketStatus {
+  WAITING
+  IN_PROGRESS
+  DONE
+  CANCELLED
+}
+
+enum MLModelType {
+  IAD
+  SMARTQUEUE
+}
+
+model Site {
+  id             String          @id @default(uuid()) @db.Uuid
+  name           String
+  address        String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  devices        Device[]
+  tickets        Ticket[]
+  audienceEvents AudienceEvent[]
+  users          User[]
+
+  @@map("sites")
+}
+
+model Device {
+  id             String          @id @default(uuid()) @db.Uuid
+  siteId         String          @db.Uuid
+  site           Site            @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  type           DeviceType
+  status         DeviceStatus    @default(OFFLINE)
+  createdAt      DateTime        @default(now())
+  audienceEvents AudienceEvent[]
+
+  @@index([siteId])
+  @@map("devices")
+}
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  password  String
+  role      UserRole @default(AGENT)
+  siteId    String?  @db.Uuid
+  site      Site?    @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([siteId])
+  @@map("users")
+}
+
+model Campaign {
+  id             String   @id @default(uuid()) @db.Uuid
+  name           String
+  mediaUrl       String
+  targetAudience Json
+  priority       String   @default("standard")
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("campaigns")
+}
+
+model AudienceEvent {
+  id           String   @default(uuid()) @db.Uuid
+  siteId       String   @db.Uuid
+  site         Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  deviceId     String   @db.Uuid
+  device       Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  timestamp    DateTime
+  peopleCount  Int
+  densityScore Float
+  avgDwellTime Float
+  youngCount   Int
+  adultCount   Int
+  seniorCount  Int
+
+  // Composite primary key including timestamp is required for TimescaleDB hypertables
+  @@id([id, timestamp])
+  @@index([siteId])
+  @@index([deviceId])
+  @@index([timestamp])
+  @@map("audience_events")
+}
+
+model Ticket {
+  id                   String       @id @default(uuid()) @db.Uuid
+  siteId               String       @db.Uuid
+  site                 Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  ticketNumber         String
+  serviceType          String
+  status               TicketStatus @default(WAITING)
+  createdAt            DateTime     @default(now())
+  calledAt             DateTime?
+  finishedAt           DateTime?
+  estimatedWaitMinutes Int
+
+  @@index([siteId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("tickets")
+}
+
+model MLModel {
+  id        String      @id @default(uuid()) @db.Uuid
+  type      MLModelType
+  version   String
+  mae       Float
+  active    Boolean     @default(true)
+  trainedAt DateTime    @default(now())
+
+  @@map("ml_models")
+}
