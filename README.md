@@ -316,4 +316,4 @@ ci:       Pipeline CI/CD
 
 ## 📄 Licence
 
-MIT © Express Display 2024–2025
+MIT © Express Display 2025–2026
