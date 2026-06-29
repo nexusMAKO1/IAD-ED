@@ -1,0 +1,35 @@
+/**
+ * logging.interceptor.ts — Request Logging Interceptor
+ * IAD & SmartQueue AI — Express Display SmartVision (T-012)
+ *
+ * Logs incoming requests and their response times for observability.
+ */
+
+import {
+  CallHandler,
+  ExecutionContext,
+  Injectable,
+  Logger,
+  NestInterceptor,
+} from '@nestjs/common';
+import { Request } from 'express';
+import { Observable } from 'rxjs';
+import { tap } from 'rxjs/operators';
+
+@Injectable()
+export class LoggingInterceptor implements NestInterceptor {
+  private readonly logger = new Logger('HTTP');
+
+  intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
+    const request = context.switchToHttp().getRequest<Request>();
+    const { method, url } = request;
+    const start = Date.now();
+
+    return next.handle().pipe(
+      tap(() => {
+        const duration = Date.now() - start;
+        this.logger.log(`${method} ${url} → ${duration}ms`);
+      }),
+    );
+  }
+}

@@ -1,0 +1,3 @@
+"""
+Media module package.
+"""

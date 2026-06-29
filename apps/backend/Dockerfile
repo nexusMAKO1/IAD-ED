@@ -17,12 +17,8 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
-# Install pnpm (faster than npm for monorepos)
-RUN corepack enable && corepack prepare pnpm@9 --activate
-
 # Copy dependency manifests
 COPY package*.json ./
-COPY pnpm-lock.yaml* ./
 
 # ---------------------------------------------------------------------------
 # Stage 2: Development (hot reload + Prisma client generation)
@@ -31,7 +27,7 @@ FROM base AS development
 
 ENV NODE_ENV=development
 
-RUN pnpm install
+RUN npm ci --legacy-peer-deps
 
 COPY . .
 
@@ -40,11 +36,11 @@ RUN npx prisma generate
 
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
-  CMD curl -f http://localhost:3000/health || exit 1
+# Health check — uses the versioned API endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=5 \
+  CMD curl -f http://localhost:3000/api/v1/health || exit 1
 
-CMD ["pnpm", "run", "start:dev"]
+CMD ["npm", "run", "start:dev"]
 
 # ---------------------------------------------------------------------------
 # Stage 3: Build for production
@@ -53,12 +49,12 @@ FROM base AS builder
 
 ENV NODE_ENV=production
 
-RUN pnpm install --prod=false
+RUN npm ci --legacy-peer-deps
 
 COPY . .
 
 RUN npx prisma generate
-RUN pnpm run build
+RUN npm run build
 
 # ---------------------------------------------------------------------------
 # Stage 4: Production image (minimal footprint)
@@ -84,7 +80,7 @@ USER nestjs
 
 EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=5 \
-  CMD curl -f http://localhost:3000/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=5 \
+  CMD curl -f http://localhost:3000/api/v1/health || exit 1
 
 CMD ["node", "dist/main.js"]
