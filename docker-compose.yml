@@ -302,6 +302,54 @@ services:
       - iad_core
 
   # -------------------------------------------------------------------------
+  # Monitoring Exporters
+  # -------------------------------------------------------------------------
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter
+    container_name: iad_postgres_exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+    ports:
+      - "9187:9187"
+    depends_on:
+      - postgres
+    networks:
+      - iad_core
+      - iad_monitoring
+
+  redis-exporter:
+    image: oliver006/redis_exporter
+    container_name: iad_redis_exporter
+    restart: unless-stopped
+    command:
+      - '-redis.addr=redis://redis:6379'
+      - '-redis.password=${REDIS_PASSWORD}'
+    ports:
+      - "9121:9121"
+    depends_on:
+      - redis
+    networks:
+      - iad_core
+      - iad_monitoring
+
+  mosquitto-exporter:
+    image: sapcc/mosquitto-exporter
+    container_name: iad_mosquitto_exporter
+    restart: unless-stopped
+    environment:
+      MQTT_ENDPOINT: tcp://mosquitto:1883
+      MQTT_USER: ${MQTT_USER}
+      MQTT_PASS: ${MQTT_PASSWORD}
+    ports:
+      - "9234:9234"
+    depends_on:
+      - mosquitto
+    networks:
+      - iad_core
+      - iad_monitoring
+
+  # -------------------------------------------------------------------------
   # Prometheus (Metrics Scraping)
   # -------------------------------------------------------------------------
   prometheus:

@@ -142,11 +142,11 @@ class PerformanceLogger:
 # ---------------------------------------------------------------------------
 
 # Colour palette (BGR)
-COLOR_BOX = (0, 200, 0)        # Green bounding box
-COLOR_TEXT_BG = (0, 0, 0)     # Black background for text
-COLOR_TEXT = (255, 255, 255)   # White text
-COLOR_HUD_BG = (30, 30, 30)   # Dark HUD background
-COLOR_WARN = (0, 100, 255)     # Orange-red for high latency
+COLOR_BOX = (0, 200, 0)  # Green bounding box
+COLOR_TEXT_BG = (0, 0, 0)  # Black background for text
+COLOR_TEXT = (255, 255, 255)  # White text
+COLOR_HUD_BG = (30, 30, 30)  # Dark HUD background
+COLOR_WARN = (0, 100, 255)  # Orange-red for high latency
 
 FONT = cv2.FONT_HERSHEY_SIMPLEX
 BOX_THICKNESS = 2
@@ -161,7 +161,9 @@ def draw_detections(frame: cv2.typing.MatLike, detections: list[Detection]) -> N
     """
     for det in detections:
         # Bounding box
-        cv2.rectangle(frame, (det.x1, det.y1), (det.x2, det.y2), COLOR_BOX, BOX_THICKNESS)
+        cv2.rectangle(
+            frame, (det.x1, det.y1), (det.x2, det.y2), COLOR_BOX, BOX_THICKNESS
+        )
 
         # Label background
         label = f"{det.label} {det.confidence:.0%}"
@@ -175,9 +177,17 @@ def draw_detections(frame: cv2.typing.MatLike, detections: list[Detection]) -> N
             cv2.FILLED,
         )
         cv2.putText(
-            frame, label, (lx + 1, ly), FONT, TEXT_SCALE, COLOR_TEXT_BG, TEXT_THICKNESS + 1
+            frame,
+            label,
+            (lx + 1, ly),
+            FONT,
+            TEXT_SCALE,
+            COLOR_TEXT_BG,
+            TEXT_THICKNESS + 1,
         )
-        cv2.putText(frame, label, (lx + 1, ly), FONT, TEXT_SCALE, COLOR_TEXT, TEXT_THICKNESS)
+        cv2.putText(
+            frame, label, (lx + 1, ly), FONT, TEXT_SCALE, COLOR_TEXT, TEXT_THICKNESS
+        )
 
 
 def draw_hud(
@@ -209,4 +219,13 @@ def draw_hud(
     for i, line in enumerate(lines):
         y = padding + (i + 1) * line_h
         color = COLOR_WARN if (i == 1 and latency_ms > 200) else COLOR_TEXT
-        cv2.putText(frame, line, (padding, y), FONT, TEXT_SCALE, color, TEXT_THICKNESS, cv2.LINE_AA)
+        cv2.putText(
+            frame,
+            line,
+            (padding, y),
+            FONT,
+            TEXT_SCALE,
+            color,
+            TEXT_THICKNESS,
+            cv2.LINE_AA,
+        )

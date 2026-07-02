@@ -25,6 +25,14 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 
+import { Counter } from 'prom-client';
+
+const authAttempts = new Counter({
+  name: 'auth_attempts_total',
+  help: 'Total authentication attempts',
+  labelNames: ['status'],
+});
+
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
@@ -36,7 +44,14 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+    try {
+      const result = await this.authService.login(loginDto);
+      authAttempts.labels('success').inc();
+      return result;
+    } catch (error) {
+      authAttempts.labels('failure').inc();
+      throw error;
+    }
   }
 
   @Post('refresh')

@@ -14,6 +14,10 @@ import { PrismaModule } from './prisma/prisma.module';
 import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { MetricsInterceptor } from './common/metrics/metrics.interceptor';
+import { MetricsController } from './common/metrics/metrics.controller';
 
 @Module({
   imports: [
@@ -25,6 +29,14 @@ import { UsersModule } from './users/users.module';
       envFilePath: ['.env'],
     }),
 
+    // Monitoring
+    PrometheusModule.register({
+      defaultMetrics: {
+        enabled: true,
+      },
+      defaultController: false,
+    }),
+
     // Core Services
     PrismaModule,
     HealthModule,
@@ -32,6 +44,15 @@ import { UsersModule } from './users/users.module';
     // Auth & User Domains
     AuthModule,
     UsersModule,
+  ],
+  controllers: [
+    MetricsController,
+  ],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: MetricsInterceptor,
+    },
   ],
 })
 export class AppModule {}

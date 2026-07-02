@@ -38,8 +38,8 @@ class AppSettings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
-        extra="ignore",             # Ignore unknown env-vars from docker-compose
-        protected_namespaces=(),    # Allow field names starting with "model_"
+        extra="ignore",  # Ignore unknown env-vars from docker-compose
+        protected_namespaces=(),  # Allow field names starting with "model_"
     )
 
     # ------------------------------------------------------------------ #

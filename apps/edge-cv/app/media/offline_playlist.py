@@ -31,28 +31,34 @@ SUPPORTED_EXTENSIONS = {".mp4", ".webm", ".jpg", ".jpeg", ".png"}
 # Exceptions
 # ---------------------------------------------------------------------------
 
+
 class PlaylistManagerError(Exception):
     """Base exception for all playlist manager errors."""
+
     pass
 
 
 class InvalidPlaylistError(PlaylistManagerError):
     """Raised when a playlist fails Pydantic validation or logic checks."""
+
     pass
 
 
 class InvalidMediaError(PlaylistManagerError):
     """Raised when a media file has an unsupported format or is corrupted."""
+
     pass
 
 
 class DownloadError(PlaylistManagerError):
     """Raised when downloading a media asset fails after retries."""
+
     pass
 
 
 class StorageError(PlaylistManagerError):
     """Raised when there is insufficient disk space to save media."""
+
     pass
 
 
@@ -60,8 +66,10 @@ class StorageError(PlaylistManagerError):
 # Pydantic Models
 # ---------------------------------------------------------------------------
 
+
 class MediaItem(BaseModel):
     """Represents a single media asset inside a playlist."""
+
     filename: str
     duration: int = Field(gt=0, description="Duration in seconds")
     type: str = Field(pattern="^(video|image)$", description="Type of media asset")
@@ -71,12 +79,15 @@ class MediaItem(BaseModel):
     def validate_filename(cls, v: str) -> str:
         ext = Path(v).suffix.lower()
         if ext not in SUPPORTED_EXTENSIONS:
-            raise ValueError(f"Unsupported media extension '{ext}'. Supported: {SUPPORTED_EXTENSIONS}")
+            raise ValueError(
+                f"Unsupported media extension '{ext}'. Supported: {SUPPORTED_EXTENSIONS}"
+            )
         return v
 
 
 class Playlist(BaseModel):
     """Represents a signage playlist model containing campaign scheduling & media."""
+
     id: str
     name: str
     campaign_id: str
@@ -100,6 +111,7 @@ class Playlist(BaseModel):
 # Offline Playlist Manager
 # ---------------------------------------------------------------------------
 
+
 class OfflinePlaylistManager:
     """
     Manages offline campaigns and signage media assets.
@@ -112,7 +124,7 @@ class OfflinePlaylistManager:
         self,
         base_dir: str | Path = "data/media",
         max_cache_size_bytes: int = 500 * 1024 * 1024,  # 500 MB
-        min_free_space_bytes: int = 100 * 1024 * 1024,   # 100 MB
+        min_free_space_bytes: int = 100 * 1024 * 1024,  # 100 MB
         connection_timeout_seconds: float = 10.0,
     ) -> None:
         """
@@ -142,7 +154,9 @@ class OfflinePlaylistManager:
 
         # State trackers
         self.online_mode: bool = True
-        self.current_playback_index: Dict[str, int] = {}  # Tracks next item index per playlist
+        self.current_playback_index: Dict[
+            str, int
+        ] = {}  # Tracks next item index per playlist
 
         self.initialize()
 
@@ -155,7 +169,9 @@ class OfflinePlaylistManager:
             self.cache_dir.mkdir(parents=True, exist_ok=True)
             log.info("Initialized directory structure under: %s", self.base_dir)
         except Exception as exc:
-            raise StorageError(f"Failed to initialize directory structure: {exc}") from exc
+            raise StorageError(
+                f"Failed to initialize directory structure: {exc}"
+            ) from exc
 
     # ------------------------------------------------------------------ #
     # Connection States
@@ -192,7 +208,9 @@ class OfflinePlaylistManager:
         """
         path = self.get_playlist_path(playlist.id)
         if path.exists():
-            raise PlaylistManagerError(f"Playlist with ID '{playlist.id}' already exists.")
+            raise PlaylistManagerError(
+                f"Playlist with ID '{playlist.id}' already exists."
+            )
 
         try:
             path.write_text(playlist.model_dump_json(indent=4), encoding="utf-8")
@@ -218,7 +236,9 @@ class OfflinePlaylistManager:
             content = path.read_text(encoding="utf-8")
             return Playlist.model_validate_json(content)
         except Exception as exc:
-            raise InvalidPlaylistError(f"Corrupted or invalid playlist file '{playlist_id}': {exc}") from exc
+            raise InvalidPlaylistError(
+                f"Corrupted or invalid playlist file '{playlist_id}': {exc}"
+            ) from exc
 
     def update_playlist(self, playlist: Playlist) -> Playlist:
         """
@@ -231,7 +251,9 @@ class OfflinePlaylistManager:
         """
         path = self.get_playlist_path(playlist.id)
         if not path.exists():
-            raise PlaylistManagerError(f"Playlist with ID '{playlist.id}' does not exist.")
+            raise PlaylistManagerError(
+                f"Playlist with ID '{playlist.id}' does not exist."
+            )
 
         try:
             path.write_text(playlist.model_dump_json(indent=4), encoding="utf-8")
@@ -244,7 +266,9 @@ class OfflinePlaylistManager:
         """Delete a playlist from storage."""
         path = self.get_playlist_path(playlist_id)
         if not path.exists():
-            raise PlaylistManagerError(f"Playlist with ID '{playlist_id}' does not exist.")
+            raise PlaylistManagerError(
+                f"Playlist with ID '{playlist_id}' does not exist."
+            )
 
         try:
             path.unlink()
@@ -326,11 +350,14 @@ class OfflinePlaylistManager:
             idx = 0
 
         media_item = playlist.media[idx]
-        
+
         # Verify media file exists locally
         local_path = self.get_media_dest_path(media_item.filename)
         if not local_path.exists():
-            log.warning("Media file '%s' is missing locally. Playback degraded.", media_item.filename)
+            log.warning(
+                "Media file '%s' is missing locally. Playback degraded.",
+                media_item.filename,
+            )
             # Find first available fallback media
             for i, item in enumerate(playlist.media):
                 if self.get_media_dest_path(item.filename).exists():
@@ -418,7 +445,7 @@ class OfflinePlaylistManager:
             Multiplier for sleep duration between retries.
         """
         dest_path = self.get_media_dest_path(filename)
-        
+
         # Check storage space first
         total, used, free = shutil.disk_usage(self.base_dir)
         if free < self.min_free_space:
@@ -437,48 +464,52 @@ class OfflinePlaylistManager:
 
         # Download to a temp file in the cache directory first
         temp_path = self.cache_dir / f"{filename}.tmp"
-        
+
         log.info("Downloading media from %s", url)
-        
+
         # Sync HTTP Client with retries
         for attempt in range(1, retries + 1):
             try:
                 with httpx.Client(timeout=self.timeout) as client:
                     with client.stream("GET", url) as response:
                         if response.status_code != 200:
-                            raise DownloadError(f"HTTP error response code {response.status_code}")
-                        
+                            raise DownloadError(
+                                f"HTTP error response code {response.status_code}"
+                            )
+
                         # Write stream to temp file
                         with open(temp_path, "wb") as f:
                             for chunk in response.iter_bytes(chunk_size=8192):
                                 f.write(chunk)
-                
+
                 # Validate the downloaded file integrity
                 if not self.validate_media(temp_path):
                     raise InvalidMediaError("Downloaded file is invalid or corrupted.")
-                
+
                 # Move to final destination
                 shutil.move(str(temp_path), str(dest_path))
-                
+
                 # Track cache access
                 cache_track_path = self.cache_dir / f"{filename}.access"
                 cache_track_path.touch(exist_ok=True)
 
                 log.info("Successfully downloaded media: %s", filename)
-                
+
                 # Check cache size and run eviction if necessary
                 self._maintain_cache()
-                
+
                 return str(dest_path)
 
             except Exception as exc:
                 log.warning("Attempt %d failed to download %s: %s", attempt, url, exc)
                 if temp_path.exists():
                     temp_path.unlink()
-                
+
                 if attempt == retries:
-                    raise DownloadError(f"Failed to download media after {retries} attempts: {exc}") from exc
-                
+                    raise DownloadError(
+                        f"Failed to download media after {retries} attempts: {exc}"
+                    ) from exc
+
                 # Backoff sleep
                 time.sleep(backoff_factor * attempt)
 
@@ -491,15 +522,21 @@ class OfflinePlaylistManager:
     def _maintain_cache(self) -> None:
         """Evicts cache entries using LRU strategy if max size exceeded."""
         # Calculate total size of media stored
-        media_files: List[Tuple[Path, float, int]] = []  # List of (filepath, access_time, size)
-        
+        media_files: List[
+            Tuple[Path, float, int]
+        ] = []  # List of (filepath, access_time, size)
+
         # Aggregate videos and images
         for directory in (self.videos_dir, self.images_dir):
             for file in directory.glob("*"):
                 if file.is_file() and file.suffix.lower() in SUPPORTED_EXTENSIONS:
                     # Retrieve access track file
                     access_track = self.cache_dir / f"{file.name}.access"
-                    access_time = access_track.stat().st_mtime if access_track.exists() else file.stat().st_mtime
+                    access_time = (
+                        access_track.stat().st_mtime
+                        if access_track.exists()
+                        else file.stat().st_mtime
+                    )
                     size = file.stat().st_size
                     media_files.append((file, access_time, size))
 
@@ -507,7 +544,9 @@ class OfflinePlaylistManager:
         if total_size <= self.max_cache_size:
             return
 
-        log.info("Cache limit exceeded (%d bytes). Triggering LRU cleanup...", total_size)
+        log.info(
+            "Cache limit exceeded (%d bytes). Triggering LRU cleanup...", total_size
+        )
 
         # Sort by access time ascending (oldest first)
         media_files.sort(key=lambda f: f[1])
@@ -517,17 +556,17 @@ class OfflinePlaylistManager:
             # Do not delete files belonging to active playlists
             if self._is_file_in_active_playlists(file.name):
                 continue
-            
+
             try:
                 file.unlink()
                 # Remove access tracking file
                 access_track = self.cache_dir / f"{file.name}.access"
                 if access_track.exists():
                     access_track.unlink()
-                
+
                 total_size -= size
                 log.info("LRU Eviction: Deleted cached media '%s'", file.name)
-                
+
                 if total_size <= self.max_cache_size:
                     break
             except Exception as exc:
@@ -552,7 +591,7 @@ class OfflinePlaylistManager:
                 referenced_files.add(m.filename)
 
         log.info("Scanning for obsolete media files...")
-        
+
         # Delete unreferenced videos and images
         for directory in (self.videos_dir, self.images_dir):
             for file in directory.glob("*"):
@@ -565,7 +604,9 @@ class OfflinePlaylistManager:
                             access_track.unlink()
                         log.info("Cleaned obsolete media file: %s", file.name)
                     except Exception as exc:
-                        log.error("Failed to delete obsolete file '%s': %s", file.name, exc)
+                        log.error(
+                            "Failed to delete obsolete file '%s': %s", file.name, exc
+                        )
 
     # ------------------------------------------------------------------ #
     # Synchronization Interface
@@ -622,7 +663,9 @@ class OfflinePlaylistManager:
                     try:
                         self.download_media(url, filename)
                     except Exception as exc:
-                        log.error("Sync: Failed to download media '%s': %s", filename, exc)
+                        log.error(
+                            "Sync: Failed to download media '%s': %s", filename, exc
+                        )
                 else:
                     log.warning("Sync: Missing URL for media asset '%s'", filename)
 

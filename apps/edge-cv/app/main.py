@@ -41,8 +41,9 @@ import numpy as np
 import psutil
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
+from prometheus_client import Gauge, Counter, Histogram
 
 # ---------------------------------------------------------------------------
 # Internal imports — support both "uvicorn app.main:app" and "python main.py"
@@ -53,12 +54,14 @@ try:
     from app.services.camera_manager import CameraManager
     from app.services.mqtt_client import MQTTClient
     from app.demographics.age_estimation import AgeEstimator
+    from app.tracking.bytetrack import ByteTracker
 except ImportError:
     from config import settings  # type: ignore[no-redef]
     from detector import DetectionResult, PersonDetector  # type: ignore[no-redef]
     from services.camera_manager import CameraManager  # type: ignore[no-redef]
     from services.mqtt_client import MQTTClient  # type: ignore[no-redef]
     from demographics.age_estimation import AgeEstimator  # type: ignore[no-redef]
+    from tracking.bytetrack import ByteTracker  # type: ignore[no-redef]
 
 # ---------------------------------------------------------------------------
 # Logging — structured, level driven by LOG_LEVEL env-var
@@ -78,6 +81,7 @@ log = logging.getLogger("iad.edge-cv")
 _detector: PersonDetector | None = None
 _model_loaded: bool = False
 _age_estimator: AgeEstimator | None = None
+_tracker: ByteTracker | None = None
 _camera_manager: CameraManager = CameraManager(source=settings.camera_source)
 _mqtt_client: MQTTClient = MQTTClient(
     host=settings.mqtt_host,
@@ -99,10 +103,35 @@ _last_inference_ms: float = 0.0
 # ---------------------------------------------------------------------------
 _SERVICE_ID: str = socket.gethostname()
 
+# ---------------------------------------------------------------------------
+# Custom Prometheus Metrics
+# ---------------------------------------------------------------------------
+cv_fps_gauge = Gauge("edge_cv_fps", "Current estimated frames per second")
+cv_yolo_latency_hist = Histogram(
+    "edge_cv_yolo_latency_seconds", "YOLOv8 inference latency"
+)
+cv_processing_latency_hist = Histogram(
+    "edge_cv_processing_latency_seconds", "Total frame processing latency"
+)
+cv_people_detected_gauge = Gauge(
+    "edge_cv_people_detected", "Number of people detected by YOLO"
+)
+cv_tracked_ids_gauge = Gauge("edge_cv_tracked_ids", "Number of active tracking IDs")
+cv_dropped_frames_counter = Counter(
+    "edge_cv_dropped_frames_total", "Total dropped or failed frames"
+)
+cv_camera_status_gauge = Gauge(
+    "edge_cv_camera_status", "Camera online status (1=online, 0=offline)"
+)
+cv_mqtt_published_counter = Counter(
+    "edge_cv_mqtt_published_total", "Total MQTT messages published"
+)
+
 
 # ===========================================================================
 # Lifespan — initialises all services before the first request is served
 # ===========================================================================
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):  # noqa: ANN001
@@ -156,9 +185,11 @@ async def lifespan(app: FastAPI):  # noqa: ANN001
     if settings.model_skip_load:
         # In CI / test mode skip hardware probe; camera reported as offline
         log.info("Camera probe skipped (MODEL_SKIP_LOAD mode).")
+        cv_camera_status_gauge.set(0)
     else:
         log.info("Probing camera source: %s", settings.camera_source)
         _camera_manager.probe()
+        cv_camera_status_gauge.set(1 if _camera_manager.is_online else 0)
 
     # ------------------------------------------------------------------
     # 2.5. Age estimator
@@ -167,9 +198,21 @@ async def lifespan(app: FastAPI):  # noqa: ANN001
     _age_estimator = AgeEstimator()
 
     # ------------------------------------------------------------------
+    # 2.6. Multi-Object Tracker (ByteTrack)
+    # ------------------------------------------------------------------
+    log.info("Initializing ByteTrack multi-object tracker...")
+    try:
+        _tracker = ByteTracker()
+    except Exception as exc:
+        log.error("Failed to initialize tracker: %s", exc)
+        _tracker = None
+
+    # ------------------------------------------------------------------
     # 3. MQTT client
     # ------------------------------------------------------------------
-    log.info("Connecting to MQTT broker at %s:%s …", settings.mqtt_host, settings.mqtt_port)
+    log.info(
+        "Connecting to MQTT broker at %s:%s …", settings.mqtt_host, settings.mqtt_port
+    )
     mqtt_ok = _mqtt_client.connect()
     if mqtt_ok:
         log.info("MQTT connected successfully.")
@@ -198,6 +241,7 @@ async def lifespan(app: FastAPI):  # noqa: ANN001
     _detector = None
     _model_loaded = False
     _age_estimator = None
+    _tracker = None
     log.info("=== Shutdown complete ===")
 
 
@@ -243,6 +287,7 @@ Instrumentator(
 # Global exception handler
 # ===========================================================================
 
+
 @app.exception_handler(Exception)
 async def _global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
     """
@@ -270,6 +315,7 @@ async def _global_exception_handler(request: Request, exc: Exception) -> JSONRes
 # ===========================================================================
 # Helper utilities
 # ===========================================================================
+
 
 def _uptime_str() -> str:
     """Return a human-readable uptime string (e.g. '0d 02h 15m 33s')."""
@@ -306,6 +352,7 @@ def _cpu_usage_percent() -> float:
 # GET /
 # ---------------------------------------------------------------------------
 
+
 @app.get(
     "/",
     summary="Root",
@@ -331,6 +378,7 @@ async def root() -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 # GET /health
 # ---------------------------------------------------------------------------
+
 
 @app.get(
     "/health",
@@ -374,6 +422,7 @@ async def health() -> dict[str, Any]:
 # GET /status
 # ---------------------------------------------------------------------------
 
+
 @app.get(
     "/status",
     summary="Runtime status",
@@ -415,6 +464,7 @@ async def status() -> dict[str, Any]:
 # *additional* JSON endpoint that returns the same core metrics in a
 # human-readable format for dashboards / debugging.
 
+
 @app.get(
     "/metrics/json",
     summary="JSON metrics",
@@ -434,7 +484,7 @@ async def metrics_json() -> dict[str, Any]:
     return {
         "service": settings.service_name,
         "uptime_seconds": round(elapsed, 1),
-        "fps": 0.0,          # populated by a future streaming loop
+        "fps": 0.0,  # populated by a future streaming loop
         "detections_total": _total_detections,
         "inference_ms": round(_last_inference_ms, 2),
         "memory_bytes": mem_bytes,
@@ -451,13 +501,16 @@ async def metrics_json() -> dict[str, Any]:
 # POST /detect
 # ---------------------------------------------------------------------------
 
+
 @app.post(
     "/detect",
     summary="Run YOLO inference on an uploaded image",
     tags=["Detection"],
     response_description="Bounding boxes, confidence scores, and timing",
 )
-async def detect(file: UploadFile = File(..., description="Image file (JPEG, PNG, BMP)")) -> dict[str, Any]:
+async def detect(
+    file: UploadFile = File(..., description="Image file (JPEG, PNG, BMP)"),
+) -> dict[str, Any]:
     """
     Run YOLOv8 person detection on an uploaded image.
 
@@ -541,7 +594,10 @@ async def detect(file: UploadFile = File(..., description="Image file (JPEG, PNG
         log.error("Failed to read uploaded file: %s", exc)
         raise HTTPException(
             status_code=400,
-            detail={"error": "file_read_error", "message": "Could not read the uploaded file."},
+            detail={
+                "error": "file_read_error",
+                "message": "Could not read the uploaded file.",
+            },
         ) from exc
 
     if not contents:
@@ -555,6 +611,7 @@ async def detect(file: UploadFile = File(..., description="Image file (JPEG, PNG
     frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
 
     if frame is None:
+        cv_dropped_frames_counter.inc()
         raise HTTPException(
             status_code=400,
             detail={
@@ -572,7 +629,10 @@ async def detect(file: UploadFile = File(..., description="Image file (JPEG, PNG
     try:
         assert _detector is not None  # guaranteed by _model_loaded guard above
         result: DetectionResult = _detector.detect(frame)
+        cv_yolo_latency_hist.observe(result.inference_ms / 1000.0)
+        cv_people_detected_gauge.set(result.person_count)
     except Exception as exc:
+        cv_dropped_frames_counter.inc()
         log.error("YOLO inference failed: %s", exc, exc_info=True)
         raise HTTPException(
             status_code=500,
@@ -583,9 +643,26 @@ async def detect(file: UploadFile = File(..., description="Image file (JPEG, PNG
         ) from exc
 
     # ------------------------------------------------------------------ #
+    # Tracker update
+    # ------------------------------------------------------------------ #
+    try:
+        assert _tracker is not None
+        raw_input = [
+            {"bbox": [d.x1, d.y1, d.x2, d.y2], "confidence": d.confidence}
+            for d in result.detections
+        ]
+        h, w = frame.shape[:2]
+        tracked_people = _tracker.update(raw_input, frame_h=h, frame_w=w)
+    except Exception as exc:
+        log.warning("Tracker failed: %s", exc)
+        tracked_people = []
+
+    person_count = len(tracked_people)
+
+    # ------------------------------------------------------------------ #
     # Update rolling metrics
     # ------------------------------------------------------------------ #
-    _total_detections += result.person_count
+    _total_detections += person_count
     _last_inference_ms = result.inference_ms
 
     # ------------------------------------------------------------------ #
@@ -594,14 +671,18 @@ async def detect(file: UploadFile = File(..., description="Image file (JPEG, PNG
     t_end = time.perf_counter()
     processing_ms = (t_end - t_start) * 1000.0
 
+    cv_processing_latency_hist.observe(processing_ms / 1000.0)
+    cv_tracked_ids_gauge.set(person_count)
+    if processing_ms > 0:
+        cv_fps_gauge.set(1000.0 / processing_ms)
+
     detections_list = []
-    if result.detections:
+    if tracked_people:
         # Prepare list for age estimator
         raw_detections = [
-            {"bbox": [d.x1, d.y1, d.x2, d.y2], "confidence": d.confidence}
-            for d in result.detections
+            {"bbox": p.bbox, "confidence": p.confidence} for p in tracked_people
         ]
-        
+
         # Estimate age for each detected person
         try:
             assert _age_estimator is not None
@@ -609,16 +690,17 @@ async def detect(file: UploadFile = File(..., description="Image file (JPEG, PNG
         except Exception as exc:
             log.warning("Age estimation failed: %s", exc)
             age_results = []
-            
-        for i, d in enumerate(result.detections):
+
+        for i, p in enumerate(tracked_people):
             det_info = {
-                "x1": d.x1,
-                "y1": d.y1,
-                "x2": d.x2,
-                "y2": d.y2,
-                "confidence": round(d.confidence, 4),
-                "class_id": d.class_id,
-                "label": d.label,
+                "track_id": p.track_id,
+                "x1": p.bbox[0],
+                "y1": p.bbox[1],
+                "x2": p.bbox[2],
+                "y2": p.bbox[3],
+                "confidence": round(p.confidence, 4),
+                "class_id": 0,
+                "label": p.class_name,
             }
             # Merge age estimation results if available
             if i < len(age_results):
@@ -629,18 +711,19 @@ async def detect(file: UploadFile = File(..., description="Image file (JPEG, PNG
 
     log.debug(
         "Detect: %d person(s) | inference=%.1f ms | processing=%.1f ms",
-        result.person_count,
+        person_count,
         result.inference_ms,
         processing_ms,
     )
 
     # Optionally publish to MQTT (fire-and-forget; failure is silent)
-    if _mqtt_client.is_connected and result.person_count > 0:
+    if _mqtt_client.is_connected and person_count > 0:
+        cv_mqtt_published_counter.inc()
         _mqtt_client.publish_audience_event(
             {
                 "device_id": _SERVICE_ID,
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-                "person_count": result.person_count,
+                "person_count": person_count,
                 "inference_ms": round(result.inference_ms, 2),
             }
         )
@@ -648,7 +731,7 @@ async def detect(file: UploadFile = File(..., description="Image file (JPEG, PNG
     return {
         "detections": detections_list,
         "inference_ms": round(result.inference_ms, 2),
-        "person_count": result.person_count,
+        "person_count": person_count,
         "processing_ms": round(processing_ms, 2),
     }
 
@@ -658,6 +741,7 @@ async def detect(file: UploadFile = File(..., description="Image file (JPEG, PNG
 # POC script.  When invoked directly (python main.py), the CLI loop from the
 # original implementation runs.  When imported by uvicorn, only `app` is used.
 # ===========================================================================
+
 
 def _cli_main() -> None:  # pragma: no cover
     """
@@ -672,14 +756,30 @@ def _cli_main() -> None:  # pragma: no cover
     import sys
 
     try:
-        from app.utils import FPSCounter, LatencyTracker, PerformanceLogger, draw_detections, draw_hud
+        from app.utils import (
+            FPSCounter,
+            LatencyTracker,
+            PerformanceLogger,
+            draw_detections,
+            draw_hud,
+        )
         from app.video_stream import VideoStream
     except ImportError:
-        from utils import FPSCounter, LatencyTracker, PerformanceLogger, draw_detections, draw_hud  # type: ignore[no-redef]
+        from utils import (
+            FPSCounter,
+            LatencyTracker,
+            PerformanceLogger,
+            draw_detections,
+            draw_hud,
+        )  # type: ignore[no-redef]
         from video_stream import VideoStream  # type: ignore[no-redef]
 
-    parser = argparse.ArgumentParser(description="IAD Edge-CV — Real-Time Person Detection (CLI)")
-    parser.add_argument("--source", default=0, help="Video source (int index, file path, RTSP URL)")
+    parser = argparse.ArgumentParser(
+        description="IAD Edge-CV — Real-Time Person Detection (CLI)"
+    )
+    parser.add_argument(
+        "--source", default=0, help="Video source (int index, file path, RTSP URL)"
+    )
     parser.add_argument("--model", default="yolov8n.pt")
     parser.add_argument("--conf", type=float, default=0.40)
     parser.add_argument("--device", default="")
@@ -724,7 +824,9 @@ def _cli_main() -> None:  # pragma: no cover
     frame_count = 0
 
     try:
-        stream = VideoStream(source=source, width=args.width, height=args.height).start()
+        stream = VideoStream(
+            source=source, width=args.width, height=args.height
+        ).start()
     except (RuntimeError, ValueError) as exc:
         log.error("Cannot open video source: %s", exc)
         sys.exit(1)
@@ -733,6 +835,7 @@ def _cli_main() -> None:  # pragma: no cover
 
     try:
         import time as _time
+
         while not _shutdown:
             ret, frame = stream.read()
             if not ret or frame is None:
@@ -747,15 +850,29 @@ def _cli_main() -> None:  # pragma: no cover
             avg_latency = latency_tracker.average_ms
 
             if perf_logger:
-                perf_logger.log(fps=current_fps, latency_ms=avg_latency, person_count=result.person_count)
+                perf_logger.log(
+                    fps=current_fps,
+                    latency_ms=avg_latency,
+                    person_count=result.person_count,
+                )
 
             if args.headless:
                 if frame_count % 30 == 0:
-                    log.info("FPS: %.1f | Latency: %.1f ms | Persons: %d", current_fps, avg_latency, result.person_count)
+                    log.info(
+                        "FPS: %.1f | Latency: %.1f ms | Persons: %d",
+                        current_fps,
+                        avg_latency,
+                        result.person_count,
+                    )
                 continue
 
             draw_detections(frame, result.detections)
-            draw_hud(frame, fps=current_fps, latency_ms=avg_latency, person_count=result.person_count)
+            draw_hud(
+                frame,
+                fps=current_fps,
+                latency_ms=avg_latency,
+                person_count=result.person_count,
+            )
             cv2.imshow("IAD SmartQueue — Person Detection", frame)
             if (cv2.waitKey(1) & 0xFF) == ord("q"):
                 break

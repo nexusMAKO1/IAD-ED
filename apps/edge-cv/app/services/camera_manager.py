@@ -81,7 +81,9 @@ class CameraManager:
             if connected:
                 log.info("Camera probe succeeded — source: %s", self._source)
             else:
-                log.warning("Camera probe failed — source unreachable: %s", self._source)
+                log.warning(
+                    "Camera probe failed — source unreachable: %s", self._source
+                )
 
             return connected
 

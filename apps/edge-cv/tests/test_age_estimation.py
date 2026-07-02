@@ -32,6 +32,7 @@ def estimator():
 # Test Cases
 # ---------------------------------------------------------------------------
 
+
 def test_empty_detections(estimator, dummy_frame):
     """Test that empty detections return an empty list of estimations."""
     results = estimator.estimate(dummy_frame, [])
@@ -40,11 +41,9 @@ def test_empty_detections(estimator, dummy_frame):
 
 def test_one_face(estimator, dummy_frame):
     """Test estimation for a single face bounding box."""
-    detections = [
-        {"bbox": [200, 100, 400, 400], "confidence": 0.95}
-    ]
+    detections = [{"bbox": [200, 100, 400, 400], "confidence": 0.95}]
     results = estimator.estimate(dummy_frame, detections)
-    
+
     assert len(results) == 1
     assert "bbox" in results[0]
     assert results[0]["bbox"] == [200, 100, 400, 400]
@@ -62,7 +61,7 @@ def test_multiple_faces(estimator, dummy_frame):
         {"bbox": [300, 100, 450, 350], "confidence": 0.88},
     ]
     results = estimator.estimate(dummy_frame, detections)
-    
+
     assert len(results) == 2
     for res, det in zip(results, detections):
         assert res["bbox"] == det["bbox"]
@@ -75,7 +74,9 @@ def test_invalid_bbox(estimator, dummy_frame):
     """Test behavior with various invalid bounding box structures."""
     # Bbox coordinates out of order
     with pytest.raises(InvalidInputError):
-        estimator.estimate(dummy_frame, [{"bbox": [300, 300, 100, 100], "confidence": 0.95}])
+        estimator.estimate(
+            dummy_frame, [{"bbox": [300, 300, 100, 100], "confidence": 0.95}]
+        )
 
     # Bbox containing negative or wrong count of coordinates
     with pytest.raises(InvalidInputError):
@@ -89,7 +90,7 @@ def test_invalid_bbox(estimator, dummy_frame):
 def test_invalid_frame(estimator):
     """Test behavior when frame is empty or invalid."""
     detections = [{"bbox": [100, 100, 200, 200], "confidence": 0.95}]
-    
+
     # None frame
     with pytest.raises(InvalidInputError):
         estimator.estimate(None, detections)
@@ -110,7 +111,7 @@ def test_custom_age_groups():
         "elderly": (51, 100),
     }
     est = AgeEstimator(age_groups=custom_groups)
-    
+
     assert est.get_age_group(2) == "toddler"
     assert est.get_age_group(10) == "kid"
     assert est.get_age_group(16) == "teenager"
@@ -123,7 +124,7 @@ def test_face_extraction_clipping(estimator, dummy_frame):
     """Test that face ROI clipping handles out-of-bound coords correctly."""
     # Box goes beyond image width (640) and height (480)
     out_of_bounds_bbox = [100, 100, 800, 600]
-    
+
     # Extracting should not throw out of bounds exception
     crop = estimator.extract_face_roi(dummy_frame, out_of_bounds_bbox)
     assert crop is not None

@@ -63,12 +63,23 @@ scrape_configs:
     metrics_path: /metrics
     scrape_interval: 15s
 
-  # PostgreSQL Exporter (optionnel — ajouter le service dans docker-compose)
-  # - job_name: "postgres"
-  #   static_configs:
-  #     - targets: ["postgres-exporter:9187"]
+  # PostgreSQL Exporter
+  - job_name: "postgres"
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+        labels:
+          service: "postgres"
 
-  # Redis Exporter (optionnel)
-  # - job_name: "redis"
-  #   static_configs:
-  #     - targets: ["redis-exporter:9121"]
+  # Redis Exporter
+  - job_name: "redis"
+    static_configs:
+      - targets: ["redis-exporter:9121"]
+        labels:
+          service: "redis"
+
+  # Mosquitto Exporter
+  - job_name: "mosquitto"
+    static_configs:
+      - targets: ["mosquitto-exporter:9234"]
+        labels:
+          service: "mosquitto"

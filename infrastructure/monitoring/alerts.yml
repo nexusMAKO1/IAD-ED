@@ -52,3 +52,65 @@ groups:
         annotations:
           summary: "Latence API élevée sur {{ $labels.job }}"
           description: "P95 latence > 1s sur {{ $labels.job }}."
+
+      # Haute utilisation RAM
+      - alert: HighRAMUsage
+        expr: process_resident_memory_bytes / 1024 / 1024 > 1024
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Haute utilisation RAM sur {{ $labels.job }}"
+          description: "Utilisation de la RAM > 1GB pendant 5 minutes sur {{ $labels.job }}."
+
+      # YOLO Failure
+      - alert: YoloFailure
+        expr: rate(edge_cv_dropped_frames_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Échecs d'inférence YOLO"
+          description: "Le service Edge-CV signale des erreurs d'inférence (trames abandonnées)."
+
+      # Camera Offline
+      - alert: CameraOffline
+        expr: edge_cv_camera_status == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Caméra Edge-CV Hors Ligne"
+          description: "Le service Edge-CV n'arrive pas à se connecter à la caméra source."
+
+      # Prediction Failure
+      - alert: PredictionFailure
+        expr: rate(smartqueue_inference_failure_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Échecs d'inférence SmartQueue"
+          description: "Le service SmartQueue ML signale des échecs d'inférence."
+
+  - name: iad_dependencies
+    rules:
+      # Database Offline
+      - alert: DatabaseOffline
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Base de données inaccessible"
+          description: "PostgreSQL exporter signale que la BDD est down."
+
+      # MQTT Offline
+      - alert: MQTTOffline
+        expr: mosquitto_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Broker MQTT inaccessible"
+          description: "Mosquitto exporter signale que le broker est down."

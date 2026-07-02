@@ -24,39 +24,48 @@ log = logging.getLogger("iad.demographics.age")
 # Safe import of ONNX Runtime
 try:
     import onnxruntime as ort  # type: ignore[import-untyped]
+
     HAS_ONNXRUNTIME = True
 except ImportError:
     HAS_ONNXRUNTIME = False
-    log.warning("onnxruntime is not installed. AgeEstimator will run in mock/heuristic fallback mode.")
+    log.warning(
+        "onnxruntime is not installed. AgeEstimator will run in mock/heuristic fallback mode."
+    )
 
 
 # ---------------------------------------------------------------------------
 # Custom Exceptions
 # ---------------------------------------------------------------------------
 
+
 class AgeEstimationError(Exception):
     """Base exception for all age estimation errors."""
+
     pass
 
 
 class InvalidInputError(AgeEstimationError):
     """Raised when input frame, detections, or bounding boxes are invalid."""
+
     pass
 
 
 class ModelNotLoadedError(AgeEstimationError):
     """Raised when inference is attempted but no model is loaded and fallback is disabled."""
+
     pass
 
 
 class InferenceError(AgeEstimationError):
     """Raised when ONNX Runtime inference fails."""
+
     pass
 
 
 # ---------------------------------------------------------------------------
 # Age Estimator Class
 # ---------------------------------------------------------------------------
+
 
 class AgeEstimator:
     """
@@ -93,7 +102,7 @@ class AgeEstimator:
         # Load settings from environment variables with parameter fallbacks
         self.model_path = model_path or os.getenv("AGE_MODEL_PATH")
         self.device = os.getenv("AGE_DEVICE", device).lower()
-        
+
         try:
             self.batch_size = int(os.getenv("AGE_BATCH_SIZE", str(batch_size)))
         except ValueError:
@@ -162,7 +171,9 @@ class AgeEstimator:
     # Core Pipeline
     # ------------------------------------------------------------------ #
 
-    def extract_face_roi(self, frame: cv2.typing.MatLike, bbox: List[int]) -> cv2.typing.MatLike:
+    def extract_face_roi(
+        self, frame: cv2.typing.MatLike, bbox: List[int]
+    ) -> cv2.typing.MatLike:
         """
         Safely extract the facial region of interest (ROI) from a person bounding box.
 
@@ -188,7 +199,9 @@ class AgeEstimator:
         h, w = frame.shape[:2]
 
         if len(bbox) != 4:
-            raise InvalidInputError(f"Bounding box must contain exactly 4 coordinates, got {bbox}")
+            raise InvalidInputError(
+                f"Bounding box must contain exactly 4 coordinates, got {bbox}"
+            )
 
         x1, y1, x2, y2 = bbox
 
@@ -213,7 +226,7 @@ class AgeEstimator:
         # and centered horizontally (width reduced slightly to focus on face)
         face_y1 = y1
         face_y2 = min(y2, int(y1 + 0.35 * box_height))
-        
+
         # Center horizontally: keep middle 80% of width
         x_padding = int(0.10 * box_width)
         face_x1 = max(x1, x1 + x_padding)
@@ -243,20 +256,22 @@ class AgeEstimator:
         """
         # Resize to model input size
         resized = cv2.resize(face_img, self.input_size, interpolation=cv2.INTER_LINEAR)
-        
+
         # Convert BGR to RGB
         rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
-        
+
         # Normalization: scale to [0, 1]
         normalized = rgb.astype(np.float32) / 255.0
-        
+
         # Channel transposition: HWC to CHW
         transposed = np.transpose(normalized, (2, 0, 1))
-        
+
         # Add batch dimension: (1, 3, H, W)
         return np.expand_dims(transposed, axis=0)
 
-    def predict_batch(self, faces: List[cv2.typing.MatLike]) -> List[Tuple[float, float]]:
+    def predict_batch(
+        self, faces: List[cv2.typing.MatLike]
+    ) -> List[Tuple[float, float]]:
         """
         Predict age for a batch of pre-cropped face images.
 
@@ -277,23 +292,23 @@ class AgeEstimator:
         if self.session is not None and self.input_name is not None:
             t0 = time.perf_counter()
             results: List[Tuple[float, float]] = []
-            
+
             try:
                 # Process in batches
                 for i in range(0, len(faces), self.batch_size):
                     batch_faces = faces[i : i + self.batch_size]
                     tensors = [self.preprocess(face) for face in batch_faces]
-                    
+
                     # Concat into a single batch tensor: (N, 3, H, W)
                     batch_tensor = np.concatenate(tensors, axis=0)
-                    
+
                     # Run ONNX inference session
                     outputs = self.session.run(None, {self.input_name: batch_tensor})
-                    
+
                     # Assume model returns a tensor of predictions
                     # e.g., shape (N, 1) representing age or (N, num_classes) logits
                     predictions = outputs[0]
-                    
+
                     for pred in predictions:
                         if len(pred.shape) == 0 or pred.shape[0] == 1:
                             # Regression output
@@ -304,13 +319,19 @@ class AgeEstimator:
                             # Softmax classification
                             exp_logits = np.exp(pred - np.max(pred))
                             probs = exp_logits / np.sum(exp_logits)
-                            age = float(np.argmax(probs))  # or expected value sum(probs * bin_values)
+                            age = float(
+                                np.argmax(probs)
+                            )  # or expected value sum(probs * bin_values)
                             conf = float(np.max(probs))
-                        
+
                         results.append((age, conf))
-                
+
                 latency = (time.perf_counter() - t0) * 1000.0
-                log.info("Batch inference completed: %d faces processed in %.2f ms", len(faces), latency)
+                log.info(
+                    "Batch inference completed: %d faces processed in %.2f ms",
+                    len(faces),
+                    latency,
+                )
                 return results
 
             except Exception as exc:
@@ -322,12 +343,12 @@ class AgeEstimator:
         for face in faces:
             # Deterministic hash of crop to produce consistent mock values for unit testing
             avg_color = float(np.mean(face))
-            
+
             # Predict age deterministically in [5, 80] range using average color value
             mock_age = 5 + int(avg_color % 76)
             mock_conf = 0.6 + (avg_color % 40) / 100.0
             results.append((float(mock_age), float(mock_conf)))
-            
+
         return results
 
     def get_age_group(self, age: float) -> str:
@@ -385,8 +406,10 @@ class AgeEstimator:
         # Extract faces from bounding boxes
         for idx, det in enumerate(detections):
             if not isinstance(det, dict) or "bbox" not in det:
-                raise InvalidInputError(f"Detection at index {idx} is missing 'bbox' key.")
-            
+                raise InvalidInputError(
+                    f"Detection at index {idx} is missing 'bbox' key."
+                )
+
             bbox = det["bbox"]
             crop = self.extract_face_roi(frame, bbox)
             face_crops.append(crop)
@@ -404,12 +427,14 @@ class AgeEstimator:
             age, confidence = predictions[i]
             age_group = self.get_age_group(age)
             orig_det = detections[idx]
-            
-            results.append({
-                "bbox": orig_det["bbox"],
-                "age": int(round(age)),
-                "age_group": age_group,
-                "confidence": round(confidence, 4),
-            })
+
+            results.append(
+                {
+                    "bbox": orig_det["bbox"],
+                    "age": int(round(age)),
+                    "age_group": age_group,
+                    "confidence": round(confidence, 4),
+                }
+            )
 
         return results

@@ -56,7 +56,7 @@ class VideoStream:
         if isinstance(source, str):
             # Allow: RTSP/RTSPS streams, local file paths
             safe_pattern = re.compile(
-                r'^(rtsp://|rtsps://|/[\w./_-]+|[\w]:\\[\w./_\\-]+|\./[\w./_-]+|[0-9]+\.mp4|[0-9]+\.avi).*',
+                r"^(rtsp://|rtsps://|/[\w./_-]+|[\w]:\\[\w./_\\-]+|\./[\w./_-]+|[0-9]+\.mp4|[0-9]+\.avi).*",
                 re.IGNORECASE,
             )
             if not safe_pattern.match(source):
@@ -86,7 +86,9 @@ class VideoStream:
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # Minimise buffer lag
 
         self.running = True
-        self._thread = threading.Thread(target=self._reader, daemon=True, name="VideoStream")
+        self._thread = threading.Thread(
+            target=self._reader, daemon=True, name="VideoStream"
+        )
         self._thread.start()
 
         # Wait for the first frame before returning

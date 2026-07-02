@@ -60,6 +60,7 @@ def dummy_video(temp_media_dir):
 # Test Cases: Pydantic Validation & Models
 # ---------------------------------------------------------------------------
 
+
 def test_media_item_model():
     """Test MediaItem validation constraints."""
     # Valid model
@@ -85,7 +86,7 @@ def test_playlist_model():
     """Test Playlist model and validation rules."""
     start = datetime.now()
     end = start + timedelta(days=1)
-    
+
     # Valid playlist
     playlist = Playlist(
         id="playlist_1",
@@ -113,6 +114,7 @@ def test_playlist_model():
 # ---------------------------------------------------------------------------
 # Test Cases: Playlist CRUD
 # ---------------------------------------------------------------------------
+
 
 def test_playlist_crud(manager):
     """Test create, read, update, delete for Playlists."""
@@ -179,6 +181,7 @@ def test_playlist_crud(manager):
 # Test Cases: Media Validation
 # ---------------------------------------------------------------------------
 
+
 def test_media_validation(manager, dummy_image, dummy_video):
     """Test media file format and integrity validation checks."""
     assert manager.validate_media(dummy_image) is True
@@ -202,10 +205,11 @@ def test_media_validation(manager, dummy_image, dummy_video):
 # Test Cases: Online/Offline Mode and Downloads
 # ---------------------------------------------------------------------------
 
+
 def test_online_offline_modes(manager):
     """Test tracking online/offline states."""
     assert manager.online_mode is True
-    
+
     manager.set_offline()
     assert manager.online_mode is False
 
@@ -228,12 +232,18 @@ def test_download_media_retries_and_failure(manager):
     """Test download failure when URL is unreachable."""
     with pytest.raises(DownloadError):
         # Trigger download with non-existent URL
-        manager.download_media("http://127.0.0.1:9999/does-not-exist.mp4", "ad.mp4", retries=2, backoff_factor=0.01)
+        manager.download_media(
+            "http://127.0.0.1:9999/does-not-exist.mp4",
+            "ad.mp4",
+            retries=2,
+            backoff_factor=0.01,
+        )
 
 
 # ---------------------------------------------------------------------------
 # Test Cases: Scheduling, Playback, Round-Robin
 # ---------------------------------------------------------------------------
+
 
 def test_campaign_activation(manager, dummy_image):
     """Test campaign active state logic based on timestamps."""
@@ -278,8 +288,22 @@ def test_get_active_playlist_priority(manager):
     start = datetime.now() - timedelta(minutes=10)
     end = datetime.now() + timedelta(minutes=10)
 
-    p1 = Playlist(id="p1", name="Low Priority", campaign_id="c1", priority=1, start_date=start, end_date=end)
-    p2 = Playlist(id="p2", name="High Priority", campaign_id="c2", priority=10, start_date=start, end_date=end)
+    p1 = Playlist(
+        id="p1",
+        name="Low Priority",
+        campaign_id="c1",
+        priority=1,
+        start_date=start,
+        end_date=end,
+    )
+    p2 = Playlist(
+        id="p2",
+        name="High Priority",
+        campaign_id="c2",
+        priority=10,
+        start_date=start,
+        end_date=end,
+    )
 
     manager.create_playlist(p1)
     manager.create_playlist(p2)
@@ -332,13 +356,16 @@ def test_get_next_media_round_robin(manager, dummy_image, dummy_video):
 # Test Cases: Cache Management & Eviction
 # ---------------------------------------------------------------------------
 
+
 def test_cache_maintenance_lru(manager, dummy_image, dummy_video):
     """Test LRU eviction strategy when cache limit is exceeded."""
     # Set cache max size small (e.g. 1500 bytes)
     manager.max_cache_size = 1500
 
     # Create dummy images that take space
-    img1 = np.zeros((200, 200, 3), dtype=np.uint8)  # ~120KB uncompressed but we'll save it
+    img1 = np.zeros(
+        (200, 200, 3), dtype=np.uint8
+    )  # ~120KB uncompressed but we'll save it
     cv2.imwrite(str(manager.images_dir / "cache1.jpg"), img1)
     # Track file
     (manager.cache_dir / "cache1.jpg.access").touch()
@@ -388,6 +415,7 @@ def test_remove_obsolete_media(manager, dummy_image):
 # ---------------------------------------------------------------------------
 # Test Cases: Synchronization
 # ---------------------------------------------------------------------------
+
 
 def test_synchronize_active_flow(manager, dummy_image):
     """Test playlist database sync and deletion of obsolete local records."""

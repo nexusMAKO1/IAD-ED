@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 import structlog
 from fastapi import FastAPI
 from prometheus_fastapi_instrumentator import Instrumentator
+from prometheus_client import Counter, Histogram, Info
 
 from app.core.config import settings
 from app.routers import health
@@ -13,6 +14,32 @@ logger = structlog.get_logger().bind(
     service="smartqueue-ml",
     module=__name__,
 )
+
+# ---------------------------------------------------------------------------
+# Custom Prometheus Metrics
+# ---------------------------------------------------------------------------
+ml_prediction_latency_hist = Histogram(
+    "smartqueue_prediction_latency_seconds", "Latency of predictions"
+)
+ml_prediction_count = Counter(
+    "smartqueue_prediction_total", "Total number of predictions"
+)
+ml_training_duration_hist = Histogram(
+    "smartqueue_training_duration_seconds", "Duration of model training"
+)
+ml_model_version_info = Info("smartqueue_model", "Current active model version")
+ml_inference_success_counter = Counter(
+    "smartqueue_inference_success_total", "Total successful inferences"
+)
+ml_inference_failure_counter = Counter(
+    "smartqueue_inference_failure_total", "Total failed inferences"
+)
+ml_forecast_requests_counter = Counter(
+    "smartqueue_forecast_requests_total", "Total forecast requests"
+)
+
+# Initialize default model info
+ml_model_version_info.info({"version": "1.0.0", "type": "SMARTQUEUE"})
 
 
 @asynccontextmanager

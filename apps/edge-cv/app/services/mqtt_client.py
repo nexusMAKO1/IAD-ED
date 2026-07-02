@@ -32,6 +32,7 @@ log = logging.getLogger("iad.mqtt_client")
 # package is not yet installed (e.g. lightweight unit-test containers).
 try:
     import paho.mqtt.client as mqtt  # type: ignore[import-untyped]
+
     _PAHO_AVAILABLE = True
 except ImportError:  # pragma: no cover
     _PAHO_AVAILABLE = False
@@ -117,6 +118,7 @@ class MQTTClient:
 
             # Give the broker up to 3 seconds to ACK the CONNECT packet
             import time
+
             deadline = time.monotonic() + 3.0
             while time.monotonic() < deadline:
                 if self.is_connected:
@@ -130,7 +132,9 @@ class MQTTClient:
             return False
 
         except Exception as exc:
-            log.warning("MQTT: connection failed — %s. Service continues without MQTT.", exc)
+            log.warning(
+                "MQTT: connection failed — %s. Service continues without MQTT.", exc
+            )
             return False
 
     def disconnect(self) -> None:
@@ -231,7 +235,9 @@ class MQTTClient:
         properties: Any,
     ) -> None:
         """Called by paho when the connection is established."""
-        if reason_code == 0 or (hasattr(reason_code, "value") and reason_code.value == 0):
+        if reason_code == 0 or (
+            hasattr(reason_code, "value") and reason_code.value == 0
+        ):
             log.info("MQTT: connected to %s:%s", self._host, self._port)
             with self._lock:
                 self._connected = True
