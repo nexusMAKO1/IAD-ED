@@ -25,8 +25,16 @@ export default () => ({
     url:
       process.env.MQTT_URL ??
       `mqtt://${process.env.MQTT_HOST ?? 'localhost'}:${process.env.MQTT_PORT ?? '1883'}`,
+    host: process.env.MQTT_HOST ?? 'localhost',
+    port: parseInt(process.env.MQTT_PORT ?? '1883', 10),
+    wsPort: parseInt(process.env.MQTT_WS_PORT ?? '9001', 10),
     username: process.env.MQTT_USERNAME ?? process.env.MQTT_USER ?? '',
     password: process.env.MQTT_PASSWORD ?? '',
+    clientId:
+      process.env.MQTT_CLIENT_ID ??
+      `backend-${process.env.HOSTNAME ?? 'local'}`,
+    keepalive: parseInt(process.env.MQTT_KEEPALIVE ?? '60', 10),
+    tls: process.env.MQTT_TLS === 'true',
   },
 
   cors: {

@@ -1,3 +1,8 @@
+-- Create extensions if they do not exist
+CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- CreateEnum
 CREATE TYPE "DeviceType" AS ENUM ('TOTEM', 'SCREEN', 'KIOSK', 'CAMERA');
 

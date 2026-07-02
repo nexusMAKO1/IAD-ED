@@ -43,8 +43,8 @@ async function bootstrap(): Promise<void> {
     credentials: true,
   });
 
-  // Global Route Prefix and URI Versioning
-  app.setGlobalPrefix('api');
+  // Global Route Prefix (exclude /metrics so Prometheus can scrape it at the root)
+  app.setGlobalPrefix('api', { exclude: ['metrics'] });
   app.enableVersioning({
     type: VersioningType.URI,
     defaultVersion: '1',

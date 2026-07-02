@@ -31,9 +31,13 @@ export const envValidationSchema = Joi.object({
   MQTT_URL: Joi.string().optional(),
   MQTT_HOST: Joi.string().optional(),
   MQTT_PORT: Joi.number().default(1883),
+  MQTT_WS_PORT: Joi.number().default(9001),
   MQTT_USERNAME: Joi.string().optional().allow(''),
   MQTT_USER: Joi.string().optional().allow(''), // Legacy alias
   MQTT_PASSWORD: Joi.string().optional().allow(''),
+  MQTT_CLIENT_ID: Joi.string().optional(),
+  MQTT_KEEPALIVE: Joi.number().default(60),
+  MQTT_TLS: Joi.string().valid('true', 'false').default('false'),
 
   // CORS
   CORS_ORIGIN: Joi.string().optional().default('*'),

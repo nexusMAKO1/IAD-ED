@@ -234,7 +234,7 @@ services:
     environment:
       PYTHONPATH: /app
       LOG_LEVEL: ${CV_LOG_LEVEL:-INFO}
-      MODEL_PATH: /app/models
+      MODEL_PATH: /app/yolov8n.pt
       MINIO_ENDPOINT: minio:9000
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
@@ -278,9 +278,12 @@ services:
       PYTHONPATH: /app
       LOG_LEVEL: ${ML_LOG_LEVEL:-INFO}
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+      MQTT_USER: ${MQTT_USER}
+      MQTT_PASSWORD: ${MQTT_PASSWORD}
       MODEL_STORE_PATH: /app/model_store
     ports:
       - "${ML_PORT:-8002}:8002"
@@ -335,16 +338,18 @@ services:
 
   mosquitto-exporter:
     image: sapcc/mosquitto-exporter
+    platform: linux/amd64
     container_name: iad_mosquitto_exporter
     restart: unless-stopped
     environment:
-      MQTT_ENDPOINT: tcp://mosquitto:1883
+      BROKER_ENDPOINT: "tcp://mosquitto:1883"
       MQTT_USER: ${MQTT_USER}
       MQTT_PASS: ${MQTT_PASSWORD}
     ports:
       - "9234:9234"
     depends_on:
-      - mosquitto
+      mosquitto:
+        condition: service_healthy
     networks:
       - iad_core
       - iad_monitoring

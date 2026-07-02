@@ -18,6 +18,7 @@ import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { MetricsInterceptor } from './common/metrics/metrics.interceptor';
 import { MetricsController } from './common/metrics/metrics.controller';
+import { MqttModule } from './mqtt/mqtt.module';
 
 @Module({
   imports: [
@@ -34,20 +35,21 @@ import { MetricsController } from './common/metrics/metrics.controller';
       defaultMetrics: {
         enabled: true,
       },
-      defaultController: false,
+      controller: MetricsController,
     }),
 
     // Core Services
     PrismaModule,
     HealthModule,
 
+    // MQTT Communication Layer (T-021)
+    MqttModule,
+
     // Auth & User Domains
     AuthModule,
     UsersModule,
   ],
-  controllers: [
-    MetricsController,
-  ],
+  controllers: [],
   providers: [
     {
       provide: APP_INTERCEPTOR,

@@ -33,10 +33,10 @@ scrape_configs:
         labels:
           service: "prometheus"
 
-  # Backend NestJS (metrics exposées via /metrics)
+  # Backend NestJS (metrics exposées via /metrics — hors global prefix)
   - job_name: "iad-backend"
     static_configs:
-      - targets: ["backend:3000"]
+      - targets: ["iad_backend:3000"]
         labels:
           service: "backend"
           language: "nodejs"
@@ -46,7 +46,7 @@ scrape_configs:
   # Edge CV Service (FastAPI + prometheus-fastapi-instrumentator)
   - job_name: "iad-edge-cv"
     static_configs:
-      - targets: ["edge-cv:8001"]
+      - targets: ["iad_edge_cv:8001"]
         labels:
           service: "edge-cv"
           language: "python"
@@ -56,7 +56,7 @@ scrape_configs:
   # SmartQueue ML Service
   - job_name: "iad-smartqueue-ml"
     static_configs:
-      - targets: ["smartqueue-ml:8002"]
+      - targets: ["iad_smartqueue_ml:8002"]
         labels:
           service: "smartqueue-ml"
           language: "python"
@@ -66,20 +66,20 @@ scrape_configs:
   # PostgreSQL Exporter
   - job_name: "postgres"
     static_configs:
-      - targets: ["postgres-exporter:9187"]
+      - targets: ["iad_postgres_exporter:9187"]
         labels:
           service: "postgres"
 
   # Redis Exporter
   - job_name: "redis"
     static_configs:
-      - targets: ["redis-exporter:9121"]
+      - targets: ["iad_redis_exporter:9121"]
         labels:
           service: "redis"
 
   # Mosquitto Exporter
   - job_name: "mosquitto"
     static_configs:
-      - targets: ["mosquitto-exporter:9234"]
+      - targets: ["iad_mosquitto_exporter:9234"]
         labels:
           service: "mosquitto"

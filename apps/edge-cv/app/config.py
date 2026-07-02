@@ -88,6 +88,7 @@ class AppSettings(BaseSettings):
     # ------------------------------------------------------------------ #
     mqtt_host: str = Field(default="localhost", description="MQTT broker host")
     mqtt_port: int = Field(default=1883, ge=1, le=65535, description="MQTT broker port")
+    mqtt_ws_port: int = Field(default=9001, ge=1, le=65535, description="MQTT WebSocket port")
     mqtt_user: str = Field(default="", description="MQTT username")
     mqtt_password: str = Field(
         default="",
@@ -97,6 +98,20 @@ class AppSettings(BaseSettings):
     mqtt_client_id: str = Field(
         default="edge-cv-service",
         description="MQTT client identifier",
+    )
+    mqtt_keepalive: int = Field(
+        default=60,
+        ge=5,
+        le=3600,
+        description="MQTT keepalive interval in seconds",
+    )
+    mqtt_tls: bool = Field(
+        default=False,
+        description="Enable TLS for the MQTT connection",
+    )
+    site_id: str = Field(
+        default="express-display",
+        description="Logical site identifier used in MQTT message envelopes",
     )
 
     # ------------------------------------------------------------------ #

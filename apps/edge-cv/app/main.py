@@ -89,6 +89,8 @@ _mqtt_client: MQTTClient = MQTTClient(
     username=settings.mqtt_user,
     password=settings.mqtt_password,
     client_id=settings.mqtt_client_id,
+    keepalive=settings.mqtt_keepalive,
+    site_id=settings.site_id,
 )
 
 # Startup timestamp for uptime calculation
@@ -189,7 +191,7 @@ async def lifespan(app: FastAPI):  # noqa: ANN001
     else:
         log.info("Probing camera source: %s", settings.camera_source)
         _camera_manager.probe()
-        cv_camera_status_gauge.set(1 if _camera_manager.is_online else 0)
+        cv_camera_status_gauge.set(1 if _camera_manager.is_connected else 0)
 
     # ------------------------------------------------------------------
     # 2.5. Age estimator
@@ -216,6 +218,29 @@ async def lifespan(app: FastAPI):  # noqa: ANN001
     mqtt_ok = _mqtt_client.connect()
     if mqtt_ok:
         log.info("MQTT connected successfully.")
+        # Register command handlers
+        try:
+            from app.mqtt.topics import CommandTopics  # noqa: PLC0415
+        except ImportError:
+            from mqtt.topics import CommandTopics  # type: ignore[no-redef]  # noqa: PLC0415
+
+        def _handle_config_update(topic: str, payload: dict) -> None:
+            log.info("MQTT [%s]: received config update — %s", topic, payload.get("payload"))
+
+        def _handle_camera_command(topic: str, payload: dict) -> None:
+            log.info("MQTT [%s]: received camera command — %s", topic, payload.get("payload"))
+
+        def _handle_model_update(topic: str, payload: dict) -> None:
+            log.info("MQTT [%s]: received model update — %s", topic, payload.get("payload"))
+
+        def _handle_restart(topic: str, payload: dict) -> None:
+            log.warning("MQTT [%s]: restart command received — scheduling graceful restart.", topic)
+
+        _mqtt_client.register_handler(CommandTopics.CONFIG_UPDATE, _handle_config_update)
+        _mqtt_client.register_handler(CommandTopics.CAMERA, _handle_camera_command)
+        _mqtt_client.register_handler(CommandTopics.MODEL_UPDATE, _handle_model_update)
+        _mqtt_client.register_handler(CommandTopics.RESTART, _handle_restart)
+
         _mqtt_client.publish_health(
             service_id=_SERVICE_ID,
             status="healthy",

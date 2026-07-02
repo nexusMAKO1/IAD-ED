@@ -15,6 +15,11 @@ Pillow==10.3.0
 numpy==1.26.4
 torch==2.3.0
 
+# ONNX Runtime (T-022) — GPU package includes CPU fallback automatically
+# Use onnxruntime==1.18.0 instead if the Docker image has no CUDA driver.
+onnxruntime==1.18.0
+onnx==1.16.0
+
 # MQTT Client
 paho-mqtt==2.0.0
 

@@ -1,26 +1,36 @@
-import { Controller, Get, Res } from '@nestjs/common';
+import { Controller, Get, Res, VERSION_NEUTRAL } from '@nestjs/common';
 import { Response } from 'express';
 import { PrometheusController } from '@willsoto/nestjs-prometheus';
 import { PrismaService } from '../../prisma/prisma.service';
 
-@Controller()
+/**
+ * MetricsController — Prometheus scrape endpoint at GET /metrics.
+ *
+ * @Controller({ path: 'metrics', version: VERSION_NEUTRAL })
+ *   - "path: 'metrics'" : base path agrees with PrometheusModule's default
+ *     path option so Reflect.defineMetadata is consistent.
+ *   - "version: VERSION_NEUTRAL" : bypasses URI versioning (/v1/) so Prometheus
+ *     can reach the endpoint at /metrics rather than /api/v1/metrics.
+ *
+ * @Get() has NO path arg — the method is at the controller root.
+ *
+ * main.ts excludes 'metrics' from the global prefix so 'api' is not prepended.
+ */
+@Controller({ path: 'metrics', version: VERSION_NEUTRAL })
 export class MetricsController extends PrometheusController {
   constructor(private readonly prisma: PrismaService) {
     super();
   }
 
-  @Get('metrics')
-  async index(@Res({ passthrough: true }) res: Response) {
-    // Get default metrics from prom-client (registry)
-    const defaultMetrics = await super.index(res);
-    
-    // Get Prisma metrics
+  @Get()
+  async index(@Res({ passthrough: true }) response: Response): Promise<string> {
+    // Default prom-client metrics (sets Content-Type header via super)
+    const baseMetrics = await super.index(response);
+
+    // Prisma connection pool + query latency metrics
     const prismaMetrics = await this.prisma.$metrics.prometheus();
-    
-    // Combine both strings (they are just text-based Prometheus format)
-    // The super.index sets the content-type, we just return the concatenated string
-    const combined = `${defaultMetrics}\n${prismaMetrics}`;
-    
-    res.send(combined);
+
+    // Both blocks are valid Prometheus text-format — safe to concatenate
+    return `${baseMetrics}\n${prismaMetrics}`;
   }
 }
