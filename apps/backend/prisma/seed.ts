@@ -47,9 +47,16 @@ async function main() {
   // 4. Seed 1 Admin User (with secure password hashing)
   console.log('Seeding admin user...');
   const saltRounds = 12;
-  const hashedPassword = await bcrypt.hash('AdminSecurePassword123!', saltRounds);
-  const admin = await prisma.user.create({
-    data: {
+  // Password: admin123 — as specified in the project requirements
+  const hashedPassword = await bcrypt.hash('admin123', saltRounds);
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@expressdisplay.com' },
+    update: {
+      password: hashedPassword,
+      role: UserRole.ADMIN,
+      siteId: site.id,
+    },
+    create: {
       email: 'admin@expressdisplay.com',
       password: hashedPassword,
       role: UserRole.ADMIN,

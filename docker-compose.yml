@@ -184,7 +184,7 @@ services:
       mosquitto:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -204,6 +204,7 @@ services:
     restart: unless-stopped
     environment:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+      VITE_PROXY_TARGET: "http://backend:3000"
       VITE_MQTT_WS_URL: ${VITE_MQTT_WS_URL:-ws://localhost:9003}
     ports:
       - "${FRONTEND_PORT:-5173}:5173"
@@ -235,6 +236,7 @@ services:
       PYTHONPATH: /app
       LOG_LEVEL: ${CV_LOG_LEVEL:-INFO}
       MODEL_PATH: /app/yolov8n.pt
+      MODEL_SKIP_LOAD: "true"
       MINIO_ENDPOINT: minio:9000
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
@@ -277,6 +279,7 @@ services:
     environment:
       PYTHONPATH: /app
       LOG_LEVEL: ${ML_LOG_LEVEL:-INFO}
+      MODEL_SKIP_LOAD: "true"
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       REDIS_HOST: redis

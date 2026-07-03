@@ -34,13 +34,18 @@ COPY . .
 # Generate Prisma Client
 RUN npx prisma generate
 
+# Copy and chmod the entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 3000
 
 # Health check — uses the versioned API endpoint
 HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=5 \
   CMD curl -f http://localhost:3000/api/v1/health || exit 1
 
-CMD ["npm", "run", "start:dev"]
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["npm", "run", "start"]
 
 # ---------------------------------------------------------------------------
 # Stage 3: Build for production

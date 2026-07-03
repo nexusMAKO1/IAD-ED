@@ -10,14 +10,17 @@ generator client {
 
 enum DeviceType {
   TOTEM
-  SCREEN
-  KIOSK
+  SCREEN              // alias conservé pour compatibilité
+  KIOSK               // alias conservé pour compatibilité
   CAMERA
+  WAITING_ROOM_SCREEN // F4.2 — écran salle d'attente
+  TICKET_KIOSK        // F4.2 — borne ticket
 }
 
 enum DeviceStatus {
   ONLINE
   OFFLINE
+  DEGRADED // F4.2 — statut dégradé (partiel)
 }
 
 enum UserRole {
@@ -39,26 +42,32 @@ enum MLModelType {
 }
 
 model Site {
-  id             String          @id @default(uuid()) @db.Uuid
-  name           String
-  address        String
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  devices        Device[]
-  tickets        Ticket[]
-  audienceEvents AudienceEvent[]
-  users          User[]
+  id                    String          @id @default(uuid()) @db.Uuid
+  name                  String
+  address               String
+  // F4.3 — Seuils de comportement adaptatif
+  densityThreshold      Int             @default(10)  // personnes/zone déclenchant l'adaptation
+  anomalyQueueThreshold Int             @default(15)  // écart en minutes déclenchant l'alerte F2.9
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  devices               Device[]
+  tickets               Ticket[]
+  audienceEvents        AudienceEvent[]
+  users                 User[]
 
   @@map("sites")
 }
 
 model Device {
   id             String          @id @default(uuid()) @db.Uuid
+  name           String          @default("Dispositif") // F4.2 — nom lisible de l'écran avec valeur par défaut pour la migration
   siteId         String          @db.Uuid
   site           Site            @relation(fields: [siteId], references: [id], onDelete: Cascade)
   type           DeviceType
   status         DeviceStatus    @default(OFFLINE)
+  ipAddress      String?         // F4.2 — adresse IP optionnelle
   createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @default(now()) @updatedAt
   audienceEvents AudienceEvent[]
 
   @@index([siteId])

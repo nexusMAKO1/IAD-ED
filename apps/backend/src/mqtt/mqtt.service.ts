@@ -99,7 +99,7 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
       password: cfg.password,
       keepalive: cfg.keepalive,
       clean: true,
-      reconnectPeriod: 1000,      // Start at 1s — mqtt.js doubles automatically
+      reconnectPeriod: 5000,      // Start at 5s to prevent log spam
       connectTimeout: 10_000,
       will: {
         topic: MQTT_TOPICS.SYSTEM.HEALTH,

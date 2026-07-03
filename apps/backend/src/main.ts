@@ -43,8 +43,8 @@ async function bootstrap(): Promise<void> {
     credentials: true,
   });
 
-  // Global Route Prefix (exclude /metrics so Prometheus can scrape it at the root)
-  app.setGlobalPrefix('api', { exclude: ['metrics'] });
+  // Global Route Prefix (exclude /metrics and /health so Prometheus/healthchecks can scrape them at the root)
+  app.setGlobalPrefix('api', { exclude: ['metrics', 'health'] });
   app.enableVersioning({
     type: VersioningType.URI,
     defaultVersion: '1',
