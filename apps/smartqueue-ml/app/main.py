@@ -7,7 +7,7 @@ from prometheus_client import Counter, Histogram, Info
 
 from app.core.config import settings
 from app.routers import health
-from app.stubs.model_store_stub import load_model
+from app.ml.model_store import load_model
 from app.stubs.mqtt_client_stub import connect_mqtt
 
 logger = structlog.get_logger().bind(
