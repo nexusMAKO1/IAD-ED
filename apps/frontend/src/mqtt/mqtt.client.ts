@@ -6,20 +6,23 @@
  *
  * Features:
  *   - Reads broker URL and credentials from Vite env vars (never hardcoded)
+ *   - Skips connection entirely when credentials are absent or MQTT is disabled
+ *   - Detects "Not authorized" and stops retrying permanently (no more spam)
+ *   - Exponential back-off: starts at 1s, doubles each attempt, caps at 60s
  *   - Last Will on smartvision/system/health (status: offline)
- *   - Automatic reconnection with exponential back-off (mqtt.js native)
  *   - JSON payload validation with envelope shape check
  *   - Handler registration per topic (exact + wildcard)
  *   - Typed publish API
  *   - Connection status observable via callbacks
- *   - Comprehensive logging
+ *   - Comprehensive logging (single line per event — no spam)
  *
- * Environment variables (set in .env or docker-compose):
+ * Environment variables (set in .env):
  *   VITE_MQTT_WS_URL       — e.g. ws://localhost:9003
- *   VITE_MQTT_USERNAME     — broker username
- *   VITE_MQTT_PASSWORD     — broker password (keep in .env, never commit)
+ *   VITE_MQTT_USERNAME     — broker username (REQUIRED for Mosquitto auth)
+ *   VITE_MQTT_PASSWORD     — broker password (REQUIRED for Mosquitto auth)
  *   VITE_MQTT_CLIENT_ID    — client identifier (default: frontend-<random>)
  *   VITE_SITE_ID           — site identifier (default: express-display)
+ *   VITE_MQTT_ENABLED      — set to 'false' to disable MQTT entirely (default: 'true')
  */
 
 import mqtt, { MqttClient as MqttJsClient, IClientOptions } from 'mqtt';
@@ -33,15 +36,26 @@ import type { BaseEvent, MqttHandler } from './mqtt.types';
 const BROKER_URL =
   import.meta.env.VITE_MQTT_WS_URL ?? 'ws://localhost:9003';
 
-const USERNAME = import.meta.env.VITE_MQTT_USERNAME ?? '';
-const PASSWORD = import.meta.env.VITE_MQTT_PASSWORD ?? '';
-const SITE_ID = import.meta.env.VITE_SITE_ID ?? 'express-display';
+const USERNAME = (import.meta.env.VITE_MQTT_USERNAME as string | undefined) ?? '';
+const PASSWORD = (import.meta.env.VITE_MQTT_PASSWORD as string | undefined) ?? '';
+const SITE_ID = (import.meta.env.VITE_SITE_ID as string | undefined) ?? 'express-display';
 const CLIENT_ID =
-  import.meta.env.VITE_MQTT_CLIENT_ID ??
+  (import.meta.env.VITE_MQTT_CLIENT_ID as string | undefined) ??
   `frontend-${Math.random().toString(16).slice(2, 8)}`;
 
+// Kill-switch: set VITE_MQTT_ENABLED=false to disable completely.
+const MQTT_ENABLED = import.meta.env.VITE_MQTT_ENABLED !== 'false';
+
 // ---------------------------------------------------------------------------
-// Logging helper
+// Exponential back-off constants
+// ---------------------------------------------------------------------------
+
+const RECONNECT_MIN_MS = 1_000;   // 1 second
+const RECONNECT_MAX_MS = 60_000;  // 60 seconds
+const RECONNECT_MULTIPLIER = 2;
+
+// ---------------------------------------------------------------------------
+// Logging helper — single prefix, no spam
 // ---------------------------------------------------------------------------
 
 const log = {
@@ -74,8 +88,17 @@ class MqttClientService {
   private connectionCallbacks: ConnectionCallback[] = [];
   private _connected = false;
 
+  // Back-off state
+  private _authFailed = false;        // permanently stop retries on auth error
+  private _reconnectDelay = RECONNECT_MIN_MS;
+  private _reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
   get isConnected(): boolean {
     return this._connected;
+  }
+
+  get isAuthFailed(): boolean {
+    return this._authFailed;
   }
 
   // -------------------------------------------------------------------------
@@ -83,12 +106,35 @@ class MqttClientService {
   // -------------------------------------------------------------------------
 
   connect(): void {
+    // Guard: MQTT disabled by env flag
+    if (!MQTT_ENABLED) {
+      log.info('MQTT disabled (VITE_MQTT_ENABLED=false) — skipping connection.');
+      return;
+    }
+
+    // Guard: no credentials — broker requires auth, skip to avoid spam
+    if (!USERNAME || !PASSWORD) {
+      log.warn(
+        'MQTT credentials missing (VITE_MQTT_USERNAME / VITE_MQTT_PASSWORD not set). ' +
+        'Connection skipped to prevent "Not authorized" spam. ' +
+        'Set these variables in your .env file.',
+      );
+      return;
+    }
+
+    // Guard: already connecting / connected
     if (this.client) {
       log.warn('connect() called but client already exists — skipping.');
       return;
     }
 
-    log.info(`Connecting to ${BROKER_URL} as ${CLIENT_ID}`);
+    // Guard: auth failure is permanent — do not retry
+    if (this._authFailed) {
+      log.error('MQTT auth permanently failed — will not reconnect. Check broker credentials.');
+      return;
+    }
+
+    log.info(`Connecting to ${BROKER_URL} as ${CLIENT_ID} (user=${USERNAME})`);
 
     const lastWill = JSON.stringify({
       timestamp: new Date().toISOString(),
@@ -98,13 +144,15 @@ class MqttClientService {
       payload: { status: 'offline', serviceName: 'frontend' },
     });
 
+    // We manage reconnection manually to implement exponential back-off with
+    // auth-error detection. Set reconnectPeriod=0 to disable mqtt.js auto-retry.
     const options: IClientOptions = {
       clientId: CLIENT_ID,
-      username: USERNAME || undefined,
-      password: PASSWORD || undefined,
+      username: USERNAME,
+      password: PASSWORD,
       keepalive: 60,
       clean: true,
-      reconnectPeriod: 2000,   // 2s initial — mqtt.js doubles automatically
+      reconnectPeriod: 0,        // We manage reconnection ourselves
       connectTimeout: 10_000,
       will: {
         topic: MQTT_TOPICS.SYSTEM.HEALTH,
@@ -126,6 +174,8 @@ class MqttClientService {
     );
     this.client.on('close', () => {
       log.debug('Connection closed.');
+      // Trigger manual reconnect if not auth-failed
+      this.scheduleReconnect();
     });
   }
 
@@ -134,6 +184,12 @@ class MqttClientService {
   // -------------------------------------------------------------------------
 
   disconnect(): void {
+    // Cancel any pending reconnect timer
+    if (this._reconnectTimer) {
+      clearTimeout(this._reconnectTimer);
+      this._reconnectTimer = null;
+    }
+
     if (!this.client) return;
 
     // Graceful offline announcement
@@ -154,7 +210,9 @@ class MqttClientService {
       log.info('Disconnected from broker.');
     });
 
+    this.client = null;
     this._connected = false;
+    this._reconnectDelay = RECONNECT_MIN_MS;
     this.notifyConnectionCallbacks();
   }
 
@@ -251,6 +309,8 @@ class MqttClientService {
 
   private onConnect(): void {
     this._connected = true;
+    this._authFailed = false;
+    this._reconnectDelay = RECONNECT_MIN_MS;  // Reset back-off on success
     log.info(`Connected to ${BROKER_URL}`);
     this.notifyConnectionCallbacks();
 
@@ -296,7 +356,83 @@ class MqttClientService {
   }
 
   private onError(err: Error): void {
-    log.error(`MQTT error: ${err.message}`);
+    const msg = err.message ?? String(err);
+
+    // -----------------------------------------------------------------------
+    // CRITICAL: Detect permanent auth failure — STOP ALL RETRIES immediately
+    // -----------------------------------------------------------------------
+    const isAuthError =
+      msg.includes('Not authorized') ||
+      msg.includes('Connection refused') ||
+      msg.includes('Bad username or password') ||
+      msg.includes('CONNACK returncod=5') ||  // MQTT return code 5 = auth refused
+      (err as unknown as Record<string, unknown>)['code'] === 5;
+
+    if (isAuthError) {
+      this._authFailed = true;
+      this._connected = false;
+
+      // Cancel pending reconnect timer
+      if (this._reconnectTimer) {
+        clearTimeout(this._reconnectTimer);
+        this._reconnectTimer = null;
+      }
+
+      // Destroy client immediately to stop mqtt.js internal retries
+      if (this.client) {
+        this.client.end(true);  // force=true — no grace period
+        this.client = null;
+      }
+
+      log.error(
+        `MQTT authentication failed: "${msg}". ` +
+        'Reconnection stopped permanently. ' +
+        'Check VITE_MQTT_USERNAME / VITE_MQTT_PASSWORD in your .env and the Mosquitto passwd file.',
+      );
+
+      this.notifyConnectionCallbacks();
+      return;
+    }
+
+    // Non-auth error — log once (reconnect will be handled by 'close' event)
+    log.error(`MQTT error: ${msg}`);
+  }
+
+  // -------------------------------------------------------------------------
+  // Manual exponential back-off reconnection
+  // -------------------------------------------------------------------------
+
+  private scheduleReconnect(): void {
+    // Never reconnect if auth permanently failed
+    if (this._authFailed) return;
+
+    // Never reconnect if client was explicitly disconnected
+    if (!this.client && !this._authFailed) {
+      // Client was destroyed by disconnect() — do not auto-reconnect
+      return;
+    }
+
+    // Destroy stale client before creating a new one
+    if (this.client) {
+      this.client.removeAllListeners();
+      this.client = null;
+    }
+
+    this._connected = false;
+    this.notifyConnectionCallbacks();
+
+    const delay = this._reconnectDelay;
+    this._reconnectDelay = Math.min(
+      delay * RECONNECT_MULTIPLIER,
+      RECONNECT_MAX_MS,
+    );
+
+    log.warn(`Reconnecting in ${delay / 1000}s (next: ${this._reconnectDelay / 1000}s max)`);
+
+    this._reconnectTimer = setTimeout(() => {
+      this._reconnectTimer = null;
+      this.connect();
+    }, delay);
   }
 
   // -------------------------------------------------------------------------
@@ -331,7 +467,7 @@ class MqttClientService {
       if (this.topicMatches(pattern, topic)) {
         for (const handler of handlers) {
           try {
-            handler(topic, parsed as BaseEvent);
+            handler(topic, parsed as unknown as BaseEvent);
           } catch (err: unknown) {
             log.error(
               `Handler error on [${topic}]: ${(err as Error).message}`,

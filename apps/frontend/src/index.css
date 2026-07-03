@@ -1,0 +1,145 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@theme {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --animate-fade-in: fade-in 0.2s ease-out;
+  --animate-slide-in-right: slide-in-right 0.25s ease-out;
+  --animate-scale-in: scale-in 0.15s ease-out;
+
+  @keyframes fade-in {
+    0% { opacity: 0; transform: translateY(8px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slide-in-right {
+    0% { opacity: 0; transform: translateX(16px); }
+    100% { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes scale-in {
+    0% { opacity: 0; transform: scale(0.95); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+}
+
+:root {
+  /* Express Display — Dark Premium Theme */
+  --background: 222 47% 8%;
+  --foreground: 213 31% 91%;
+
+  --card: 222 47% 11%;
+  --card-foreground: 213 31% 91%;
+
+  --popover: 222 47% 11%;
+  --popover-foreground: 213 31% 91%;
+
+  /* Violet-indigo accent — brand Express Display */
+  --primary: 258 90% 66%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 222 47% 16%;
+  --secondary-foreground: 213 31% 80%;
+
+  --muted: 222 47% 14%;
+  --muted-foreground: 215 20% 55%;
+
+  --accent: 258 90% 66%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 222 47% 18%;
+  --input: 222 47% 16%;
+  --ring: 258 90% 66%;
+
+  --radius: 0.625rem;
+}
+
+* {
+  border-color: hsl(var(--border));
+  box-sizing: border-box;
+}
+
+html {
+  @apply scroll-smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  @apply bg-background text-foreground font-sans;
+  font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-muted rounded-full;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--border));
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-muted-foreground rounded-full;
+}
+
+/* Utilities */
+.glass {
+  background: hsl(222 47% 11% / 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid hsl(222 47% 18% / 0.5);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, hsl(258 90% 75%), hsl(285 85% 70%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.glow-primary {
+  box-shadow: 0 0 20px hsl(258 90% 66% / 0.3);
+}
+
+.status-online {
+  @apply text-emerald-400 bg-emerald-400/10 border-emerald-400/20;
+}
+
+.status-offline {
+  @apply text-slate-400 bg-slate-400/10 border-slate-400/20;
+}
+
+.status-degraded {
+  @apply text-amber-400 bg-amber-400/10 border-amber-400/20;
+}

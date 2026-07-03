@@ -27,17 +27,32 @@ export class AuthService {
    * Compares provided password against bcrypt hashed password.
    */
   async validateUser(dto: LoginDto): Promise<User> {
-    const user = await this.usersService.findByEmail(dto.email);
-    if (!user) {
-      this.logger.warn(
-        `Failed login attempt for non-existent email: ${dto.email}`,
-      );
+    let user: User | null = null;
+    try {
+      user = await this.usersService.findByEmail(dto.email);
+    } catch (error) {
+      this.logger.error(`Database error during user lookup for email: ${dto.email}`, error instanceof Error ? error.stack : error);
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    const passwordMatch = await bcrypt.compare(dto.password, user.password);
-    if (!passwordMatch) {
-      this.logger.warn(`Failed login attempt for user: ${dto.email}`);
+    if (!user) {
+      this.logger.warn(`Failed login attempt for non-existent email: ${dto.email}`);
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    if (!user.password) {
+      this.logger.error(`User record missing password field for email: ${dto.email}`);
+      throw new UnauthorizedException('Invalid email or password');
+    }
+
+    try {
+      const passwordMatch = await bcrypt.compare(dto.password, user.password);
+      if (!passwordMatch) {
+        this.logger.warn(`Failed login attempt for user: ${dto.email}`);
+        throw new UnauthorizedException('Invalid email or password');
+      }
+    } catch (error) {
+      this.logger.error(`Bcrypt compare error for user: ${dto.email}`, error instanceof Error ? error.stack : error);
       throw new UnauthorizedException('Invalid email or password');
     }
 
@@ -49,18 +64,24 @@ export class AuthService {
    */
   async login(dto: LoginDto) {
     const user = await this.validateUser(dto);
-    const tokens = await this.generateTokens(user);
+    
+    try {
+      const tokens = await this.generateTokens(user);
 
-    this.logger.log(`User logged in: ${user.email} (${user.id})`);
+      this.logger.log(`User logged in: ${user.email} (${user.id})`);
 
-    return {
-      ...tokens,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-      },
-    };
+      return {
+        ...tokens,
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+        },
+      };
+    } catch (error) {
+      this.logger.error(`Token generation failed for user: ${user.email}`, error instanceof Error ? error.stack : error);
+      throw new UnauthorizedException('Authentication failed');
+    }
   }
 
   /**

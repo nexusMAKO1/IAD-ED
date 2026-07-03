@@ -19,6 +19,8 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { MetricsInterceptor } from './common/metrics/metrics.interceptor';
 import { MetricsController } from './common/metrics/metrics.controller';
 import { MqttModule } from './mqtt/mqtt.module';
+import { SitesModule } from './sites/sites.module';
+import { DevicesModule } from './devices/devices.module';
 
 @Module({
   imports: [
@@ -48,6 +50,10 @@ import { MqttModule } from './mqtt/mqtt.module';
     // Auth & User Domains
     AuthModule,
     UsersModule,
+
+    // Fleet Management (T-032 / F4.2 & F4.3)
+    SitesModule,
+    DevicesModule,
   ],
   controllers: [],
   providers: [

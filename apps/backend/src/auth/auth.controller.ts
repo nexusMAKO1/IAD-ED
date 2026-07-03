@@ -25,13 +25,16 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 
-import { Counter } from 'prom-client';
+import { Counter, register } from 'prom-client';
 
-const authAttempts = new Counter({
-  name: 'auth_attempts_total',
-  help: 'Total authentication attempts',
-  labelNames: ['status'],
-});
+// Use getSingleMetric to avoid double-registration crash during NestJS hot-reload.
+// In dev mode, the module is re-evaluated but prom-client's registry persists in memory.
+const authAttempts = (register.getSingleMetric('auth_attempts_total') as Counter<'status'>) ??
+  new Counter({
+    name: 'auth_attempts_total',
+    help: 'Total authentication attempts',
+    labelNames: ['status'],
+  });
 
 @ApiTags('Authentication')
 @Controller('auth')
