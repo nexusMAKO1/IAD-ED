@@ -19,10 +19,22 @@ export async function getSite(id: string): Promise<Site> {
 }
 
 /** PATCH /api/sites/:id/thresholds — update density & anomaly thresholds */
-export async function updateSiteThresholds(
-  id: string,
-  payload: UpdateSiteThresholdsPayload,
-): Promise<Site> {
-  const { data } = await apiClient.patch<Site>(`/sites/${id}/thresholds`, payload);
+export const updateSiteThresholds = async (
+  siteId: string,
+  payload: { densityThreshold?: number; anomalyQueueThreshold?: number }
+) => {
+  const { data } = await apiClient.patch<Site>(`/sites/${siteId}/thresholds`, payload);
   return data;
-}
+};
+
+/** GET /api/sites/:id/statistics — get aggregated audience statistics */
+export const getAudienceStatistics = async (siteId: string) => {
+  const { data } = await apiClient.get(`/sites/${siteId}/statistics`);
+  return data;
+};
+
+/** GET /api/sites/:id/audience-events — get recent audience events */
+export const getAudienceEvents = async (siteId: string) => {
+  const { data } = await apiClient.get(`/sites/${siteId}/audience-events`);
+  return data;
+};

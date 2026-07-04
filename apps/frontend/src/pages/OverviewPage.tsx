@@ -1,7 +1,53 @@
+import React, { useEffect, useState } from 'react';
 import { LayoutDashboard, TrendingUp, Users, Clock, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useQuery } from '@tanstack/react-query';
+import { getSites, getAudienceStatistics } from '@/api/sites';
+import { useMqtt } from '@/mqtt/useMqtt';
+import { MQTT_TOPICS } from '@/mqtt/mqtt.topics';
 
 export function OverviewPage() {
+  // Fetch available sites
+  const { data: sites = [] } = useQuery({
+    queryKey: ['sites'],
+    queryFn: getSites,
+  });
+
+  const [selectedSiteId, setSelectedSiteId] = useState<string>('');
+
+  useEffect(() => {
+    if (sites.length > 0 && !selectedSiteId) {
+      setSelectedSiteId(sites[0].id);
+    }
+  }, [sites, selectedSiteId]);
+
+  // Fetch historical statistics
+  const { data: stats } = useQuery({
+    queryKey: ['audienceStatistics', selectedSiteId],
+    queryFn: () => getAudienceStatistics(selectedSiteId),
+    enabled: !!selectedSiteId,
+    refetchInterval: 30000, // Refresh every 30s as fallback
+  });
+
+  const [liveVisitors, setLiveVisitors] = useState(0);
+
+  // Hook into MQTT for real-time edge detections
+  useMqtt(MQTT_TOPICS.EDGE.DETECTIONS, (topic, payload: any) => {
+    if (payload.siteId === selectedSiteId || !selectedSiteId) {
+      setLiveVisitors(payload.personCount || 0);
+    }
+  });
+
+  // Sync historical stat to live visitors when loaded
+  useEffect(() => {
+    if (stats && liveVisitors === 0) {
+      setLiveVisitors(stats.currentVisitors);
+    }
+  }, [stats]);
+
+  const dailyVisitors = stats?.dailyVisitors || 0;
+  const avgWaitTime = stats?.avgWaitTime || 0;
+  const activeCampaigns = stats?.activeCampaigns || 0;
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 animate-fade-in">
       <div className="border-b border-border pb-6">
@@ -22,10 +68,10 @@ export function OverviewPage() {
             <Users className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,248</div>
+            <div className="text-2xl font-bold">{liveVisitors}</div>
             <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1">
               <TrendingUp className="h-3 w-3" />
-              +12% vs hier
+              {dailyVisitors} total aujourd'hui
             </p>
           </CardContent>
         </Card>
@@ -36,7 +82,7 @@ export function OverviewPage() {
             <Clock className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">14 min</div>
+            <div className="text-2xl font-bold">{avgWaitTime} min</div>
             <p className="text-xs text-muted-foreground mt-1">
               Seuil critique à 15 min
             </p>
@@ -63,7 +109,7 @@ export function OverviewPage() {
             <Users className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">4</div>
+            <div className="text-2xl font-bold">{activeCampaigns}</div>
             <p className="text-xs text-muted-foreground mt-1">
               Ciblage dynamique activé
             </p>

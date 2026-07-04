@@ -21,6 +21,7 @@ import { MetricsController } from './common/metrics/metrics.controller';
 import { MqttModule } from './mqtt/mqtt.module';
 import { SitesModule } from './sites/sites.module';
 import { DevicesModule } from './devices/devices.module';
+import { AudienceEventsModule } from './audience-events/audience-events.module';
 
 @Module({
   imports: [
@@ -54,6 +55,9 @@ import { DevicesModule } from './devices/devices.module';
     // Fleet Management (T-032 / F4.2 & F4.3)
     SitesModule,
     DevicesModule,
+
+    // Audience Analytics Integration (T-033)
+    AudienceEventsModule,
   ],
   controllers: [],
   providers: [
