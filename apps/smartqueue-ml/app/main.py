@@ -6,8 +6,8 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from prometheus_client import Counter, Histogram, Info
 
 from app.core.config import settings
-from app.routers import health
-from app.ml.model_store import load_model
+from app.routers import predict
+from app.services.model_store import load_model, is_model_loaded
 from app.stubs.mqtt_client_stub import connect_mqtt
 
 logger = structlog.get_logger().bind(
@@ -78,7 +78,8 @@ app = FastAPI(
 Instrumentator().instrument(app).expose(app)
 
 # Import routers
-app.include_router(health.router)
+
+app.include_router(predict.router)
 
 
 @app.get("/")
@@ -87,4 +88,15 @@ def read_root():
         "message": "SmartQueue ML Service",
         "version": "1.0.0",
         "docs": "/docs",
+    }
+
+@app.get("/health")
+def health_check():
+    return {
+        "status": "ok",
+        "services": {
+            "model": "loaded" if is_model_loaded() else "not_loaded",
+            "mqtt": "not_connected",
+            "redis": "unknown"
+        }
     }

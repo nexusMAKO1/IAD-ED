@@ -7,7 +7,7 @@ from fastapi import APIRouter
 
 from app.core.config import settings
 from app.schemas.prediction import HealthResponse
-from app.stubs.model_store_stub import is_model_loaded
+from app.services.model_store import is_model_loaded
 from app.stubs.mqtt_client_stub import is_mqtt_connected
 
 logger = structlog.get_logger().bind(

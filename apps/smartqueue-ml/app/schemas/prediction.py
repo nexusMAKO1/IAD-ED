@@ -2,7 +2,9 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from app.core.config import settings
 
 
 def get_utc_now() -> str:
@@ -14,24 +16,43 @@ def get_uuid() -> str:
 
 
 class PredictRequest(BaseModel):
-    service_type: Literal[
-        "consultation",
-        "virement",
-        "retrait",
-        "depot",
-        "reclamation",
-        "info",
-    ]
-    priority: Literal["standard", "priority", "vip"] = "standard"
-    queue_length: int = Field(ge=0, description="People waiting")
-    active_agents: int = Field(ge=1, le=10)
+    service_type: str
+    priority: str = "standard"
+    queue_length: int = Field(default=0, ge=0)
+    active_agents: int = Field(default=2, ge=0)
+
+    @field_validator("service_type")
+    @classmethod
+    def validate_service_type(cls, v: str) -> str:
+        if v not in settings.VALID_SERVICE_TYPES:
+            raise ValueError(f"service_type must be one of {settings.VALID_SERVICE_TYPES}")
+        return v
+
+    @field_validator("priority")
+    @classmethod
+    def validate_priority(cls, v: str) -> str:
+        if v not in settings.VALID_PRIORITIES:
+            raise ValueError(f"priority must be one of {settings.VALID_PRIORITIES}")
+        return v
+
+
+class BatchPredictRequest(BaseModel):
+    items: list[PredictRequest]
+
+    @model_validator(mode="after")
+    def validate_batch_size(self):
+        if len(self.items) > 50:
+            raise ValueError("Batch size exceeds maximum of 50")
+        return self
 
 
 class PredictionResponse(BaseModel):
     predicted_wait_time_seconds: int
+    congestion_level: str
     confidence_interval_percentage: float
-    congestion_level: Literal["low", "moderate", "high", "critical"]
     factors: dict
+    is_fallback: bool = False
+    timestamp: datetime
 
 
 class MQTTPredictionPayload(BaseModel):
@@ -40,15 +61,6 @@ class MQTTPredictionPayload(BaseModel):
     predicted_wait_time_seconds: int
     confidence_interval_percentage: float
     congestion_level: Literal["low", "moderate", "high", "critical"]
-
-
-class QueueStatusPayload(BaseModel):
-    kiosk_id: str
-    timestamp: str
-    active_tickets: int
-    waiting_users: int
-    average_wait_time_seconds: int
-    service_point_status: list
 
 
 class AnomalyAlert(BaseModel):
