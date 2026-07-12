@@ -2,6 +2,7 @@ import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nes
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { Counter, Histogram } from 'prom-client';
+import { IadMetricsService } from './iad-metrics.service';
 
 const requestDuration = new Histogram({
   name: 'http_request_duration_seconds',
@@ -18,6 +19,8 @@ const requestCounter = new Counter({
 
 @Injectable()
 export class MetricsInterceptor implements NestInterceptor {
+  constructor(private readonly iadMetrics: IadMetricsService) {}
+
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const ctx = context.switchToHttp();
     const req = ctx.getRequest();
@@ -38,11 +41,13 @@ export class MetricsInterceptor implements NestInterceptor {
         next: () => {
           const statusCode = res.statusCode;
           requestCounter.labels(method, route, statusCode.toString()).inc();
+          this.iadMetrics.backendRequestsTotal.inc({ method, path: route });
           endTimer({ method, route, status_code: statusCode.toString() });
         },
         error: (error) => {
           const statusCode = error.status || 500;
           requestCounter.labels(method, route, statusCode.toString()).inc();
+          this.iadMetrics.backendRequestsTotal.inc({ method, path: route });
           endTimer({ method, route, status_code: statusCode.toString() });
         },
       }),

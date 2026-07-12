@@ -32,6 +32,7 @@ import os
 import platform
 import socket
 import time
+import json
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import Any
@@ -91,6 +92,7 @@ _mqtt_client: MQTTClient = MQTTClient(
     client_id=settings.mqtt_client_id,
     keepalive=settings.mqtt_keepalive,
     site_id=settings.site_id,
+    device_id=settings.device_id,
 )
 
 # Startup timestamp for uptime calculation
@@ -787,17 +789,23 @@ def _cli_main() -> None:  # pragma: no cover
             PerformanceLogger,
             draw_detections,
             draw_hud,
+            draw_tracked_persons,
         )
         from app.video_stream import VideoStream
+        from app.tracking.bytetrack import ByteTracker as _ByteTracker
+        from app.demographics.age_estimation import AgeEstimator as _AgeEstimator
     except ImportError:
-        from utils import (
+        from utils import (  # type: ignore[no-redef]
             FPSCounter,
             LatencyTracker,
             PerformanceLogger,
             draw_detections,
             draw_hud,
-        )  # type: ignore[no-redef]
+            draw_tracked_persons,
+        )
         from video_stream import VideoStream  # type: ignore[no-redef]
+        from tracking.bytetrack import ByteTracker as _ByteTracker  # type: ignore[no-redef]
+        from demographics.age_estimation import AgeEstimator as _AgeEstimator  # type: ignore[no-redef]
 
     parser = argparse.ArgumentParser(
         description="IAD Edge-CV — Real-Time Person Detection (CLI)"
@@ -843,6 +851,31 @@ def _cli_main() -> None:  # pragma: no cover
         log.info("ONNX exported to: %s", out)
         return
 
+    # ── Age estimation: estimate every N frames OR every 500 ms ────────────
+    # Either condition triggers a fresh inference run.  The cached label
+    # (a display string such as "Adult") is shown on all other frames so
+    # the overlay never goes blank between refreshes.
+    AGE_ESTIMATE_EVERY_N: int = 10        # frame-count gate
+    AGE_ESTIMATE_INTERVAL_MS: float = 500.0  # wall-clock gate (milliseconds)
+
+    # Instantiate a CLI-scoped ByteTracker and AgeEstimator.
+    # These are separate instances from the FastAPI lifespan objects so the
+    # CLI mode is entirely self-contained and does not touch the REST state.
+    cli_tracker = _ByteTracker()
+    cli_age_estimator = _AgeEstimator()   # no ONNX model → runs heuristic fallback
+
+    # Connect MQTT for publishing events from CLI mode
+    global _mqtt_client
+    if _mqtt_client.connect():
+        log.info("CLI Mode: MQTT connected.")
+    else:
+        log.warning("CLI Mode: MQTT connection failed.")
+
+    # track_id → age group display string (e.g. "Adult", "Unknown").
+    # Populated lazily; reused across frames to avoid redundant inference.
+    age_cache: dict[int, str] = {}
+    _last_age_estimate_time: float = 0.0   # time.perf_counter() timestamp
+
     fps_counter = FPSCounter(window=30)
     latency_tracker = LatencyTracker(window=30)
     perf_logger = PerformanceLogger(args.log_csv) if args.log_csv else None
@@ -874,11 +907,77 @@ def _cli_main() -> None:  # pragma: no cover
             current_fps = fps_counter.fps
             avg_latency = latency_tracker.average_ms
 
+            # ── ByteTracker update ────────────────────────────────────────────
+            raw_dets = [
+                {"bbox": [d.x1, d.y1, d.x2, d.y2], "confidence": d.confidence}
+                for d in result.detections
+            ]
+            h, w = frame.shape[:2]
+            try:
+                tracked_people = cli_tracker.update(raw_dets, frame_h=h, frame_w=w)
+            except Exception as trk_exc:
+                log.debug("Tracker error (skipping frame): %s", trk_exc)
+                tracked_people = []
+
+            # ── Age estimation (throttled: every N frames OR every 500 ms) ──
+            now_ms = time.perf_counter() * 1000.0
+            time_gate = (now_ms - _last_age_estimate_time) >= AGE_ESTIMATE_INTERVAL_MS
+            frame_gate = (frame_count % AGE_ESTIMATE_EVERY_N == 0)
+
+            if (frame_gate or time_gate) and tracked_people:
+                age_dets = [
+                    {"bbox": p.bbox, "confidence": p.confidence}
+                    for p in tracked_people
+                ]
+                try:
+                    age_results = cli_age_estimator.estimate(frame, age_dets)
+                except Exception as age_exc:
+                    log.debug("Age estimation error: %s", age_exc)
+                    age_results = []
+
+                for person, age_info in zip(tracked_people, age_results):
+                    raw_age = age_info.get("age")
+                    if raw_age is not None:
+                        # Convert numerical age → privacy-friendly display label
+                        group_label = cli_age_estimator.age_group_label(float(raw_age))
+                        prev = age_cache.get(person.track_id)
+                        age_cache[person.track_id] = group_label
+
+                        # Publish to MQTT
+                        if _mqtt_client.is_connected:
+                            payload = {
+                                "timestamp": datetime.now(timezone.utc).isoformat(),
+                                "deviceId": settings.device_id,
+                                "siteId": settings.site_id,
+                                "event": "demographics",
+                                "payload": {
+                                    "age_group": group_label.lower().replace(" ", "_"),
+                                    "confidence": round(age_info.get("confidence", 1.0), 4)
+                                }
+                            }
+                            _mqtt_client._client.publish("smartvision/edge/demographics", json.dumps(payload), qos=1)
+
+                        # Log only when the group changes for this track
+                        if prev != group_label:
+                            log.info(
+                                "Track %d  Age Group: %s",
+                                person.track_id,
+                                group_label,
+                            )
+
+                _last_age_estimate_time = now_ms
+
+            # ── Evict ages for tracks that are no longer active ───────────────
+            active_ids = {p.track_id for p in tracked_people}
+            stale_ids = [tid for tid in age_cache if tid not in active_ids]
+            for tid in stale_ids:
+                del age_cache[tid]
+
             if perf_logger:
                 perf_logger.log(
                     fps=current_fps,
                     latency_ms=avg_latency,
-                    person_count=result.person_count,
+                    person_count=len(tracked_people),
                 )
 
             if args.headless:
@@ -887,18 +986,21 @@ def _cli_main() -> None:  # pragma: no cover
                         "FPS: %.1f | Latency: %.1f ms | Persons: %d",
                         current_fps,
                         avg_latency,
-                        result.person_count,
+                        len(tracked_people),
                     )
                 continue
 
-            draw_detections(frame, result.detections)
+            # ── Visualisation ─────────────────────────────────────────────────
+            # draw_tracked_persons replaces draw_detections for the tracker path;
+            # draw_hud (FPS / latency / person count) is kept as-is.
+            draw_tracked_persons(frame, tracked_people, age_cache)
             draw_hud(
                 frame,
                 fps=current_fps,
                 latency_ms=avg_latency,
-                person_count=result.person_count,
+                person_count=len(tracked_people),
             )
-            cv2.imshow("IAD SmartQueue — Person Detection", frame)
+            cv2.imshow("IAD SmartVision — Person Detection & Age Estimation", frame)
             if (cv2.waitKey(1) & 0xFF) == ord("q"):
                 break
 
@@ -909,6 +1011,7 @@ def _cli_main() -> None:  # pragma: no cover
         cv2.destroyAllWindows()
         if perf_logger:
             perf_logger.close()
+        _mqtt_client.disconnect()
 
     log.info(
         "Completed %d frames | Avg FPS: %.1f | Avg Latency: %.1f ms",

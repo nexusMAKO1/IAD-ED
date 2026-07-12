@@ -92,7 +92,7 @@ export class AuthService {
       const refreshSecret =
         this.configService.get<string>('JWT_REFRESH_SECRET') ??
         this.configService.get<string>('JWT_SECRET') ??
-        'fallback-refresh-secret';
+        'fallback-jwt-secret-key-at-least-64-chars';
 
       const payload = this.jwtService.verify<JwtPayload>(refreshToken, {
         secret: refreshSecret,
@@ -130,7 +130,7 @@ export class AuthService {
     };
 
     const jwtSecret =
-      this.configService.get<string>('JWT_SECRET') ?? 'fallback-jwt-secret';
+      this.configService.get<string>('JWT_SECRET') ?? 'fallback-jwt-secret-key-at-least-64-chars';
     const refreshSecret =
       this.configService.get<string>('JWT_REFRESH_SECRET') ?? jwtSecret;
 

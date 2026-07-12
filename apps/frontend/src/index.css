@@ -21,6 +21,10 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
+  /* SmartVision semantic tokens */
+  --color-sv-success: hsl(var(--sv-success));
+  --color-sv-warning: hsl(var(--sv-warning));
+  --color-sv-danger: hsl(var(--sv-danger));
 
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
@@ -29,6 +33,8 @@
   --animate-fade-in: fade-in 0.2s ease-out;
   --animate-slide-in-right: slide-in-right 0.25s ease-out;
   --animate-scale-in: scale-in 0.15s ease-out;
+  --animate-pulse-dot: pulse-dot 2s ease-in-out infinite;
+  --animate-count-up: count-up 0.6s ease-out;
 
   @keyframes fade-in {
     0% { opacity: 0; transform: translateY(8px); }
@@ -41,6 +47,18 @@
   @keyframes scale-in {
     0% { opacity: 0; transform: scale(0.95); }
     100% { opacity: 1; transform: scale(1); }
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+  }
+  @keyframes count-up {
+    0% { opacity: 0; transform: translateY(12px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
   }
 }
 
@@ -76,6 +94,11 @@
   --ring: 258 90% 66%;
 
   --radius: 0.625rem;
+
+  /* SmartVision semantic palette */
+  --sv-success: 142 71% 45%;
+  --sv-warning: 38 92% 50%;
+  --sv-danger: 0 72% 51%;
 }
 
 * {
@@ -113,12 +136,27 @@ body {
   @apply bg-muted-foreground rounded-full;
 }
 
-/* Utilities */
+/* ── Utilities ─────────────────────────────────────────────────────────────── */
+
 .glass {
   background: hsl(222 47% 11% / 0.8);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid hsl(222 47% 18% / 0.5);
+}
+
+.glass-card {
+  background: hsl(222 47% 12% / 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid hsl(222 47% 20% / 0.4);
+  border-radius: var(--radius);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.glass-card:hover {
+  border-color: hsl(222 47% 28% / 0.6);
+  box-shadow: 0 8px 32px hsl(222 47% 5% / 0.4);
 }
 
 .gradient-text {
@@ -132,6 +170,20 @@ body {
   box-shadow: 0 0 20px hsl(258 90% 66% / 0.3);
 }
 
+.glow-success {
+  box-shadow: 0 0 16px hsl(142 71% 45% / 0.3);
+}
+
+.glow-warning {
+  box-shadow: 0 0 16px hsl(38 92% 50% / 0.3);
+}
+
+.glow-danger {
+  box-shadow: 0 0 16px hsl(0 72% 51% / 0.3);
+}
+
+/* ── Status classes (existing, preserved) ──────────────────────────────────── */
+
 .status-online {
   @apply text-emerald-400 bg-emerald-400/10 border-emerald-400/20;
 }
@@ -142,4 +194,34 @@ body {
 
 .status-degraded {
   @apply text-amber-400 bg-amber-400/10 border-amber-400/20;
+}
+
+/* ── SmartVision live indicator ────────────────────────────────────────────── */
+
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: hsl(142 71% 45%);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* ── Skeleton shimmer ──────────────────────────────────────────────────────── */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    hsl(222 47% 14%) 0%,
+    hsl(222 47% 18%) 50%,
+    hsl(222 47% 14%) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Sidebar collapsed state ───────────────────────────────────────────────── */
+
+.sidebar-collapsed .sidebar-label {
+  display: none;
 }

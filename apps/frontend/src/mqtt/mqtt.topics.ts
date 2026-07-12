@@ -23,6 +23,13 @@ export const MQTT_TOPICS = {
     ANALYTICS: 'smartvision/backend/analytics',
     CAMPAIGNS: 'smartvision/backend/campaigns',
   },
+  DISPLAY: {
+    PLAY: 'smartvision/display/play',
+    PLAYLIST: 'smartvision/display/playlist',
+    CACHE: 'smartvision/display/cache',
+    STATUS: 'smartvision/display/status',
+    CURRENT: 'smartvision/display/current',
+  },
   FRONTEND: {
     DASHBOARD: 'smartvision/frontend/dashboard',
     NOTIFICATIONS: 'smartvision/frontend/notifications',
@@ -42,6 +49,9 @@ export const FRONTEND_SUBSCRIPTIONS = [
   MQTT_TOPICS.BACKEND.QUEUE,
   MQTT_TOPICS.EDGE.DETECTIONS,
   MQTT_TOPICS.EDGE.TRACKING,
+  MQTT_TOPICS.EDGE.DEMOGRAPHICS,
+  MQTT_TOPICS.EDGE.CROWD_DENSITY,
+  MQTT_TOPICS.EDGE.PERFORMANCE,
   MQTT_TOPICS.EDGE.CAMERA_HEALTH,
   MQTT_TOPICS.SYSTEM.HEALTH,
 ] as const;

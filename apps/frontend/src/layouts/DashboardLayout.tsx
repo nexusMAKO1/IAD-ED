@@ -1,85 +1,82 @@
-import { NavLink, Outlet } from 'react-router-dom';
-import {
-  MonitorPlay,
-  LayoutDashboard,
-  ChevronRight,
-  Wifi,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+/**
+ * layouts/DashboardLayout.tsx — Main dashboard shell
+ * SmartVision IAD Dashboard
+ *
+ * Composes SidebarNav + TopBar + animated page outlet.
+ * Sidebar collapse state is persisted in localStorage.
+ */
 
-const navItems = [
-  {
-    to: '/dashboard',
-    end: true,
-    icon: LayoutDashboard,
-    label: "Vue d'ensemble",
-  },
-  {
-    to: '/dashboard/fleet',
-    end: false,
-    icon: MonitorPlay,
-    label: "Parc d'écrans",
-  },
-];
+import { useState, useEffect } from 'react';
+import { Outlet } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
+import { SidebarNav } from '@/components/layout/SidebarNav';
+import { TopBar } from '@/components/layout/TopBar';
+import { getSites } from '@/api/sites';
+import { useSiteSelector } from '@/hooks/useSiteSelector';
+
+const SIDEBAR_KEY = 'sv_sidebar_collapsed';
 
 export function DashboardLayout() {
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    return localStorage.getItem(SIDEBAR_KEY) === 'true';
+  });
+
+  const handleToggle = () => {
+    setCollapsed((v) => {
+      const next = !v;
+      localStorage.setItem(SIDEBAR_KEY, String(next));
+      return next;
+    });
+  };
+
+  // Fetch sites for the TopBar site selector
+  const { data: sites = [] } = useQuery({
+    queryKey: ['sites'],
+    queryFn: getSites,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { selectedSiteId, setSelectedSiteId } = useSiteSelector(sites);
+
+  // Collapse sidebar automatically on small screens
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    if (mq.matches) setCollapsed(true);
+    const handler = (e: MediaQueryListEvent) => {
+      if (e.matches) setCollapsed(true);
+    };
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
-      <aside className="flex w-64 flex-col border-r border-border glass shrink-0">
-        {/* Logo */}
-        <div className="flex h-16 items-center gap-3 border-b border-border px-5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/20 ring-1 ring-primary/40">
-            <Wifi className="h-4 w-4 text-primary" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold leading-none gradient-text">
-              Express Display
-            </p>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
-              SmartVision Dashboard
-            </p>
-          </div>
-        </div>
+      <SidebarNav collapsed={collapsed} onToggle={handleToggle} />
 
-        {/* Navigation */}
-        <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
-          <p className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-            Navigation
-          </p>
-          {navItems.map(({ to, end, icon: Icon, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }) =>
-                cn(
-                  'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
-                  isActive
-                    ? 'bg-primary/15 text-primary ring-1 ring-primary/20'
-                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                )
-              }
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              <span className="flex-1">{label}</span>
-              <ChevronRight className="h-3.5 w-3.5 opacity-0 -translate-x-1 transition-all group-hover:opacity-50 group-hover:translate-x-0" />
-            </NavLink>
-          ))}
-        </nav>
+      {/* ── Main area ──────────────────────────────────────────────────────── */}
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+        {/* Top bar */}
+        <TopBar
+          sites={sites}
+          selectedSiteId={selectedSiteId}
+          onSiteChange={setSelectedSiteId}
+        />
 
-        {/* Footer */}
-        <div className="border-t border-border px-5 py-3">
-          <p className="text-[10px] text-muted-foreground">
-            IAD & SmartQueue AI v1.0
-          </p>
-        </div>
-      </aside>
-
-      {/* ── Main Content ─────────────────────────────────────────────────────── */}
-      <main className="flex-1 overflow-y-auto">
-        <Outlet />
-      </main>
+        {/* Page content */}
+        <motion.main
+          key="main-content"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.2 }}
+          className="flex-1 overflow-y-auto"
+          id="main-content"
+          aria-label="Page content"
+        >
+          <Outlet context={{ selectedSiteId, sites }} />
+        </motion.main>
+      </div>
     </div>
   );
 }

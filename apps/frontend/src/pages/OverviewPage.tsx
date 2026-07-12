@@ -1,129 +1,275 @@
-import React, { useEffect, useState } from 'react';
-import { LayoutDashboard, TrendingUp, Users, Clock, AlertCircle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+/**
+ * pages/OverviewPage.tsx — SmartVision Dashboard Overview
+ * Replaces placeholder with full 11-KPI animated dashboard.
+ *
+ * Security: No dangerouslySetInnerHTML. All values via React JSX auto-escaping.
+ */
+
+import React, { useState, useCallback, useMemo } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getSites, getAudienceStatistics } from '@/api/sites';
-import { useMqtt } from '@/mqtt/useMqtt';
-import { MQTT_TOPICS } from '@/mqtt/mqtt.topics';
+import { motion } from 'framer-motion';
+import {
+  Users, Clock, Eye, BarChart2, Layers, UserCheck,
+  Baby, PersonStanding, UserX, Waves, TrendingUp,
+} from 'lucide-react';
+import { KpiCard } from '@/components/dashboard/KpiCard';
+import { LiveBadge } from '@/components/dashboard/LiveBadge';
+import { VisitorLineChart } from '@/components/charts/VisitorLineChart';
+import { DensityGauge } from '@/components/charts/DensityGauge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { getAudienceStats } from '@/api/audience';
+import { useLiveDashboard } from '@/hooks/useLiveDashboard';
+import type { TimeSeriesPoint } from '@/types';
+
+type OutletCtx = { selectedSiteId: string };
+
+// Demo arrays removed; real data comes from the API/MQTT hooks
+
 
 export function OverviewPage() {
-  // Fetch available sites
-  const { data: sites = [] } = useQuery({
-    queryKey: ['sites'],
-    queryFn: getSites,
-  });
+  const { selectedSiteId } = useOutletContext<OutletCtx>();
+  const live = useLiveDashboard(selectedSiteId);
 
-  const [selectedSiteId, setSelectedSiteId] = useState<string>('');
-
-  useEffect(() => {
-    if (sites.length > 0 && !selectedSiteId) {
-      setSelectedSiteId(sites[0].id);
-    }
-  }, [sites, selectedSiteId]);
-
-  // Fetch historical statistics
   const { data: stats } = useQuery({
-    queryKey: ['audienceStatistics', selectedSiteId],
-    queryFn: () => getAudienceStatistics(selectedSiteId),
+    queryKey: ['audienceStats', selectedSiteId],
+    queryFn: () => getAudienceStats(selectedSiteId),
     enabled: !!selectedSiteId,
-    refetchInterval: 30000, // Refresh every 30s as fallback
+    refetchInterval: 30_000,
   });
 
-  const [liveVisitors, setLiveVisitors] = useState(0);
+  // Merge live MQTT data over REST fallback
+  const currentVisitors = live.currentVisitors || stats?.currentVisitors || 0;
+  const crowdDensity    = live.crowdDensity    || stats?.crowdDensity    || null;
+  const malePercent     = live.malePercent     || stats?.malePercent     || 50;
+  const femalePercent   = live.femalePercent   || stats?.femalePercent   || 50;
 
-  // Hook into MQTT for real-time edge detections
-  useMqtt(MQTT_TOPICS.EDGE.DETECTIONS, (topic, payload: any) => {
-    if (payload.siteId === selectedSiteId || !selectedSiteId) {
-      setLiveVisitors(payload.personCount || 0);
-    }
-  });
+  const dailyVisitors  = stats?.dailyVisitors  ?? 0;
+  const avgWaitTime    = stats?.avgWaitTime    ?? 0;
+  const attentionRate  = stats?.attentionRate  ?? 0;
+  const avgQueueLength = stats?.avgQueueLength ?? 0;
+  const childrenCount  = stats?.childrenCount  ?? 0;
+  const adultsCount    = stats?.adultsCount    ?? 0;
+  const seniorsCount   = stats?.seniorsCount   ?? 0;
 
-  // Sync historical stat to live visitors when loaded
-  useEffect(() => {
-    if (stats && liveVisitors === 0) {
-      setLiveVisitors(stats.currentVisitors);
-    }
-  }, [stats]);
+  const containerVariants = {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.06 } },
+  };
 
-  const dailyVisitors = stats?.dailyVisitors || 0;
-  const avgWaitTime = stats?.avgWaitTime || 0;
-  const activeCampaigns = stats?.activeCampaigns || 0;
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 animate-fade-in">
-      <div className="border-b border-border pb-6">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-          <LayoutDashboard className="h-8 w-8 text-primary" />
-          Vue d'ensemble
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Suivi de l'affluence et des performances opérationnelles de vos agences en temps réel.
-        </p>
+    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
+      {/* ── Header ────────────────────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border pb-6"
+      >
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+            <BarChart2 className="h-6 w-6 text-primary" aria-hidden="true" />
+            Dashboard Overview
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Real-time audience intelligence — SmartVision IAD
+          </p>
+        </div>
+        <LiveBadge />
+      </motion.div>
+
+      {/* ── Primary KPI Row ─────────────────────────────────────────────── */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4"
+      >
+        <KpiCard
+          title="Current Visitors"
+          value={currentVisitors}
+          icon={Users}
+          color="primary"
+          trend="up"
+          trendLabel={`${dailyVisitors} today`}
+          delay={0}
+        />
+        <KpiCard
+          title="Today's Visitors"
+          value={dailyVisitors}
+          icon={TrendingUp}
+          color="success"
+          trend="up"
+          trendLabel="Since midnight"
+          delay={0.06}
+        />
+        <KpiCard
+          title="Avg Stay Time"
+          value={avgWaitTime}
+          unit="min"
+          icon={Clock}
+          color="warning"
+          trend={avgWaitTime > 15 ? 'down' : 'neutral'}
+          trendLabel={avgWaitTime > 15 ? 'Above threshold' : 'Within target'}
+          delay={0.12}
+        />
+        <KpiCard
+          title="Attention Rate"
+          value={`${attentionRate}%`}
+          icon={Eye}
+          color="primary"
+          trend="up"
+          trendLabel="Campaign engagement"
+          delay={0.18}
+        />
+      </motion.div>
+
+      {/* ── Secondary KPI Row ────────────────────────────────────────────── */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4"
+      >
+        <KpiCard
+          title="Avg Queue"
+          value={avgQueueLength}
+          icon={Layers}
+          color="warning"
+          trend={avgQueueLength > 10 ? 'down' : 'neutral'}
+          trendLabel={`Threshold: 10`}
+          delay={0}
+        />
+        <KpiCard
+          title="Crowd Density"
+          value={crowdDensity ? crowdDensity.charAt(0).toUpperCase() + crowdDensity.slice(1) : '—'}
+          icon={Waves}
+          color={crowdDensity === 'critical' || crowdDensity === 'high' ? 'danger' : crowdDensity === 'medium' ? 'warning' : 'success'}
+          trend="neutral"
+          trendLabel={`${currentVisitors} persons detected`}
+          delay={0.06}
+        />
+        <KpiCard
+          title="Male"
+          value={`${malePercent}%`}
+          icon={UserCheck}
+          color="primary"
+          trend="neutral"
+          trendLabel="Gender split"
+          delay={0.12}
+        />
+        <KpiCard
+          title="Female"
+          value={`${femalePercent}%`}
+          icon={UserCheck}
+          color="primary"
+          trend="neutral"
+          trendLabel="Gender split"
+          delay={0.18}
+        />
+      </motion.div>
+
+      {/* ── Age KPI Row ─────────────────────────────────────────────────── */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-3 gap-4"
+      >
+        <KpiCard
+          title="Children"
+          value={childrenCount}
+          icon={Baby}
+          color="success"
+          trend="neutral"
+          subtitle="Under 18"
+          delay={0}
+        />
+        <KpiCard
+          title="Adults"
+          value={adultsCount}
+          icon={PersonStanding}
+          color="primary"
+          trend="neutral"
+          subtitle="18–64 years"
+          delay={0.06}
+        />
+        <KpiCard
+          title="Seniors"
+          value={seniorsCount}
+          icon={UserX}
+          color="muted"
+          trend="neutral"
+          subtitle="65+ years"
+          delay={0.12}
+        />
+      </motion.div>
+
+      {/* ── Charts Row ──────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Visitors per minute */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.4 }}
+          className="lg:col-span-2"
+        >
+          <Card className="glass">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                  Visitors — Last 30 min
+                </CardTitle>
+                <LiveBadge showLabel={false} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <VisitorLineChart data={[]} useArea height={200} color="#7c3aed" />
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Density Gauge */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35, duration: 0.4 }}
+        >
+          <Card className="glass h-full">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                Live Crowd Density
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex items-center justify-center">
+              <DensityGauge
+                level={crowdDensity}
+                count={currentVisitors}
+                maxCount={100}
+                height={200}
+              />
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* ── Hourly Visitor Chart ──────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4, duration: 0.4 }}
+      >
         <Card className="glass">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Visiteurs Détectés</CardTitle>
-            <Users className="h-4 w-4 text-primary" />
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+              Visitors Today — Hourly
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{liveVisitors}</div>
-            <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1">
-              <TrendingUp className="h-3 w-3" />
-              {dailyVisitors} total aujourd'hui
-            </p>
+            <VisitorLineChart data={[]} useArea={false} height={180} color="#22c55e" />
           </CardContent>
         </Card>
-
-        <Card className="glass">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Temps d'attente Moyen</CardTitle>
-            <Clock className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{avgWaitTime} min</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Seuil critique à 15 min
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="glass">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Écrans Connectés</CardTitle>
-            <Clock className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">8 / 10</div>
-            <p className="text-xs text-amber-400 mt-1 flex items-center gap-1">
-              <AlertCircle className="h-3 w-3" />
-              2 écrans hors ligne
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="glass">
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Campagnes Actives</CardTitle>
-            <Users className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeCampaigns}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Ciblage dynamique activé
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="border border-border p-6 rounded-xl bg-card/40 flex flex-col items-center justify-center text-center py-12">
-        <LayoutDashboard className="h-10 w-10 text-muted-foreground/30 mb-3" />
-        <h3 className="text-lg font-semibold mb-1">Graphiques en cours de construction</h3>
-        <p className="text-sm text-muted-foreground max-w-md">
-          Les tableaux de bord analytiques et les courbes d'affluence prédictive (SmartQueue AI) seront intégrés dans le Sprint 3.
-        </p>
-      </div>
+      </motion.div>
     </div>
   );
 }

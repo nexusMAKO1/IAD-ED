@@ -110,13 +110,33 @@ class AgeEstimator:
 
         self.input_size = input_size
 
-        # Default age groups (Limits are inclusive)
+        # Default age groups (Limits are inclusive).
+        # Buckets follow the Express Display SmartVision spec:
+        #   0-12   -> child
+        #   13-17  -> teen
+        #   18-25  -> young_adult
+        #   26-40  -> adult
+        #   41-60  -> middle_aged
+        #   61+    -> senior
         self.age_groups = age_groups or {
-            "child": (0, 12),
-            "teen": (13, 18),
-            "young_adult": (19, 30),
-            "adult": (31, 55),
-            "senior": (56, 120),
+            "child":       (0,   12),
+            "teen":        (13,  17),
+            "young_adult": (18,  25),
+            "adult":       (26,  40),
+            "middle_aged": (41,  60),
+            "senior":      (61, 150),
+        }
+
+        # Human-readable display labels for each internal group key.
+        # Used by the visualisation layer — never exposes raw ages.
+        self._display_labels: dict[str, str] = {
+            "child":       "Child",
+            "teen":        "Teen",
+            "young_adult": "Young Adult",
+            "adult":       "Adult",
+            "middle_aged": "Middle-aged",
+            "senior":      "Senior",
+            "unknown":     "Unknown",
         }
 
         self.session: ort.InferenceSession | None = None
@@ -353,7 +373,7 @@ class AgeEstimator:
 
     def get_age_group(self, age: float) -> str:
         """
-        Map a numerical age to a configured age group label.
+        Map a numerical age to a configured age group key.
 
         Parameters
         ----------
@@ -363,13 +383,33 @@ class AgeEstimator:
         Returns
         -------
         str
-            Age group label (e.g. 'adult', 'child').
+            Internal age group key (e.g. 'adult', 'young_adult', 'unknown').
         """
         rounded_age = int(round(age))
         for group, (low, high) in self.age_groups.items():
             if low <= rounded_age <= high:
                 return group
         return "unknown"
+
+    def age_group_label(self, age: float) -> str:
+        """
+        Return a human-readable, privacy-friendly age group label.
+
+        This is the value that should be displayed in the UI — it never
+        exposes the exact numerical age.
+
+        Parameters
+        ----------
+        age : float
+            Numerical age as returned by the estimator.
+
+        Returns
+        -------
+        str
+            Display label, e.g. ``'Young Adult'``, ``'Senior'``, ``'Unknown'``.
+        """
+        key = self.get_age_group(age)
+        return self._display_labels.get(key, "Unknown")
 
     def estimate(
         self,

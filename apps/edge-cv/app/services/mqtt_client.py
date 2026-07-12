@@ -126,7 +126,8 @@ class MQTTClient:
         password: str = "",
         client_id: str = "edge-cv-service",
         keepalive: int = 60,
-        site_id: str = "express-display",
+        site_id: str = "123e4567-e89b-12d3-a456-426614174000",
+        device_id: str = "123e4567-e89b-12d3-a456-426614174000",
     ) -> None:
         self._host = host
         self._port = port
@@ -135,7 +136,7 @@ class MQTTClient:
         self._client_id = client_id
         self._keepalive = keepalive
         self._site_id = site_id
-        self._device_id: str = socket.gethostname()
+        self._device_id: str = device_id
 
         self._connected: bool = False
         self._lock = threading.Lock()

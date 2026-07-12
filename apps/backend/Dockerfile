@@ -17,6 +17,10 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
+# Docker Desktop injects HTTPS_PROXY=http.docker.internal:3128 which only handles
+# docker.io registry traffic. npm needs direct HTTPS to registry.npmjs.org.
+ENV HTTPS_PROXY="" HTTP_PROXY="" https_proxy="" http_proxy=""
+
 # Copy dependency manifests
 COPY package*.json ./
 
@@ -26,6 +30,8 @@ COPY package*.json ./
 FROM base AS development
 
 ENV NODE_ENV=development
+# Re-clear proxy: Docker Desktop re-injects it at each new stage
+ENV HTTPS_PROXY="" HTTP_PROXY="" https_proxy="" http_proxy="" NO_PROXY="*" no_proxy="*"
 
 RUN npm ci --legacy-peer-deps
 
@@ -53,6 +59,8 @@ CMD ["npm", "run", "start"]
 FROM base AS builder
 
 ENV NODE_ENV=production
+# Re-clear proxy: Docker Desktop re-injects it at each new stage
+ENV HTTPS_PROXY="" HTTP_PROXY="" https_proxy="" http_proxy="" NO_PROXY="*" no_proxy="*"
 
 RUN npm ci --legacy-peer-deps
 

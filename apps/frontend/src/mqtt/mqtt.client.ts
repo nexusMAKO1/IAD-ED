@@ -385,8 +385,8 @@ class MqttClientService {
       }
 
       log.error(
-        `MQTT authentication failed: "${msg}". ` +
-        'Reconnection stopped permanently. ' +
+        `[MQTT FAILURE] broker=${BROKER_URL} | username=${USERNAME || '<empty>'} | error=${msg}\n` +
+        'MQTT authentication failed. Reconnection stopped permanently. ' +
         'Check VITE_MQTT_USERNAME / VITE_MQTT_PASSWORD in your .env and the Mosquitto passwd file.',
       );
 
@@ -395,7 +395,7 @@ class MqttClientService {
     }
 
     // Non-auth error — log once (reconnect will be handled by 'close' event)
-    log.error(`MQTT error: ${msg}`);
+    log.error(`[MQTT FAILURE] broker=${BROKER_URL} | username=${USERNAME || '<empty>'} | error=${msg}`);
   }
 
   // -------------------------------------------------------------------------

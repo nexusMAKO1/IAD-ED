@@ -1,209 +1,91 @@
-import { PrismaClient, DeviceType, DeviceStatus, UserRole, TicketStatus } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Starting database seeding...');
+  console.log('Seeding database with test data...');
 
-  // 1. Clean up existing data to ensure repeatability
-  console.log('Cleaning up existing data...');
-  await prisma.audienceEvent.deleteMany({});
-  await prisma.ticket.deleteMany({});
-  await prisma.user.deleteMany({});
-  await prisma.device.deleteMany({});
-  await prisma.site.deleteMany({});
-  await prisma.campaign.deleteMany({});
-  await prisma.mLModel.deleteMany({});
+  // UUID used in Edge-CV configuration
+  const siteId = '123e4567-e89b-12d3-a456-426614174000';
+  const deviceId = '123e4567-e89b-12d3-a456-426614174000';
 
-  // 2. Seed 1 Site
-  console.log('Seeding sites...');
-  const site = await prisma.site.create({
-    data: {
-      name: 'Express Display HQ',
-      address: '10 Rue de la Paix, 75002 Paris, France',
-    },
-  });
-  console.log(`Created site: ${site.name} (${site.id})`);
-
-  // 3. Seed 2 Devices
-  console.log('Seeding devices...');
-  const device1 = await prisma.device.create({
-    data: {
-      siteId: site.id,
-      type: DeviceType.KIOSK,
-      status: DeviceStatus.ONLINE,
-    },
-  });
-  const device2 = await prisma.device.create({
-    data: {
-      siteId: site.id,
-      type: DeviceType.CAMERA,
-      status: DeviceStatus.ONLINE,
-    },
-  });
-  console.log(`Created devices: ${device1.type} (${device1.id}), ${device2.type} (${device2.id})`);
-
-  // 4. Seed 1 Admin User (with secure password hashing)
-  console.log('Seeding admin user...');
-  const saltRounds = 12;
-  // Password: admin123 — as specified in the project requirements
-  const hashedPassword = await bcrypt.hash('admin123', saltRounds);
+  // 0. Create Admin User (idempotent)
+  const adminPassword = await bcrypt.hash('Admin1234!', 12);
   const admin = await prisma.user.upsert({
     where: { email: 'admin@expressdisplay.com' },
-    update: {
-      password: hashedPassword,
-      role: UserRole.ADMIN,
-      siteId: site.id,
-    },
+    update: { password: adminPassword },
     create: {
       email: 'admin@expressdisplay.com',
-      password: hashedPassword,
-      role: UserRole.ADMIN,
+      password: adminPassword,
+      role: 'ADMIN',
+    },
+  });
+  console.log(`Admin user: ${admin.email} (role=${admin.role})`);
+
+  // 1. Create Site
+  const site = await prisma.site.upsert({
+    where: { id: siteId },
+    update: {},
+    create: {
+      id: siteId,
+      name: 'Express Display Test Site',
+      address: '1 Test Street, Test City',
+    },
+  });
+  console.log(`Site created: ${site.name}`);
+
+  // 2. Create Device
+  const device = await prisma.device.upsert({
+    where: { id: deviceId },
+    update: { status: 'ONLINE' },
+    create: {
+      id: deviceId,
       siteId: site.id,
+      name: 'Edge-CV Test Camera',
+      type: 'CAMERA',
+      status: 'ONLINE',
+      ipAddress: '127.0.0.1',
     },
   });
-  console.log(`Created admin user: ${admin.email}`);
+  console.log(`Device created: ${device.name}`);
 
-  // 5. Seed 3 Campaigns
-  console.log('Seeding campaigns...');
-  const campaign1 = await prisma.campaign.create({
-    data: {
-      name: 'Summer Sale Promotion',
-      mediaUrl: 'https://cdn.expressdisplay.com/media/summer_sale_2026.mp4',
-      targetAudience: {
-        age_groups: ['young_adult', 'adult'],
-        genders: ['male', 'female', 'unknown'],
-      },
-      priority: 'high',
-      active: true,
-    },
-  });
-  const campaign2 = await prisma.campaign.create({
-    data: {
-      name: 'VIP Queue Fast Pass',
-      mediaUrl: 'https://cdn.expressdisplay.com/media/fast_pass_info.mp4',
-      targetAudience: {
-        age_groups: ['adult', 'senior'],
-        genders: ['male', 'female'],
-      },
-      priority: 'critical',
-      active: true,
-    },
-  });
-  const campaign3 = await prisma.campaign.create({
-    data: {
-      name: 'Kids Play Zone Advertisement',
-      mediaUrl: 'https://cdn.expressdisplay.com/media/kids_zone.mp4',
-      targetAudience: {
-        age_groups: ['child'],
-        genders: ['male', 'female', 'unknown'],
-      },
-      priority: 'standard',
-      active: false,
-    },
-  });
-  console.log('Created campaigns');
+  // Clear existing campaigns
+  await prisma.campaign.deleteMany();
 
-  // 6. Seed 10 Tickets
-  console.log('Seeding tickets...');
-  const ticketStatuses = [
-    TicketStatus.DONE,
-    TicketStatus.DONE,
-    TicketStatus.DONE,
-    TicketStatus.DONE,
-    TicketStatus.DONE,
-    TicketStatus.IN_PROGRESS,
-    TicketStatus.WAITING,
-    TicketStatus.WAITING,
-    TicketStatus.WAITING,
-    TicketStatus.CANCELLED,
+  // 3. Create active Campaigns for all age groups
+  const campaignsData = [
+    { name: 'Child Campaign', age: 'child', url: 'https://picsum.photos/seed/child/1920/1080' },
+    { name: 'Teen Campaign', age: 'teen', url: 'https://picsum.photos/seed/teen/1920/1080' },
+    { name: 'Young Adult Campaign', age: 'young_adult', url: 'https://picsum.photos/seed/ya/1920/1080' },
+    { name: 'Adult Campaign', age: 'adult', url: 'https://picsum.photos/seed/adult/1920/1080' },
+    { name: 'Middle-aged Campaign', age: 'middle_aged', url: 'https://picsum.photos/seed/ma/1920/1080' },
+    { name: 'Senior Campaign', age: 'senior', url: 'https://picsum.photos/seed/senior/1920/1080' },
   ];
 
-  const now = new Date();
-  for (let i = 0; i < 10; i++) {
-    const status = ticketStatuses[i];
-    const createdAt = new Date(now.getTime() - (10 - i) * 15 * 60 * 1000); // 15 mins intervals
-    let calledAt: Date | null = null;
-    let finishedAt: Date | null = null;
-
-    if (status === TicketStatus.DONE || status === TicketStatus.IN_PROGRESS) {
-      calledAt = new Date(createdAt.getTime() + 8 * 60 * 1000); // Called after 8 mins
-    }
-    if (status === TicketStatus.DONE) {
-      finishedAt = new Date(calledAt!.getTime() + 12 * 60 * 1000); // Finished after 12 mins
-    }
-
-    await prisma.ticket.create({
+  for (const c of campaignsData) {
+    const campaign = await prisma.campaign.create({
       data: {
-        siteId: site.id,
-        ticketNumber: `A-10${i + 1}`,
-        serviceType: i % 2 === 0 ? 'billing' : 'consultation',
-        status,
-        createdAt,
-        calledAt,
-        finishedAt,
-        estimatedWaitMinutes: 10 + i * 2,
+        name: c.name,
+        mediaUrl: c.url,
+        mediaType: 'image',
+        duration: 15,
+        targetAudience: { age_group: c.age },
+        priority: 'high',
+        active: true,
+        enabled: true,
+        targetAge: c.age,
       },
     });
+    console.log(`Campaign created: ${campaign.name} targeting ${campaign.targetAge}`);
   }
-  console.log('Created 10 tickets');
-
-  // 7. Seed 100 AudienceEvent occurrences
-  console.log('Seeding 100 audience events...');
-  const audienceEventsData: any[] = [];
-
-  for (let i = 0; i < 100; i++) {
-    const timestamp = new Date(now.getTime() - i * 14 * 60 * 1000); // ~14 mins interval
-    const peopleCount = Math.floor(Math.random() * 5) + 1; // 1 to 5 people
-    const youngCount = Math.floor(Math.random() * (peopleCount + 1));
-    const adultCount = Math.floor(Math.random() * (peopleCount - youngCount + 1));
-    const seniorCount = peopleCount - youngCount - adultCount;
-
-    audienceEventsData.push({
-      siteId: site.id,
-      deviceId: device2.id, // CAMERA device
-      timestamp,
-      peopleCount,
-      densityScore: parseFloat((Math.random() * 0.8 + 0.1).toFixed(2)),
-      avgDwellTime: parseFloat((Math.random() * 30 + 5).toFixed(1)),
-      youngCount,
-      adultCount,
-      seniorCount,
-    });
-  }
-
-  // Use createMany to insert efficiently
-  await prisma.audienceEvent.createMany({
-    data: audienceEventsData,
-  });
-  console.log('Created 100 audience events');
-
-  // 8. Seed MLModels
-  console.log('Seeding MLModels...');
-  await prisma.mLModel.create({
-    data: {
-      type: 'IAD',
-      version: 'v1.0.0',
-      mae: 0.12,
-      active: true,
-    },
-  });
-  await prisma.mLModel.create({
-    data: {
-      type: 'SMARTQUEUE',
-      version: 'v1.2.0',
-      mae: 45.5,
-      active: true,
-    },
-  });
 
   console.log('Seeding completed successfully.');
 }
 
 main()
   .catch((e) => {
-    console.error('Seeding error:', e);
+    console.error(e);
     process.exit(1);
   })
   .finally(async () => {

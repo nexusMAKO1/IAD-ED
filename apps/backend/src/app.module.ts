@@ -22,6 +22,8 @@ import { MqttModule } from './mqtt/mqtt.module';
 import { SitesModule } from './sites/sites.module';
 import { DevicesModule } from './devices/devices.module';
 import { AudienceEventsModule } from './audience-events/audience-events.module';
+import { CampaignsModule } from './campaigns/campaigns.module';
+import { MetricsModule } from './common/metrics/metrics.module';
 
 @Module({
   imports: [
@@ -58,6 +60,12 @@ import { AudienceEventsModule } from './audience-events/audience-events.module';
 
     // Audience Analytics Integration (T-033)
     AudienceEventsModule,
+    
+    // Campaign Management & Decision Engine
+    CampaignsModule,
+    
+    // Custom IAD Metrics
+    MetricsModule,
   ],
   controllers: [],
   providers: [

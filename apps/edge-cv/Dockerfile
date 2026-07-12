@@ -29,6 +29,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
+# Docker Desktop injects HTTPS_PROXY=http.docker.internal:3128 which only handles
+# docker.io registry traffic. pip needs direct HTTPS to pypi.org.
+ENV HTTPS_PROXY="" HTTP_PROXY="" https_proxy="" http_proxy=""
+
 # Install pip-tools pour la gestion des dépendances
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
@@ -36,6 +40,9 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 # Stage 2: Dependencies installation
 # ---------------------------------------------------------------------------
 FROM base AS dependencies
+
+# Re-clear proxy: Docker Desktop re-injects it at each new stage
+ENV HTTPS_PROXY="" HTTP_PROXY="" https_proxy="" http_proxy="" NO_PROXY="*" no_proxy="*"
 
 COPY requirements.txt .
 
@@ -61,8 +68,8 @@ EXPOSE 8001
 HEALTHCHECK --interval=30s --timeout=15s --start-period=60s --retries=5 \
   CMD curl -f http://localhost:8001/health || exit 1
 
-# --reload pour hot reload en développement
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload", "--workers", "1"]
+# --reload supprimé pour éviter les redémarrages intempestifs en développement (WatchFiles)
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1"]
 
 # ---------------------------------------------------------------------------
 # Stage 4: Production (multi-workers, no reload)

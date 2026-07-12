@@ -1,0 +1,9 @@
+# Patch Dockerfile — rebase sur l'image edge-cv déjà buildée localement
+# Supprime --reload sans avoir besoin de python:3.11-slim depuis le registry
+FROM iaded-edge-cv:latest
+
+# Copie le code applicatif mis à jour (config.py, main.py, mqtt_client.py)
+COPY app/ /app/app/
+
+# Remplace la commande sans --reload
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "1"]

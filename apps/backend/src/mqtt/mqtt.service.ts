@@ -182,7 +182,11 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
   }
 
   private onError(err: Error): void {
-    this.logger.error(`MQTT error: ${err.message}`, err.stack);
+    const cfg = this.mqttConfigService.config;
+    this.logger.error(
+      `[MQTT FAILURE] broker=${cfg.brokerUrl} | username=${cfg.username || '<empty>'} | error=${err.message}`,
+      err.stack,
+    );
   }
 
   // ---------------------------------------------------------------------------

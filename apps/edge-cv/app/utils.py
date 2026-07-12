@@ -229,3 +229,95 @@ def draw_hud(
             TEXT_THICKNESS,
             cv2.LINE_AA,
         )
+
+
+# Overlay colours for tracked-person annotations
+COLOR_ID = (255, 80, 0)     # Blue  — tracking ID label
+COLOR_AGE = (0, 220, 255)   # Yellow — age group label
+
+
+def draw_tracked_persons(
+    frame: cv2.typing.MatLike,
+    tracked_persons: list,
+    age_cache: dict,
+) -> None:
+    """
+    Draw bounding boxes, tracking IDs, and age group labels for every active
+    tracked person.  Exact numerical ages are never displayed.
+
+    For each tracked person the overlay shows:
+        • Green rectangle around the body
+        • Two-line label above the box:
+            Line 1:  ``ID <id>``          (rendered in blue)
+            Line 2:  ``<age group>``       (rendered in yellow)
+          e.g.  ID 7
+                Adult
+          If the age group is not yet in the cache the second line reads
+          ``Unknown``.
+
+    Parameters
+    ----------
+    frame : np.ndarray
+        BGR image to annotate (mutated in-place).
+    tracked_persons : list of TrackedPerson
+        Output of ByteTracker.update() for the current frame.
+    age_cache : dict[int, str]
+        Mapping of track_id -> age group display string (e.g. ``'Adult'``).
+        Values are read-only; this function does NOT write to the cache.
+    """
+    for person in tracked_persons:
+        x1, y1, x2, y2 = person.bbox
+        tid = person.track_id
+
+        # ── 1. Bounding box (green) ────────────────────────────────────
+        cv2.rectangle(frame, (x1, y1), (x2, y2), COLOR_BOX, BOX_THICKNESS)
+
+        # ── 2. Build label strings ─────────────────────────────────────
+        id_label   = f"ID {tid}"
+        # age_cache now stores display strings (e.g. 'Adult', 'Unknown')
+        age_label  = str(age_cache.get(tid, "Unknown"))
+
+        # ── 3. Measure both lines for the background rectangle ─────────
+        (id_tw,  id_th),  id_base  = cv2.getTextSize(id_label,  FONT, TEXT_SCALE, TEXT_THICKNESS)
+        (age_tw, age_th), age_base = cv2.getTextSize(age_label, FONT, TEXT_SCALE, TEXT_THICKNESS)
+
+        line_gap  = 4          # pixels between the two text lines
+        label_w   = max(id_tw, age_tw) + 6
+        label_h   = id_th + age_th + id_base + age_base + line_gap + 4
+
+        # Anchor: place label strip directly above the bounding box
+        lx  = x1
+        # Bottom of the background strip sits at y1 - 2
+        bg_y2 = max(y1 - 2, label_h + 2)   # clamp to stay on-screen
+        bg_y1 = bg_y2 - label_h
+
+        # ── 4. Semi-transparent dark background strip ──────────────────
+        cv2.rectangle(
+            frame, (lx, bg_y1), (lx + label_w, bg_y2), (20, 20, 20), cv2.FILLED
+        )
+
+        # ── 5. Draw ID line (blue) on top ─────────────────────────────
+        id_y = bg_y1 + id_th + 2
+        cv2.putText(
+            frame,
+            id_label,
+            (lx + 3, id_y),
+            FONT,
+            TEXT_SCALE,
+            COLOR_ID,
+            TEXT_THICKNESS,
+            cv2.LINE_AA,
+        )
+
+        # ── 6. Draw age group line (yellow) below ──────────────────────
+        age_y = id_y + age_th + id_base + line_gap
+        cv2.putText(
+            frame,
+            age_label,
+            (lx + 3, age_y),
+            FONT,
+            TEXT_SCALE,
+            COLOR_AGE,
+            TEXT_THICKNESS,
+            cv2.LINE_AA,
+        )

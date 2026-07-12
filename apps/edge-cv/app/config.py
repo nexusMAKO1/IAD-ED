@@ -109,8 +109,12 @@ class AppSettings(BaseSettings):
         default=False,
         description="Enable TLS for the MQTT connection",
     )
+    device_id: str = Field(
+        default="123e4567-e89b-12d3-a456-426614174000",
+        description="Logical device identifier used in MQTT message envelopes",
+    )
     site_id: str = Field(
-        default="express-display",
+        default="123e4567-e89b-12d3-a456-426614174000",
         description="Logical site identifier used in MQTT message envelopes",
     )
 

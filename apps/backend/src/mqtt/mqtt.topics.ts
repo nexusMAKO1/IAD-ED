@@ -50,6 +50,21 @@ export const MQTT_TOPICS = {
   },
 
   // ---------------------------------------------------------------------------
+  // Backend publishes → Display Kiosk subscribes
+  // ---------------------------------------------------------------------------
+  DISPLAY: {
+    /** QoS 1 — commands to control ad playback */
+    PLAY: 'smartvision/display/play',
+    /** QoS 1 — main command channel to kiosk (play / playlist) */
+    COMMANDS: 'smartvision/display/commands',
+    PLAYLIST: 'smartvision/display/playlist',
+    CACHE: 'smartvision/display/cache',
+    /** QoS 0 — status heartbeat from the display */
+    STATUS: 'smartvision/display/status',
+    CURRENT: 'smartvision/display/current',
+  },
+
+  // ---------------------------------------------------------------------------
   // Backend publishes → Frontend subscribes
   // ---------------------------------------------------------------------------
   BACKEND: {
@@ -95,5 +110,7 @@ export const BACKEND_SUBSCRIPTIONS = [
   MQTT_TOPICS.EDGE.PERFORMANCE,
   MQTT_TOPICS.EDGE.CAMERA_HEALTH,
   MQTT_TOPICS.EDGE.STATUS,
+  MQTT_TOPICS.DISPLAY.STATUS,
+  MQTT_TOPICS.DISPLAY.CURRENT,
   MQTT_TOPICS.SYSTEM.HEALTH,
 ] as const;

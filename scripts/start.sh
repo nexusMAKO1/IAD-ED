@@ -128,8 +128,8 @@ docker compose up -d backend edge-cv smartqueue-ml
 sleep 10
 
 # Démarrer le frontend et le monitoring
-info "Démarrage du frontend et du monitoring (frontend, prometheus, grafana)..."
-docker compose up -d frontend prometheus grafana
+info "Démarrage du frontend et du monitoring (frontend, prometheus, grafana, exporters)..."
+docker compose up -d frontend prometheus grafana postgres-exporter redis-exporter mosquitto-exporter
 
 # ---------------------------------------------------------------------------
 # Résumé

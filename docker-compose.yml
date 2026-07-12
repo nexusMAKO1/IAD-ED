@@ -3,7 +3,7 @@
 # Express Display — Backend/DevOps/CV Infrastructure
 # =============================================================================
 
-version: "3.9"
+
 
 # ---------------------------------------------------------------------------
 # Networks
@@ -169,6 +169,9 @@ services:
       MINIO_PORT: 9000
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
+      MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      MINIO_BUCKET: campaigns
       CV_SERVICE_URL: http://edge-cv:8001
       ML_SERVICE_URL: http://smartqueue-ml:8002
     ports:
@@ -206,6 +209,8 @@ services:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
       VITE_PROXY_TARGET: "http://backend:3000"
       VITE_MQTT_WS_URL: ${VITE_MQTT_WS_URL:-ws://localhost:9003}
+      VITE_MQTT_USERNAME: ${MQTT_USER}
+      VITE_MQTT_PASSWORD: ${MQTT_PASSWORD}
     ports:
       - "${FRONTEND_PORT:-5173}:5173"
     volumes:
@@ -245,6 +250,8 @@ services:
       MQTT_USER: ${MQTT_USER}
       MQTT_PASSWORD: ${MQTT_PASSWORD}
       MAX_WORKERS: ${CV_MAX_WORKERS:-2}
+      DEVICE_ID: "123e4567-e89b-12d3-a456-426614174000"
+      SITE_ID: "123e4567-e89b-12d3-a456-426614174000"
     ports:
       - "${CV_PORT:-8001}:8001"
     volumes:

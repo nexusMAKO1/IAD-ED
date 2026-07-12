@@ -76,7 +76,6 @@ export function extractFieldErrors(
   const messages = Array.isArray(error.message) ? error.message : [error.message];
   const fieldErrors: Record<string, string> = {};
   for (const msg of messages) {
-    // NestJS validation messages have the format "field must be ..."
     const match = /^(\w+)\s/.exec(msg);
     if (match) {
       fieldErrors[match[1]] = msg;
@@ -97,4 +96,144 @@ export function getErrorMessage(error: unknown, fallback = 'Une erreur inattendu
   }
   if (typeof error === 'string') return error;
   return fallback;
+}
+
+// ─── SmartVision IAD — Audience & Analytics ────────────────────────────────────
+
+export interface AudienceStats {
+  currentVisitors: number;
+  dailyVisitors: number;
+  avgWaitTime: number;
+  activeCampaigns: number;
+  attentionRate: number;
+  avgQueueLength: number;
+  crowdDensity: 'low' | 'medium' | 'high' | 'critical';
+  malePercent: number;
+  femalePercent: number;
+  childrenCount: number;
+  adultsCount: number;
+  seniorsCount: number;
+}
+
+export interface TimeSeriesPoint {
+  time: string;
+  value: number;
+}
+
+export interface DemographicsData {
+  genderSplit: { name: string; value: number; color: string }[];
+  ageGroups: { group: string; count: number }[];
+  genderByHour: { hour: string; male: number; female: number }[];
+  ageByHour: { hour: string; children: number; adults: number; seniors: number }[];
+  returningVisitors: number;
+  newVisitors: number;
+  peakHour: string;
+  peakCount: number;
+}
+
+// ─── SmartVision IAD — Cameras ────────────────────────────────────────────────
+
+export type CameraStatus = 'online' | 'offline' | 'degraded' | 'calibrating';
+
+export interface Camera {
+  id: string;
+  name: string;
+  siteId: string;
+  status: CameraStatus;
+  fps: number;
+  latencyMs: number;
+  yoloModel: string;
+  cpuPercent: number;
+  ramPercent: number;
+  temperatureC: number;
+  resolution: string;
+  source: string;
+  lastSeen: string;
+}
+
+// ─── SmartVision IAD — Edge Devices ───────────────────────────────────────────
+
+export type ServiceStatus = 'healthy' | 'degraded' | 'unhealthy' | 'offline';
+
+export interface EdgeDevice {
+  id: string;
+  name: string;
+  siteId: string;
+  status: ServiceStatus;
+  ipAddress: string;
+  cpuPercent: number;
+  ramPercent: number;
+  fps: number;
+  latencyMs: number;
+  temperatureC: number;
+  modelVersion: string;
+  lastHeartbeat: string;
+}
+
+// ─── SmartVision IAD — Alerts ─────────────────────────────────────────────────
+
+export type AlertSeverity = 'info' | 'warning' | 'critical';
+export type AlertType =
+  | 'camera_offline'
+  | 'high_density'
+  | 'low_fps'
+  | 'device_disconnected'
+  | 'backend_offline'
+  | 'mqtt_disconnected';
+
+export interface AlertItem {
+  id: string;
+  type: AlertType;
+  severity: AlertSeverity;
+  message: string;
+  deviceId?: string;
+  deviceName?: string;
+  siteId?: string;
+  siteName?: string;
+  timestamp: string;
+  acknowledged: boolean;
+}
+
+// ─── SmartVision IAD — Monitoring ─────────────────────────────────────────────
+
+export interface MonitoringService {
+  name: string;
+  status: ServiceStatus;
+  cpuPercent: number;
+  ramPercent: number;
+  latencyMs: number;
+  uptimeSeconds: number;
+  version?: string;
+  endpoint?: string;
+}
+
+// ─── SmartVision IAD — Reports ────────────────────────────────────────────────
+
+export type ReportPeriod = 'today' | 'yesterday' | 'week' | 'month' | 'custom';
+
+export interface ReportFilter {
+  period: ReportPeriod;
+  siteId?: string;
+  from?: string;
+  to?: string;
+}
+
+export interface ReportRow {
+  date: string;
+  visitors: number;
+  avgWaitTime: number;
+  peakHour: string;
+  malePercent: number;
+  femalePercent: number;
+}
+
+// ─── SmartVision IAD — User / Profile ────────────────────────────────────────
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  createdAt: string;
+  lastLogin?: string;
 }

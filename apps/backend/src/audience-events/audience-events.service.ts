@@ -2,6 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MqttService } from '../mqtt/mqtt.service';
 import { MQTT_TOPICS } from '../mqtt/mqtt.topics';
+import { IadMetricsService } from '../common/metrics/iad-metrics.service';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { DetectionsPayloadDto } from './dto/edge-payloads.dto';
@@ -13,6 +14,7 @@ export class AudienceEventsService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mqttService: MqttService,
+    private readonly iadMetrics: IadMetricsService,
   ) {}
 
   onModuleInit() {
@@ -58,8 +60,8 @@ export class AudienceEventsService implements OnModuleInit {
       }
 
       const peopleCount = dto.personCount;
-      const densityScore = Math.min(peopleCount / 10, 1.0); // Fake density score calculation
-      const avgDwellTime = 15.0; // Default dummy value
+      const densityScore = 0.0;
+      const avgDwellTime = 0.0;
 
       await this.prisma.audienceEvent.create({
         data: {
@@ -74,6 +76,20 @@ export class AudienceEventsService implements OnModuleInit {
           avgDwellTime,
         },
       });
+
+      // Update Prometheus metrics
+      this.iadMetrics.peopleDetectedTotal.inc({ siteId, deviceId }, peopleCount);
+      this.iadMetrics.currentPeople.set({ siteId, deviceId }, peopleCount);
+      if (youngCount > 0) {
+        for (const det of dto.detections) {
+          const group = det.age_group;
+          if (group === 'child') this.iadMetrics.ageChild.inc({ siteId, deviceId });
+          else if (group === 'teen') this.iadMetrics.ageTeen.inc({ siteId, deviceId });
+          else if (group === 'young_adult') this.iadMetrics.ageYoungAdult.inc({ siteId, deviceId });
+        }
+      }
+      if (adultCount > 0) this.iadMetrics.ageAdult.inc({ siteId, deviceId }, adultCount);
+      if (seniorCount > 0) this.iadMetrics.ageSenior.inc({ siteId, deviceId }, seniorCount);
 
       this.logger.debug(`Ingested audience event for site ${siteId} (${peopleCount} people)`);
     } catch (err: any) {
@@ -109,8 +125,8 @@ export class AudienceEventsService implements OnModuleInit {
     return {
       currentVisitors: latest?.peopleCount ?? 0,
       dailyVisitors: Number(agg.totalPeople),
-      avgWaitTime: 14, // Stub — real wait-time needs queue data
-      activeCampaigns: 4, // Stub
+      avgWaitTime: 0,
+      activeCampaigns: 0,
       densityScore: latest?.densityScore ?? 0,
       eventCount: Number(agg.eventCount),
     };

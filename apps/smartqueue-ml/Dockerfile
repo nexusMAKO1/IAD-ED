@@ -18,12 +18,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
+# Docker Desktop injects HTTPS_PROXY=http.docker.internal:3128 which only handles
+# docker.io registry traffic. pip needs direct HTTPS to pypi.org.
+ENV HTTPS_PROXY="" HTTP_PROXY="" https_proxy="" http_proxy=""
+
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
 # ---------------------------------------------------------------------------
 # Stage 2: Dependencies
 # ---------------------------------------------------------------------------
 FROM base AS dependencies
+
+# Re-clear proxy: Docker Desktop re-injects it at each new stage
+ENV HTTPS_PROXY="" HTTP_PROXY="" https_proxy="" http_proxy="" NO_PROXY="*" no_proxy="*"
 
 COPY requirements.txt .
 
