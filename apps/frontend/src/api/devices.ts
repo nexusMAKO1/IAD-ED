@@ -7,11 +7,10 @@ import apiClient from './client';
 import type { Device, CreateDevicePayload, UpdateDevicePayload } from '@/types';
 
 /** GET /api/devices?siteId=xxx — list devices for a site */
-export async function getDevices(siteId: string): Promise<Device[]> {
-  const { data } = await apiClient.get<Device[]>('/devices', {
-    params: { siteId },
-  });
-  return data;
+export async function getDevices(siteId?: string): Promise<Device[]> {
+  const url = siteId ? `/devices?siteId=${siteId}` : '/devices';
+  const response = await apiClient.get<Device[]>(url);
+  return response.data;
 }
 
 /** POST /api/devices — create a new device */

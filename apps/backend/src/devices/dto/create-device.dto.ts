@@ -40,11 +40,25 @@ export class CreateDeviceDto {
   })
   @IsOptional()
   @IsString()
-  @Matches(
-    /^((\d{1,3}\.){3}\d{1,3}|([a-fA-F0-9:]+))$/,
-    { message: "Format d'adresse IP invalide (IPv4 ou IPv6)" },
-  )
+  @Matches(/^((\d{1,3}\.){3}\d{1,3}|([a-fA-F0-9:]+))$/, {
+    message: "Format d'adresse IP invalide (IPv4 ou IPv6)",
+  })
   ipAddress?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  serialNumber?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  firmwareVersion?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  mqttClientId?: string;
 
   @ApiProperty({
     description: 'UUID du site auquel ce dispositif appartient',

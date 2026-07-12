@@ -4,7 +4,7 @@
  */
 
 import apiClient from './client';
-import type { AudienceStats, DemographicsData, TimeSeriesPoint } from '@/types';
+import type { AudienceStats, DemographicsData, TimeSeriesPoint, AudienceEvent } from '@/types';
 
 /** GET /api/v1/sites/:id/statistics — aggregated audience stats */
 export async function getAudienceStats(siteId: string): Promise<AudienceStats> {
@@ -12,9 +12,8 @@ export async function getAudienceStats(siteId: string): Promise<AudienceStats> {
   return data;
 }
 
-/** GET /api/v1/sites/:id/audience-events — raw audience events */
-export async function getAudienceEvents(siteId: string) {
-  const { data } = await apiClient.get(`/sites/${siteId}/audience-events`);
+export async function getAudienceEvents(siteId: string): Promise<AudienceEvent[]> {
+  const { data } = await apiClient.get<AudienceEvent[]>(`/sites/${siteId}/audience-events`);
   return data;
 }
 

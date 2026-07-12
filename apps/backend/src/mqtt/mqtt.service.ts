@@ -30,10 +30,7 @@ import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import * as mqtt from 'mqtt';
 import { MqttClient as MqttJsClient, IClientOptions } from 'mqtt';
-import {
-  BACKEND_SUBSCRIPTIONS,
-  MQTT_TOPICS,
-} from './mqtt.topics';
+import { BACKEND_SUBSCRIPTIONS, MQTT_TOPICS } from './mqtt.topics';
 import { BaseEventDto } from './dto/base-event.dto';
 import { MqttConfigService } from './mqtt.config';
 
@@ -99,7 +96,7 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
       password: cfg.password,
       keepalive: cfg.keepalive,
       clean: true,
-      reconnectPeriod: 5000,      // Start at 5s to prevent log spam
+      reconnectPeriod: 5000, // Start at 5s to prevent log spam
       connectTimeout: 10_000,
       will: {
         topic: MQTT_TOPICS.SYSTEM.HEALTH,
@@ -207,30 +204,32 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
 
     // Validate envelope with class-validator
     const dto = plainToInstance(BaseEventDto, parsed);
-    validate(dto, { whitelist: false }).then((errors) => {
-      if (errors.length > 0) {
-        this.logger.warn(
-          `MQTT [${topic}]: invalid envelope — ${errors.map((e) => e.toString()).join(', ')}`,
-        );
-        return;
-      }
-
-      this.logger.debug(
-        `MQTT [${topic}]: ${parsed['event'] ?? 'unknown'} from ${parsed['deviceId'] ?? '?'}`,
-      );
-
-      // Dispatch to registered handlers (exact match + wildcard)
-      const matchingHandlers = this.getHandlers(topic);
-      for (const handler of matchingHandlers) {
-        Promise.resolve(handler(topic, parsed)).catch((err: unknown) => {
-          this.logger.error(
-            `Handler error on topic [${topic}]: ${(err as Error).message}`,
+    validate(dto, { whitelist: false })
+      .then((errors) => {
+        if (errors.length > 0) {
+          this.logger.warn(
+            `MQTT [${topic}]: invalid envelope — ${errors.map((e) => e.toString()).join(', ')}`,
           );
-        });
-      }
-    }).catch((err: unknown) => {
-      this.logger.error(`Validation error: ${(err as Error).message}`);
-    });
+          return;
+        }
+
+        this.logger.debug(
+          `MQTT [${topic}]: ${parsed['event'] ?? 'unknown'} from ${parsed['deviceId'] ?? '?'}`,
+        );
+
+        // Dispatch to registered handlers (exact match + wildcard)
+        const matchingHandlers = this.getHandlers(topic);
+        for (const handler of matchingHandlers) {
+          Promise.resolve(handler(topic, parsed)).catch((err: unknown) => {
+            this.logger.error(
+              `Handler error on topic [${topic}]: ${(err as Error).message}`,
+            );
+          });
+        }
+      })
+      .catch((err: unknown) => {
+        this.logger.error(`Validation error: ${(err as Error).message}`);
+      });
   }
 
   private getHandlers(topic: string): MqttMessageHandler[] {
@@ -284,9 +283,7 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
     retain = false,
   ): boolean {
     if (!this.client || !this._connected) {
-      this.logger.debug(
-        `MQTT not connected — skipping publish to [${topic}]`,
-      );
+      this.logger.debug(`MQTT not connected — skipping publish to [${topic}]`);
       return false;
     }
 
@@ -330,7 +327,8 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
   unsubscribe(topic: string): void {
     this.handlers.delete(topic);
     this.client?.unsubscribe(topic, (err) => {
-      if (err) this.logger.warn(`Unsubscribe error on [${topic}]: ${err.message}`);
+      if (err)
+        this.logger.warn(`Unsubscribe error on [${topic}]: ${err.message}`);
     });
   }
 
@@ -370,7 +368,10 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
     );
   }
 
-  sendCameraCommand(deviceId: string, command: Record<string, unknown>): boolean {
+  sendCameraCommand(
+    deviceId: string,
+    command: Record<string, unknown>,
+  ): boolean {
     return this.publish(
       MQTT_TOPICS.COMMANDS.CAMERA,
       {

@@ -12,6 +12,7 @@ import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { SidebarNav } from '@/components/layout/SidebarNav';
 import { TopBar } from '@/components/layout/TopBar';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { getSites } from '@/api/sites';
 import { useSiteSelector } from '@/hooks/useSiteSelector';
 
@@ -74,7 +75,9 @@ export function DashboardLayout() {
           id="main-content"
           aria-label="Page content"
         >
-          <Outlet context={{ selectedSiteId, sites }} />
+          <ErrorBoundary>
+            <Outlet context={{ selectedSiteId, sites }} />
+          </ErrorBoundary>
         </motion.main>
       </div>
     </div>

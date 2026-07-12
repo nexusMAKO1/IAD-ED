@@ -11,6 +11,7 @@ import {
   IsEnum,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   Matches,
 } from 'class-validator';
@@ -40,10 +41,9 @@ export class UpdateDeviceDto {
   })
   @IsOptional()
   @IsString()
-  @Matches(
-    /^((\d{1,3}\.){3}\d{1,3}|([a-fA-F0-9:]+))$/,
-    { message: "Format d'adresse IP invalide (IPv4 ou IPv6)" },
-  )
+  @Matches(/^((\d{1,3}\.){3}\d{1,3}|([a-fA-F0-9:]+))$/, {
+    message: "Format d'adresse IP invalide (IPv4 ou IPv6)",
+  })
   ipAddress?: string;
 
   @ApiPropertyOptional({
@@ -53,4 +53,24 @@ export class UpdateDeviceDto {
   @IsOptional()
   @IsEnum(DeviceStatus)
   status?: DeviceStatus;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  serialNumber?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  firmwareVersion?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  mqttClientId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  siteId?: string;
 }

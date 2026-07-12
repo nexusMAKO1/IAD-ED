@@ -15,12 +15,21 @@ import { MQTT_TOPICS } from './mqtt.topics';
 // ---------------------------------------------------------------------------
 // Mock mqtt.connect
 // ---------------------------------------------------------------------------
-const mockPublish = jest.fn((_topic: string, _payload: string, _opts: unknown, cb?: (err?: Error) => void) => {
-  if (typeof cb === 'function') cb();
-});
-const mockSubscribe = jest.fn((_topic: string, _opts: unknown, cb?: (err?: Error | null) => void) => {
-  if (typeof cb === 'function') cb(null);
-});
+const mockPublish = jest.fn(
+  (
+    _topic: string,
+    _payload: string,
+    _opts: unknown,
+    cb?: (err?: Error) => void,
+  ) => {
+    if (typeof cb === 'function') cb();
+  },
+);
+const mockSubscribe = jest.fn(
+  (_topic: string, _opts: unknown, cb?: (err?: Error | null) => void) => {
+    if (typeof cb === 'function') cb(null);
+  },
+);
 const mockUnsubscribe = jest.fn();
 const mockEnd = jest.fn((_force: boolean, _opts: unknown, cb?: () => void) => {
   if (typeof cb === 'function') cb();
@@ -28,10 +37,12 @@ const mockEnd = jest.fn((_force: boolean, _opts: unknown, cb?: () => void) => {
 
 // Event listener registry to simulate broker events in tests
 const eventListeners: Record<string, ((...args: unknown[]) => void)[]> = {};
-const mockOn = jest.fn((event: string, listener: (...args: unknown[]) => void) => {
-  if (!eventListeners[event]) eventListeners[event] = [];
-  eventListeners[event].push(listener);
-});
+const mockOn = jest.fn(
+  (event: string, listener: (...args: unknown[]) => void) => {
+    if (!eventListeners[event]) eventListeners[event] = [];
+    eventListeners[event].push(listener);
+  },
+);
 
 const mockMqttClient = {
   publish: mockPublish,
@@ -120,7 +131,9 @@ describe('MqttService', () => {
 
     it('should log error on broker error event', () => {
       // Should not throw
-      expect(() => emitBrokerEvent('error', new Error('ECONNREFUSED'))).not.toThrow();
+      expect(() =>
+        emitBrokerEvent('error', new Error('ECONNREFUSED')),
+      ).not.toThrow();
     });
 
     it('should set isConnected=false on reconnect event', () => {
@@ -157,7 +170,11 @@ describe('MqttService', () => {
         payload: { personCount: 3 },
       });
 
-      emitBrokerEvent('message', MQTT_TOPICS.EDGE.DETECTIONS, Buffer.from(payload));
+      emitBrokerEvent(
+        'message',
+        MQTT_TOPICS.EDGE.DETECTIONS,
+        Buffer.from(payload),
+      );
 
       // Handler is called asynchronously via promise chain
       return new Promise((resolve) => setTimeout(resolve, 50)).then(() => {
@@ -177,7 +194,11 @@ describe('MqttService', () => {
         payload: {},
       });
 
-      emitBrokerEvent('message', 'smartvision/edge/detections', Buffer.from(payload));
+      emitBrokerEvent(
+        'message',
+        'smartvision/edge/detections',
+        Buffer.from(payload),
+      );
 
       return new Promise((resolve) => setTimeout(resolve, 50)).then(() => {
         expect(handler).toHaveBeenCalled();
@@ -242,7 +263,11 @@ describe('MqttService', () => {
       const handler = jest.fn();
       service.subscribe(MQTT_TOPICS.EDGE.DETECTIONS, handler);
 
-      emitBrokerEvent('message', MQTT_TOPICS.EDGE.DETECTIONS, Buffer.from('not-json'));
+      emitBrokerEvent(
+        'message',
+        MQTT_TOPICS.EDGE.DETECTIONS,
+        Buffer.from('not-json'),
+      );
 
       return new Promise((resolve) => setTimeout(resolve, 50)).then(() => {
         expect(handler).not.toHaveBeenCalled();
@@ -274,7 +299,11 @@ describe('MqttService', () => {
         payload: {},
       });
 
-      emitBrokerEvent('message', MQTT_TOPICS.EDGE.DETECTIONS, Buffer.from(valid));
+      emitBrokerEvent(
+        'message',
+        MQTT_TOPICS.EDGE.DETECTIONS,
+        Buffer.from(valid),
+      );
 
       return new Promise((resolve) => setTimeout(resolve, 100)).then(() => {
         expect(handler).toHaveBeenCalledTimes(1);
@@ -335,7 +364,11 @@ describe('MqttService', () => {
         payload: {},
       });
 
-      emitBrokerEvent('message', 'smartvision/edge/detections', Buffer.from(payload));
+      emitBrokerEvent(
+        'message',
+        'smartvision/edge/detections',
+        Buffer.from(payload),
+      );
 
       await new Promise((r) => setTimeout(r, 50));
       expect(handler).toHaveBeenCalled();
@@ -353,7 +386,11 @@ describe('MqttService', () => {
         payload: {},
       });
 
-      emitBrokerEvent('message', 'smartvision/edge/detections', Buffer.from(payload));
+      emitBrokerEvent(
+        'message',
+        'smartvision/edge/detections',
+        Buffer.from(payload),
+      );
 
       await new Promise((r) => setTimeout(r, 50));
       expect(handler).not.toHaveBeenCalled();

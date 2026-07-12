@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
@@ -16,10 +21,20 @@ export class CampaignsService {
     private configService: ConfigService,
   ) {
     const endPoint = this.configService.get<string>('MINIO_ENDPOINT', 'minio');
-    const port = parseInt(this.configService.get<string>('MINIO_PORT', '9000'), 10);
-    const accessKey = this.configService.get<string>('MINIO_ACCESS_KEY') || this.configService.get<string>('MINIO_ROOT_USER', 'minioadmin');
-    const secretKey = this.configService.get<string>('MINIO_SECRET_KEY') || this.configService.get<string>('MINIO_ROOT_PASSWORD', 'minioadmin');
-    this.bucketName = this.configService.get<string>('MINIO_BUCKET', 'campaigns');
+    const port = parseInt(
+      this.configService.get<string>('MINIO_PORT', '9000'),
+      10,
+    );
+    const accessKey =
+      this.configService.get<string>('MINIO_ACCESS_KEY') ||
+      this.configService.get<string>('MINIO_ROOT_USER', 'minioadmin');
+    const secretKey =
+      this.configService.get<string>('MINIO_SECRET_KEY') ||
+      this.configService.get<string>('MINIO_ROOT_PASSWORD', 'minioadmin');
+    this.bucketName = this.configService.get<string>(
+      'MINIO_BUCKET',
+      'campaigns',
+    );
 
     this.minioClient = new Minio.Client({
       endPoint,
@@ -49,7 +64,10 @@ export class CampaignsService {
             },
           ],
         };
-        await this.minioClient.setBucketPolicy(this.bucketName, JSON.stringify(policy));
+        await this.minioClient.setBucketPolicy(
+          this.bucketName,
+          JSON.stringify(policy),
+        );
         this.logger.log(`Created MinIO bucket: ${this.bucketName}`);
       }
     } catch (err) {
@@ -57,7 +75,9 @@ export class CampaignsService {
     }
   }
 
-  async uploadMedia(file: Express.Multer.File): Promise<{ url: string, filename: string, size: number }> {
+  async uploadMedia(
+    file: Express.Multer.File,
+  ): Promise<{ url: string; filename: string; size: number }> {
     try {
       this.logger.log('Campaign upload received');
       // Ensure bucket exists before attempting to upload
@@ -70,14 +90,17 @@ export class CampaignsService {
         fileName,
         file.buffer,
         file.size,
-        { 'Content-Type': file.mimetype }
+        { 'Content-Type': file.mimetype },
       );
       this.logger.log('MinIO upload successful');
-      
+
       // Use the MINIO_PUBLIC_ENDPOINT or localhost for the public URL if it's accessed via browser
-      const host = this.configService.get<string>('MINIO_PUBLIC_ENDPOINT', 'localhost');
+      const host = this.configService.get<string>(
+        'MINIO_PUBLIC_ENDPOINT',
+        'localhost',
+      );
       const port = this.configService.get<string>('MINIO_PORT', '9000');
-      
+
       return {
         url: `http://${host}:${port}/${this.bucketName}/${fileName}`,
         filename: fileName,
@@ -85,7 +108,9 @@ export class CampaignsService {
       };
     } catch (error) {
       this.logger.error(`Upload to MinIO failed: ${error}`);
-      throw new InternalServerErrorException(`Upload to MinIO failed: ${error instanceof Error ? error.message : error}`);
+      throw new InternalServerErrorException(
+        `Upload to MinIO failed: ${error instanceof Error ? error.message : error}`,
+      );
     }
   }
 

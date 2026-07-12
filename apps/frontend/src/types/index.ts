@@ -13,7 +13,7 @@ export type DeviceType =
   | 'WAITING_ROOM_SCREEN'
   | 'TICKET_KIOSK';
 
-export type DeviceStatus = 'ONLINE' | 'OFFLINE' | 'DEGRADED';
+export type DeviceStatus = 'ONLINE' | 'OFFLINE' | 'DEGRADED' | 'WARNING' | 'UNKNOWN';
 
 export type UserRole = 'ADMIN' | 'MANAGER' | 'AGENT';
 
@@ -35,6 +35,10 @@ export interface Device {
   type: DeviceType;
   status: DeviceStatus;
   ipAddress: string | null;
+  serialNumber: string | null;
+  firmwareVersion: string | null;
+  mqttClientId: string | null;
+  lastSeen: string | null;
   siteId: string;
   createdAt: string;
   updatedAt: string;
@@ -59,6 +63,10 @@ export interface UpdateDevicePayload {
   type?: DeviceType;
   ipAddress?: string;
   status?: DeviceStatus;
+  serialNumber?: string;
+  firmwareVersion?: string;
+  mqttClientId?: string;
+  siteId?: string;
 }
 
 // ─── API Error shape ───────────────────────────────────────────────────────────
@@ -90,6 +98,19 @@ export function extractFieldErrors(
 export function getErrorMessage(error: unknown, fallback = 'Une erreur inattendue est survenue'): string {
   if (error && typeof error === 'object') {
     const e = error as Record<string, unknown>;
+
+    // Axios error: e.response.data.message
+    const response = e['response'] as Record<string, unknown> | undefined;
+    if (response) {
+      const data = response['data'] as Record<string, unknown> | undefined;
+      if (data) {
+        if (typeof data['message'] === 'string') return data['message'];
+        if (Array.isArray(data['message']) && typeof data['message'][0] === 'string') return data['message'][0];
+        if (typeof data['error'] === 'string') return data['error'];
+      }
+    }
+
+    // Generic error object
     if (typeof e['error'] === 'string') return e['error'];
     if (typeof e['message'] === 'string') return e['message'];
     if (Array.isArray(e['message']) && typeof e['message'][0] === 'string') return e['message'][0];
@@ -129,6 +150,19 @@ export interface DemographicsData {
   newVisitors: number;
   peakHour: string;
   peakCount: number;
+}
+
+export interface AudienceEvent {
+  id: string;
+  timestamp: string;
+  siteId: string;
+  deviceId: string;
+  ageGroup: string;
+  gender: string;
+  confidence: number;
+  count: number;
+  emotion?: string;
+  dwellTime?: number;
 }
 
 // ─── SmartVision IAD — Cameras ────────────────────────────────────────────────
@@ -231,9 +265,44 @@ export interface ReportRow {
 
 export interface UserProfile {
   id: string;
+  name: string | null;
   email: string;
-  name: string;
   role: UserRole;
+  siteId?: string | null;
   createdAt: string;
   lastLogin?: string;
+}
+
+// ─── SmartVision IAD — Settings ──────────────────────────────────────────────
+
+export interface AppSettings {
+  mqtt: {
+    host: string;
+    port: number;
+    username: string;
+    password: string;
+    websocketPort: number;
+  };
+  camera: {
+    fps: number;
+    confidenceThreshold: number;
+    detectionInterval: number;
+  };
+  ageEstimation: {
+    enableAgeEstimator: boolean;
+    minimumConfidence: number;
+  };
+  tracking: {
+    enableTracking: boolean;
+    trackerTimeout: number;
+  };
+  dashboard: {
+    refreshRate: number;
+    darkMode: boolean;
+  };
+  notifications: {
+    email: boolean;
+    mqtt: boolean;
+    websocket: boolean;
+  };
 }

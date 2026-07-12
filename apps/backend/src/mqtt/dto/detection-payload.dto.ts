@@ -3,16 +3,7 @@
  * Express Display SmartVision — T-021
  */
 
-import { Type } from 'class-transformer';
-import {
-  IsArray,
-  IsInt,
-  IsNumber,
-  IsOptional,
-  IsString,
-  Min,
-  ValidateNested,
-} from 'class-validator';
+import { IsInt, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { BaseEventDto } from './base-event.dto';
 
 export class DetectionBoundingBoxDto {

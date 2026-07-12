@@ -21,6 +21,8 @@ enum DeviceStatus {
   ONLINE
   OFFLINE
   DEGRADED // F4.2 — statut dégradé (partiel)
+  WARNING  // Alerte — problème non critique détecté
+  UNKNOWN  // Statut inconnu / pas encore vu
 }
 
 enum UserRole {
@@ -59,23 +61,29 @@ model Site {
 }
 
 model Device {
-  id             String          @id @default(uuid()) @db.Uuid
-  name           String          @default("Dispositif") // F4.2 — nom lisible de l'écran avec valeur par défaut pour la migration
-  siteId         String          @db.Uuid
-  site           Site            @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  type           DeviceType
-  status         DeviceStatus    @default(OFFLINE)
-  ipAddress      String?         // F4.2 — adresse IP optionnelle
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @default(now()) @updatedAt
-  audienceEvents AudienceEvent[]
+  id              String          @id @default(uuid()) @db.Uuid
+  name            String          @default("Dispositif") // F4.2 — nom lisible de l'écran avec valeur par défaut pour la migration
+  siteId          String          @db.Uuid
+  site            Site            @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  type            DeviceType
+  status          DeviceStatus    @default(UNKNOWN)
+  ipAddress       String?         // F4.2 — adresse IP optionnelle
+  serialNumber    String?         // Numéro de série physique
+  firmwareVersion String?         // Version du firmware
+  mqttClientId    String?         // Client ID MQTT pour le suivi
+  lastSeen        DateTime?       // Dernière heartbeat reçue
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @default(now()) @updatedAt
+  audienceEvents  AudienceEvent[]
 
   @@index([siteId])
+  @@index([type])
   @@map("devices")
 }
 
 model User {
   id        String   @id @default(uuid()) @db.Uuid
+  name      String?  // Nom complet optionnel
   email     String   @unique
   password  String
   role      UserRole @default(AGENT)
@@ -161,4 +169,14 @@ model MLModel {
   trainedAt DateTime    @default(now())
 
   @@map("ml_models")
+}
+
+/// Singleton table storing all application settings as a JSON blob.
+/// Only one row with id = 'singleton' should ever exist.
+model SystemSettings {
+  id        String   @id @default("singleton")
+  settings  Json     @default("{}")
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
 }

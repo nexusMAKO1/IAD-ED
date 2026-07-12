@@ -1,4 +1,9 @@
-import { CallHandler, ExecutionContext, Injectable, NestInterceptor } from '@nestjs/common';
+import {
+  CallHandler,
+  ExecutionContext,
+  Injectable,
+  NestInterceptor,
+} from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { Counter, Histogram } from 'prom-client';
@@ -28,7 +33,7 @@ export class MetricsInterceptor implements NestInterceptor {
 
     const method = req.method;
     const route = req.route ? req.route.path : req.path;
-    
+
     // Do not log metrics for the metrics endpoint itself or health
     if (route === '/metrics' || route === '/api/v1/health') {
       return next.handle();

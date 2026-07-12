@@ -9,14 +9,20 @@ import { Camera, Settings, RefreshCw, Maximize, Activity } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/dashboard/StatusBadge';
-
-// Demo data removed; waiting for real camera API integration
-const cameras: any[] = [];
+import { useQuery } from '@tanstack/react-query';
+import { getDevices } from '@/api/devices';
+import type { Device } from '@/types';
 
 const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.1 } } };
 const item = { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.3 } } };
 
 export function CamerasPage() {
+  const { data: devices = [], isLoading, isError } = useQuery({
+    queryKey: ['cameras'],
+    queryFn: () => getDevices(), // fetches all devices, we will filter below
+  });
+
+  const cameras = devices.filter((d: Device) => d.type === 'CAMERA');
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
       <motion.div
@@ -38,11 +44,19 @@ export function CamerasPage() {
         </Button>
       </motion.div>
 
-      {cameras.length === 0 ? (
+      {isLoading ? (
+        <div className="flex h-64 items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        </div>
+      ) : isError ? (
+        <div className="p-8 flex items-center justify-center text-red-400">
+          Impossible de charger les caméras
+        </div>
+      ) : cameras.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-border/50 rounded-xl bg-secondary/5">
           <Camera className="h-12 w-12 text-muted-foreground mb-4 opacity-50" />
-          <h3 className="text-lg font-medium">No connected cameras</h3>
-          <p className="text-sm text-muted-foreground mt-1">Waiting for Edge-CV nodes to register...</p>
+          <h3 className="text-lg font-medium">Aucune caméra connectée</h3>
+          <p className="text-sm text-muted-foreground mt-1">Ajoutez une caméra depuis la gestion de flotte ou attendez sa connexion.</p>
         </div>
       ) : (
         <motion.div variants={stagger} initial="hidden" animate="visible" className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -68,24 +82,24 @@ export function CamerasPage() {
                 <CardContent className="p-4 grid grid-cols-4 gap-4 flex-1">
                   <div className="col-span-4 flex items-center justify-between mb-2">
                     <h3 className="font-semibold">{cam.name}</h3>
-                    <span className="text-xs text-muted-foreground font-mono">{cam.id}</span>
+                    <span className="text-xs text-muted-foreground font-mono truncate max-w-[120px]" title={cam.id}>{cam.id.split('-')[0]}</span>
                   </div>
                   
                   <div className="space-y-1">
-                    <p className="text-[10px] text-muted-foreground uppercase">Latency</p>
-                    <p className="text-sm font-medium">{cam.status === 'offline' ? '-' : `${cam.latency}ms`}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase">IP</p>
+                    <p className="text-sm font-medium">{cam.ipAddress || 'DHCP'}</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[10px] text-muted-foreground uppercase">CPU</p>
-                    <p className={`text-sm font-medium ${cam.cpu > 80 ? 'text-amber-400' : ''}`}>{cam.status === 'offline' ? '-' : `${cam.cpu}%`}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase">Série</p>
+                    <p className="text-sm font-medium">{cam.serialNumber || 'N/A'}</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[10px] text-muted-foreground uppercase">Temp</p>
-                    <p className={`text-sm font-medium ${cam.temp > 70 ? 'text-red-400' : ''}`}>{cam.status === 'offline' ? '-' : `${cam.temp}°C`}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase">Firmware</p>
+                    <p className="text-sm font-medium">{cam.firmwareVersion || 'v1.0'}</p>
                   </div>
                   <div className="space-y-1">
-                    <p className="text-[10px] text-muted-foreground uppercase">Memory</p>
-                    <p className="text-sm font-medium">{cam.status === 'offline' ? '-' : '1.2GB'}</p>
+                    <p className="text-[10px] text-muted-foreground uppercase">Dernier Ping</p>
+                    <p className="text-sm font-medium">{cam.lastSeen ? new Date(cam.lastSeen).toLocaleTimeString() : '-'}</p>
                   </div>
                 </CardContent>
 

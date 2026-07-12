@@ -42,6 +42,9 @@ export class DevicesService {
           type: dto.type,
           ipAddress: dto.ipAddress ?? null,
           siteId: dto.siteId,
+          serialNumber: dto.serialNumber,
+          firmwareVersion: dto.firmwareVersion,
+          mqttClientId: dto.mqttClientId,
         },
         include: { site: { select: { id: true, name: true } } },
       });
@@ -52,10 +55,15 @@ export class DevicesService {
       return device;
     } catch (error: any) {
       if (error.code === 'P2003') {
-        throw new BadRequestException(`Le site référencé '${dto.siteId}' est invalide`);
+        throw new BadRequestException(
+          `Le site référencé '${dto.siteId}' est invalide`,
+        );
       }
-      this.logger.error(`Erreur lors de la création du dispositif: ${error.message}`, error.stack);
-      throw new BadRequestException("Impossible de créer le dispositif");
+      this.logger.error(
+        `Erreur lors de la création du dispositif: ${error.message}`,
+        error.stack,
+      );
+      throw new BadRequestException('Impossible de créer le dispositif');
     }
   }
 
@@ -63,18 +71,25 @@ export class DevicesService {
    * Retourne tous les dispositifs d'un site, triés par nom.
    * Le siteId est obligatoire pour éviter de retourner tous les dispositifs.
    */
-  async findBySite(siteId: string): Promise<Device[]> {
-    // Validate that the site exists first
-    await this.sitesService.findOne(siteId);
+  async findBySite(siteId?: string): Promise<Device[]> {
+    // Validate that the site exists first if provided
+    if (siteId) {
+      await this.sitesService.findOne(siteId);
+    }
 
     try {
       return await this.prisma.device.findMany({
-        where: { siteId },
+        where: siteId ? { siteId } : undefined,
         orderBy: { name: 'asc' },
       });
     } catch (error: any) {
-      this.logger.error(`Erreur lors de la récupération des dispositifs: ${error.message}`, error.stack);
-      throw new BadRequestException("Impossible de lister les dispositifs de ce site");
+      this.logger.error(
+        `Erreur lors de la récupération des dispositifs: ${error.message}`,
+        error.stack,
+      );
+      throw new BadRequestException(
+        'Impossible de lister les dispositifs de ce site',
+      );
     }
   }
 
@@ -91,7 +106,10 @@ export class DevicesService {
       return device;
     } catch (error: any) {
       if (error instanceof NotFoundException) throw error;
-      this.logger.error(`Erreur lors de la recherche du dispositif '${id}': ${error.message}`, error.stack);
+      this.logger.error(
+        `Erreur lors de la recherche du dispositif '${id}': ${error.message}`,
+        error.stack,
+      );
       throw new NotFoundException(`Dispositif avec l'id '${id}' introuvable`);
     }
   }
@@ -100,21 +118,24 @@ export class DevicesService {
    * Met à jour partiellement un dispositif (nom, IP, type, statut forcé).
    */
   async update(id: string, dto: UpdateDeviceDto): Promise<Device> {
-    await this.findOne(id); // Assert existence
+    const existing = await this.findOne(id); // Assert existence
 
     if (Object.keys(dto).length === 0) {
       throw new BadRequestException('Aucun champ à mettre à jour fourni');
     }
 
     try {
+      // if siteId is changing, we should verify the new site exists
+      if (dto.siteId && dto.siteId !== existing.siteId) {
+        const siteExists = await this.prisma.site.findUnique({ where: { id: dto.siteId } });
+        if (!siteExists) {
+          throw new NotFoundException(`Site cible avec l'id '${dto.siteId}' introuvable`);
+        }
+      }
+
       const updated = await this.prisma.device.update({
         where: { id },
-        data: {
-          ...(dto.name !== undefined && { name: dto.name }),
-          ...(dto.type !== undefined && { type: dto.type }),
-          ...(dto.ipAddress !== undefined && { ipAddress: dto.ipAddress }),
-          ...(dto.status !== undefined && { status: dto.status }),
-        },
+        data: dto,
       });
 
       this.logger.log(`Dispositif mis à jour: ${updated.name} (${id})`);
@@ -123,8 +144,13 @@ export class DevicesService {
       if (error.code === 'P2025') {
         throw new NotFoundException(`Dispositif avec l'id '${id}' introuvable`);
       }
-      this.logger.error(`Erreur lors de la mise à jour du dispositif: ${error.message}`, error.stack);
-      throw new BadRequestException("Impossible de mettre à jour le dispositif");
+      this.logger.error(
+        `Erreur lors de la mise à jour du dispositif: ${error.message}`,
+        error.stack,
+      );
+      throw new BadRequestException(
+        'Impossible de mettre à jour le dispositif',
+      );
     }
   }
 
@@ -142,8 +168,11 @@ export class DevicesService {
       if (error.code === 'P2025') {
         throw new NotFoundException(`Dispositif avec l'id '${id}' introuvable`);
       }
-      this.logger.error(`Erreur lors de la suppression du dispositif: ${error.message}`, error.stack);
-      throw new BadRequestException("Impossible de supprimer le dispositif");
+      this.logger.error(
+        `Erreur lors de la suppression du dispositif: ${error.message}`,
+        error.stack,
+      );
+      throw new BadRequestException('Impossible de supprimer le dispositif');
     }
   }
 }

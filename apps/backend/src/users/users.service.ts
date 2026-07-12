@@ -76,11 +76,12 @@ export class UsersService {
    */
   async update(
     id: string,
-    data: Partial<{ email: string; password: string; siteId: string }>,
+    data: Partial<{ name: string; email: string; password: string; siteId: string }>,
   ): Promise<User> {
     await this.findById(id); // Assert existence
 
     const updateData: Partial<{
+      name: string;
       email: string;
       password: string;
       siteId: string;

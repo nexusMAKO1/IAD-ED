@@ -9,6 +9,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -21,6 +22,8 @@ import {
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
@@ -29,7 +32,8 @@ import { Counter, register } from 'prom-client';
 
 // Use getSingleMetric to avoid double-registration crash during NestJS hot-reload.
 // In dev mode, the module is re-evaluated but prom-client's registry persists in memory.
-const authAttempts = (register.getSingleMetric('auth_attempts_total') as Counter<'status'>) ??
+const authAttempts =
+  (register.getSingleMetric('auth_attempts_total') as Counter<'status'>) ??
   new Counter({
     name: 'auth_attempts_total',
     help: 'Total authentication attempts',
@@ -72,13 +76,22 @@ export class AuthController {
   @ApiOperation({ summary: 'Retrieve the authenticated user profile' })
   @ApiResponse({ status: 200, description: 'Profile retrieved successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  getProfile(@CurrentUser() user: JwtPayload) {
-    return {
-      id: user.sub,
-      email: user.email,
-      role: user.role,
-      siteId: user.siteId,
-    };
+  async getProfile(@CurrentUser() user: JwtPayload) {
+    return this.authService.getProfile(user.sub);
+  }
+
+  @Patch('profile')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update the authenticated user profile (name, email)' })
+  @ApiResponse({ status: 200, description: 'Profile updated successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  updateProfile(
+    @CurrentUser() user: JwtPayload,
+    @Body() dto: UpdateProfileDto,
+  ) {
+    return this.authService.updateProfile(user.sub, dto);
   }
 
   @Post('logout')
@@ -89,5 +102,23 @@ export class AuthController {
     return {
       message: 'Logged out successfully',
     };
+  }
+
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Change the password for the current user' })
+  @ApiResponse({ status: 200, description: 'Password updated successfully' })
+  @ApiResponse({ status: 400, description: 'Validation failed' })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid current password or unauthenticated',
+  })
+  changePassword(
+    @CurrentUser() user: JwtPayload,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    return this.authService.changePassword(user.sub, changePasswordDto);
   }
 }

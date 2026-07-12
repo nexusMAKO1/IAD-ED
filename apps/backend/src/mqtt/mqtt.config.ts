@@ -71,6 +71,16 @@ export class MqttConfigService {
     const brokerUrl =
       configuredUrl ?? `${tls ? 'mqtts' : 'mqtt'}://${host}:${port}`;
 
-    return { host, port, wsPort, username, password, clientId, keepalive, tls, brokerUrl };
+    return {
+      host,
+      port,
+      wsPort,
+      username,
+      password,
+      clientId,
+      keepalive,
+      tls,
+      brokerUrl,
+    };
   }
 }

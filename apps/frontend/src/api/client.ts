@@ -60,7 +60,7 @@ apiClient.interceptors.response.use(
         return new Promise(function(resolve, reject) {
           failedQueue.push({ resolve, reject });
         }).then(token => {
-          originalRequest.headers['Authorization'] = 'Bearer ' + token;
+          originalRequest.headers.set('Authorization', 'Bearer ' + token);
           return apiClient(originalRequest);
         }).catch(err => {
           return Promise.reject(err);
@@ -89,7 +89,7 @@ apiClient.interceptors.response.use(
         
         processQueue(null, data.accessToken);
         
-        originalRequest.headers['Authorization'] = 'Bearer ' + data.accessToken;
+        originalRequest.headers.set('Authorization', 'Bearer ' + data.accessToken);
         return apiClient(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);

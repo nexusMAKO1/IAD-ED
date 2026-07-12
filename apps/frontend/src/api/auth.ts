@@ -39,3 +39,12 @@ export const getProfile = async (): Promise<UserProfile> => {
 export const logout = async (): Promise<void> => {
   await apiClient.post('/auth/logout');
 };
+
+export const updateProfile = async (data: { name?: string; email?: string }): Promise<UserProfile> => {
+  const response = await apiClient.patch<UserProfile>('/auth/profile', data);
+  return response.data;
+};
+
+export const changePassword = async (oldPassword: string, newPassword: string): Promise<void> => {
+  await apiClient.post('/auth/change-password', { oldPassword, newPassword });
+};

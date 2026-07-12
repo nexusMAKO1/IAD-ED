@@ -36,11 +36,11 @@ async function bootstrap(): Promise<void> {
   app.use(compression());
 
   // Enable Cross-Origin Resource Sharing (CORS)
-  const corsOrigin = configService.get<string>('cors.origin') ?? '*';
   app.enableCors({
-    origin: corsOrigin === '*' ? true : corsOrigin.split(','),
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    origin: true,
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   // Global Route Prefix (exclude /metrics and /health so Prometheus/healthchecks can scrape them at the root)

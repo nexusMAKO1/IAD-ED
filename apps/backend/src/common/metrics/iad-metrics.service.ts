@@ -93,7 +93,7 @@ export class IadMetricsService implements OnModuleInit {
     help: 'Backend health status (1 = healthy, 0 = offline)',
     labelNames: ['service'],
   });
-  
+
   public backendRequestsTotal = new Counter({
     name: 'iad_backend_requests_total',
     help: 'Total backend requests',
@@ -109,38 +109,78 @@ export class IadMetricsService implements OnModuleInit {
     });
 
     // Subscribe to performance telemetry
-    this.mqttService.subscribe(MQTT_TOPICS.EDGE.PERFORMANCE, (topic, eventStr) => {
-      const payload = eventStr.payload as any;
-      if (payload) {
-        if (payload.fps !== undefined) this.cameraFps.set({ siteId: eventStr.siteId as string, deviceId: eventStr.deviceId as string }, payload.fps);
-        if (payload.latencyMs !== undefined) this.processingLatency.set({ siteId: eventStr.siteId as string, deviceId: eventStr.deviceId as string }, payload.latencyMs);
-      }
-    });
+    this.mqttService.subscribe(
+      MQTT_TOPICS.EDGE.PERFORMANCE,
+      (topic, eventStr) => {
+        const payload = eventStr.payload as any;
+        if (payload) {
+          if (payload.fps !== undefined)
+            this.cameraFps.set(
+              {
+                siteId: eventStr.siteId as string,
+                deviceId: eventStr.deviceId as string,
+              },
+              payload.fps,
+            );
+          if (payload.latencyMs !== undefined)
+            this.processingLatency.set(
+              {
+                siteId: eventStr.siteId as string,
+                deviceId: eventStr.deviceId as string,
+              },
+              payload.latencyMs,
+            );
+        }
+      },
+    );
 
     // Subscribe to health telemetry
     this.mqttService.subscribe(MQTT_TOPICS.SYSTEM.HEALTH, (topic, eventStr) => {
       const payload = eventStr.payload as any;
       if (payload && payload.serviceName === 'edge-cv') {
-        const isHealthy = payload.status === 'healthy' || payload.status === 'online' ? 1 : 0;
-        this.edgeHealth.set({ siteId: eventStr.siteId as string, deviceId: eventStr.deviceId as string }, isHealthy);
+        const isHealthy =
+          payload.status === 'healthy' || payload.status === 'online' ? 1 : 0;
+        this.edgeHealth.set(
+          {
+            siteId: eventStr.siteId as string,
+            deviceId: eventStr.deviceId as string,
+          },
+          isHealthy,
+        );
       }
     });
 
     // Subscribe to display status
-    this.mqttService.subscribe(MQTT_TOPICS.DISPLAY.STATUS, (topic, eventStr) => {
-      const payload = eventStr.payload as any;
-      if (payload) {
-        const isOnline = payload.status === 'online' ? 1 : 0;
-        this.displayOnline.set({ siteId: eventStr.siteId as string, deviceId: eventStr.deviceId as string }, isOnline);
-      }
-    });
-    
+    this.mqttService.subscribe(
+      MQTT_TOPICS.DISPLAY.STATUS,
+      (topic, eventStr) => {
+        const payload = eventStr.payload as any;
+        if (payload) {
+          const isOnline = payload.status === 'online' ? 1 : 0;
+          this.displayOnline.set(
+            {
+              siteId: eventStr.siteId as string,
+              deviceId: eventStr.deviceId as string,
+            },
+            isOnline,
+          );
+        }
+      },
+    );
+
     // Subscribe to campaigns
-    this.mqttService.subscribe(MQTT_TOPICS.BACKEND.CAMPAIGNS, (topic, eventStr) => {
-       const payload = eventStr.payload as any;
-       if (payload && payload.campaignId) {
-         this.campaignSwitchesTotal.inc({ siteId: eventStr.siteId as string, deviceId: eventStr.deviceId as string, campaignId: payload.campaignId });
-       }
-    });
+    this.mqttService.subscribe(
+      MQTT_TOPICS.BACKEND.CAMPAIGNS,
+      (topic, eventStr) => {
+        const payload = eventStr.payload as any;
+        if (payload && payload.campaignId) {
+          this.campaignSwitchesTotal.inc({
+            siteId: eventStr.siteId as string,
+            deviceId: eventStr.deviceId as string,
+            campaignId: payload.campaignId,
+          });
+        }
+      },
+    );
   }
 }

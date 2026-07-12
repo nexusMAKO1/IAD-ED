@@ -73,7 +73,8 @@ const log = {
 // Connection status callbacks
 // ---------------------------------------------------------------------------
 
-type ConnectionCallback = (connected: boolean) => void;
+export type MqttConnectionState = 'connected' | 'connecting' | 'disconnected' | 'error';
+type ConnectionCallback = (state: MqttConnectionState) => void;
 
 // ---------------------------------------------------------------------------
 // MqttClientService
@@ -86,7 +87,7 @@ class MqttClientService {
     Array<MqttHandler>
   >();
   private connectionCallbacks: ConnectionCallback[] = [];
-  private _connected = false;
+  private _state: MqttConnectionState = 'disconnected';
 
   // Back-off state
   private _authFailed = false;        // permanently stop retries on auth error
@@ -94,7 +95,11 @@ class MqttClientService {
   private _reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
   get isConnected(): boolean {
-    return this._connected;
+    return this._state === 'connected';
+  }
+
+  get state(): MqttConnectionState {
+    return this._state;
   }
 
   get isAuthFailed(): boolean {
@@ -124,7 +129,7 @@ class MqttClientService {
 
     // Guard: already connecting / connected
     if (this.client) {
-      log.warn('connect() called but client already exists — skipping.');
+      log.debug('connect() called but client already exists — skipping.');
       return;
     }
 
@@ -161,6 +166,9 @@ class MqttClientService {
         retain: true,
       },
     };
+
+    this._state = 'connecting';
+    this.notifyConnectionCallbacks();
 
     this.client = mqtt.connect(BROKER_URL, options);
 
@@ -211,7 +219,7 @@ class MqttClientService {
     });
 
     this.client = null;
-    this._connected = false;
+    this._state = 'disconnected';
     this._reconnectDelay = RECONNECT_MIN_MS;
     this.notifyConnectionCallbacks();
   }
@@ -270,7 +278,7 @@ class MqttClientService {
     qos: 0 | 1 | 2 = 0,
     retain = false,
   ): boolean {
-    if (!this.client || !this._connected) {
+    if (!this.client || this._state !== 'connected') {
       log.warn(`Not connected — skipping publish to [${topic}]`);
       return false;
     }
@@ -295,7 +303,7 @@ class MqttClientService {
   onConnectionChange(callback: ConnectionCallback): () => void {
     this.connectionCallbacks.push(callback);
     // Immediately fire with current state
-    callback(this._connected);
+    callback(this._state);
     return () => {
       this.connectionCallbacks = this.connectionCallbacks.filter(
         (cb) => cb !== callback,
@@ -308,7 +316,7 @@ class MqttClientService {
   // -------------------------------------------------------------------------
 
   private onConnect(): void {
-    this._connected = true;
+    this._state = 'connected';
     this._authFailed = false;
     this._reconnectDelay = RECONNECT_MIN_MS;  // Reset back-off on success
     log.info(`Connected to ${BROKER_URL}`);
@@ -338,19 +346,19 @@ class MqttClientService {
   }
 
   private onReconnect(): void {
-    this._connected = false;
+    this._state = 'connecting';
     log.warn('Reconnecting…');
     this.notifyConnectionCallbacks();
   }
 
   private onDisconnect(): void {
-    this._connected = false;
+    this._state = 'disconnected';
     log.warn('Disconnected by broker.');
     this.notifyConnectionCallbacks();
   }
 
   private onOffline(): void {
-    this._connected = false;
+    this._state = 'disconnected';
     log.warn('Client offline — broker unreachable.');
     this.notifyConnectionCallbacks();
   }
@@ -370,7 +378,7 @@ class MqttClientService {
 
     if (isAuthError) {
       this._authFailed = true;
-      this._connected = false;
+      this._state = 'error';
 
       // Cancel pending reconnect timer
       if (this._reconnectTimer) {
@@ -418,7 +426,7 @@ class MqttClientService {
       this.client = null;
     }
 
-    this._connected = false;
+    this._state = 'connecting';
     this.notifyConnectionCallbacks();
 
     const delay = this._reconnectDelay;
@@ -499,7 +507,7 @@ class MqttClientService {
   private notifyConnectionCallbacks(): void {
     for (const cb of this.connectionCallbacks) {
       try {
-        cb(this._connected);
+        cb(this._state);
       } catch {
         // ignore callback errors
       }
@@ -512,3 +520,10 @@ class MqttClientService {
 // ---------------------------------------------------------------------------
 
 export const mqttClient = new MqttClientService();
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    log.info('HMR reload detected, disconnecting MQTT client...');
+    mqttClient.disconnect();
+  });
+}

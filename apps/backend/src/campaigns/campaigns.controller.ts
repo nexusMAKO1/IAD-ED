@@ -1,4 +1,18 @@
-import { Controller, Get, Post, Body, Patch, Put, Param, Delete, UseInterceptors, UploadedFile, Res, BadRequestException, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Put,
+  Param,
+  Delete,
+  UseInterceptors,
+  UploadedFile,
+  Res,
+  BadRequestException,
+  UseGuards,
+} from '@nestjs/common';
 import { Response } from 'express';
 import { CampaignsService } from './campaigns.service';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
@@ -59,14 +73,20 @@ export class CampaignsController {
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  update(@Param('id') id: string, @Body() updateCampaignDto: UpdateCampaignDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateCampaignDto: UpdateCampaignDto,
+  ) {
     return this.campaignsService.update(id, updateCampaignDto);
   }
 
   @Put(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  updatePut(@Param('id') id: string, @Body() updateCampaignDto: UpdateCampaignDto) {
+  updatePut(
+    @Param('id') id: string,
+    @Body() updateCampaignDto: UpdateCampaignDto,
+  ) {
     return this.campaignsService.update(id, updateCampaignDto);
   }
 

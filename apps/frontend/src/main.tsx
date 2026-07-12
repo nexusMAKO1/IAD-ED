@@ -25,6 +25,7 @@ import { ProfilePage } from './pages/profile/ProfilePage';
 // Providers & Global CSS
 import { Toaster } from './components/ui/toaster';
 import { AuthProvider, useAuth } from './store/AuthContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
 
 // ---------------------------------------------------------------------------
@@ -58,39 +59,41 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
-        <Routes>
-          {/* Public login page */}
-          <Route path="/login" element={<LoginPage />} />
+          <ErrorBoundary>
+            <Routes>
+              {/* Public login page */}
+              <Route path="/login" element={<LoginPage />} />
 
-          {/* Protected dashboard routes */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <DashboardLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<OverviewPage />} />
-            <Route path="analytics" element={<LiveAnalyticsPage />} />
-            <Route path="audience" element={<AudienceAnalyticsPage />} />
-            <Route path="heatmap" element={<HeatmapPage />} />
-            <Route path="sites" element={<SitesPage />} />
-            <Route path="cameras" element={<CamerasPage />} />
-            <Route path="fleet" element={<FleetPage />} />
-            <Route path="campaigns" element={<CampaignsPage />} />
-            <Route path="reports" element={<ReportsPage />} />
-            <Route path="alerts" element={<AlertsPage />} />
-            <Route path="monitoring" element={<MonitoringPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="profile" element={<ProfilePage />} />
-          </Route>
+              {/* Protected dashboard routes */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <DashboardLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route index element={<OverviewPage />} />
+                <Route path="analytics" element={<LiveAnalyticsPage />} />
+                <Route path="audience" element={<AudienceAnalyticsPage />} />
+                <Route path="heatmap" element={<HeatmapPage />} />
+                <Route path="sites" element={<SitesPage />} />
+                <Route path="cameras" element={<CamerasPage />} />
+                <Route path="fleet" element={<FleetPage />} />
+                <Route path="campaigns" element={<CampaignsPage />} />
+                <Route path="reports" element={<ReportsPage />} />
+                <Route path="alerts" element={<AlertsPage />} />
+                <Route path="monitoring" element={<MonitoringPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+                <Route path="profile" element={<ProfilePage />} />
+              </Route>
 
-          {/* Fallbacks */}
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </BrowserRouter>
+              {/* Fallbacks */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </ErrorBoundary>
+        </BrowserRouter>
       </AuthProvider>
       <Toaster />
     </QueryClientProvider>

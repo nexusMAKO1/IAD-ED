@@ -3,20 +3,82 @@
  * SmartVision IAD Dashboard — wired to real auth API
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
 import { motion } from 'framer-motion';
-import { User, Mail, Shield, Key, LogOut, AlertCircle } from 'lucide-react';
+import { User, Mail, Shield, Key, LogOut, Save } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/store/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { logout as apiLogout } from '@/api/auth';
+import { logout as apiLogout, updateProfile, changePassword } from '@/api/auth';
 import { useToast } from '@/hooks/use-toast';
+import { useMutation } from '@tanstack/react-query';
+import { getErrorMessage } from '@/types';
 
 export function ProfilePage() {
-  const { user, logout } = useAuth();
+  const { user, logout, checkAuth } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const { register: registerProfile, handleSubmit: handleSubmitProfile, reset: resetProfile, formState: { isDirty: isProfileDirty } } = useForm({
+    defaultValues: {
+      name: user?.name || '',
+      email: user?.email || '',
+    }
+  });
+
+  const { register: registerPassword, handleSubmit: handleSubmitPassword, reset: resetPassword } = useForm({
+    defaultValues: {
+      oldPassword: '',
+      newPassword: '',
+    }
+  });
+
+  useEffect(() => {
+    resetProfile({
+      name: user?.name || '',
+      email: user?.email || '',
+    });
+  }, [user, resetProfile]);
+
+  const profileMutation = useMutation({
+    mutationFn: (data: { name?: string; email?: string }) => updateProfile(data),
+    onSuccess: async () => {
+      await checkAuth();
+      toast({
+        variant: 'success',
+        title: 'Profil mis à jour',
+        description: 'Vos informations ont été enregistrées avec succès.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: getErrorMessage(error, 'Impossible de mettre à jour le profil.'),
+      });
+    }
+  });
+
+  const passwordMutation = useMutation({
+    mutationFn: (data: any) => changePassword(data.oldPassword, data.newPassword),
+    onSuccess: () => {
+      resetPassword();
+      toast({
+        variant: 'success',
+        title: 'Mot de passe modifié',
+        description: 'Votre mot de passe a été mis à jour avec succès.',
+      });
+    },
+    onError: (error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: getErrorMessage(error, 'L\'ancien mot de passe est incorrect ou une erreur est survenue.'),
+      });
+    }
+  });
 
   const handleLogout = async () => {
     try {
@@ -53,8 +115,8 @@ export function ProfilePage() {
               <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center mb-4 ring-2 ring-primary/40">
                 <User className="h-12 w-12 text-primary" />
               </div>
-              <h2 className="text-xl font-bold">{user?.email?.split('@')[0] ?? 'Utilisateur'}</h2>
-              <p className="text-sm text-muted-foreground mb-4">{user?.email ?? '—'}</p>
+              <h2 className="text-xl font-bold">{user?.name || user?.email?.split('@')[0] || 'Utilisateur'}</h2>
+              <p className="text-sm text-muted-foreground mb-4">{user?.email || '—'}</p>
               <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider mb-6">
                 <Shield className="h-3.5 w-3.5" />
                 {user?.role ?? 'Invité'}
@@ -77,65 +139,83 @@ export function ProfilePage() {
             <CardHeader>
               <CardTitle className="text-lg">Informations personnelles</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" /> Identifiant
-                </label>
-                <input
-                  type="text"
-                  value={user?.id ?? ''}
-                  className="w-full bg-secondary/50 border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary/50 font-mono text-xs"
-                  disabled
-                  readOnly
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground" /> Adresse e-mail
-                </label>
-                <input
-                  type="email"
-                  value={user?.email ?? ''}
-                  className="w-full bg-secondary/50 border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary/50"
-                  disabled
-                  readOnly
-                />
-                <p className="text-xs text-muted-foreground">L'e-mail ne peut pas être modifié ici.</p>
-              </div>
-              {user?.siteId && (
+            <CardContent>
+              <form onSubmit={handleSubmitProfile((data) => profileMutation.mutate(data))} className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Site associé</label>
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" /> Nom complet
+                  </label>
                   <input
                     type="text"
-                    value={user.siteId}
-                    className="w-full bg-secondary/50 border border-border rounded-md px-3 py-2 text-sm font-mono text-xs"
-                    disabled
-                    readOnly
+                    {...registerProfile('name')}
+                    className="w-full bg-secondary/50 border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary/50"
                   />
                 </div>
-              )}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-muted-foreground" /> Adresse e-mail
+                  </label>
+                  <input
+                    type="email"
+                    {...registerProfile('email')}
+                    className="w-full bg-secondary/50 border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary/50"
+                  />
+                </div>
+                {user?.siteId && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Site associé</label>
+                    <input
+                      type="text"
+                      value={user.siteId}
+                      className="w-full bg-secondary/50 border border-border rounded-md px-3 py-2 text-sm font-mono text-xs text-muted-foreground"
+                      disabled
+                      readOnly
+                    />
+                  </div>
+                )}
+                <div className="pt-2">
+                  <Button type="submit" disabled={!isProfileDirty || profileMutation.isPending} className="glow-primary">
+                    <Save className="h-4 w-4 mr-2" />
+                    {profileMutation.isPending ? 'Enregistrement...' : 'Mettre à jour le profil'}
+                  </Button>
+                </div>
+              </form>
             </CardContent>
           </Card>
 
-          <Card className="glass border-amber-500/20">
+          <Card className="glass">
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2 text-amber-400">
+              <CardTitle className="text-lg flex items-center gap-2">
                 <Key className="h-5 w-5" /> Sécurité
               </CardTitle>
               <CardDescription>Changement de mot de passe</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-3 text-sm text-amber-400 mb-4">
-                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
-                <span>
-                  L'endpoint <code className="font-mono text-xs">POST /api/v1/auth/change-password</code> n'est pas encore
-                  implémenté côté backend. Consultez <code className="font-mono text-xs">TODO.md</code>.
-                </span>
-              </div>
-              <Button variant="outline" className="gap-2 border-amber-500/20 text-amber-400 hover:bg-amber-500/10" disabled>
-                Changer le mot de passe
-              </Button>
+              <form onSubmit={handleSubmitPassword((data) => passwordMutation.mutate(data))} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Ancien mot de passe</label>
+                  <input
+                    type="password"
+                    {...registerPassword('oldPassword', { required: true })}
+                    className="w-full bg-secondary/50 border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary/50"
+                    placeholder="••••••••"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Nouveau mot de passe</label>
+                  <input
+                    type="password"
+                    {...registerPassword('newPassword', { required: true, minLength: 8 })}
+                    className="w-full bg-secondary/50 border border-border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary/50"
+                    placeholder="••••••••"
+                  />
+                </div>
+                <div className="pt-2">
+                  <Button type="submit" variant="secondary" disabled={passwordMutation.isPending}>
+                    {passwordMutation.isPending ? 'Modification...' : 'Changer le mot de passe'}
+                  </Button>
+                </div>
+              </form>
             </CardContent>
           </Card>
         </motion.div>

@@ -24,6 +24,7 @@ import { DevicesModule } from './devices/devices.module';
 import { AudienceEventsModule } from './audience-events/audience-events.module';
 import { CampaignsModule } from './campaigns/campaigns.module';
 import { MetricsModule } from './common/metrics/metrics.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -60,10 +61,13 @@ import { MetricsModule } from './common/metrics/metrics.module';
 
     // Audience Analytics Integration (T-033)
     AudienceEventsModule,
-    
+
     // Campaign Management & Decision Engine
     CampaignsModule,
-    
+
+    // Application Settings (persisted)
+    SettingsModule,
+
     // Custom IAD Metrics
     MetricsModule,
   ],

@@ -35,18 +35,20 @@ export function useMqtt<T extends BaseEvent = BaseEvent>(
   }, [topic, handler, enabled]);
 }
 
+import type { MqttConnectionState } from './mqtt.client';
+
 /**
  * Hook to get the current MQTT connection status reactively.
  * Useful for showing a connection indicator in the UI.
  */
-export function useMqttConnectionStatus(): boolean {
-  const [isConnected, setIsConnected] = useState(mqttClient.isConnected);
+export function useMqttConnectionStatus(): MqttConnectionState {
+  const [state, setState] = useState<MqttConnectionState>(mqttClient.state);
 
   useEffect(() => {
-    return mqttClient.onConnectionChange((connected) => {
-      setIsConnected(connected);
+    return mqttClient.onConnectionChange((newState) => {
+      setState(newState);
     });
   }, []);
 
-  return isConnected;
+  return state;
 }

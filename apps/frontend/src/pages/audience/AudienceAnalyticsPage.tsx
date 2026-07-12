@@ -16,21 +16,14 @@ import { VisitorLineChart } from '@/components/charts/VisitorLineChart';
 import { getAudienceStats, getAudienceEvents } from '@/api/audience';
 import { mqttClient } from '@/mqtt/mqtt.client';
 import { MQTT_TOPICS } from '@/mqtt/mqtt.topics';
+import type { AudienceEvent } from '@/types';
 
 type OutletCtx = { selectedSiteId: string };
 
 const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } };
 const item = { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
 
-interface AudienceEvent {
-  id: string;
-  timestamp: string;
-  ageGroup: string;
-  gender?: string;
-  emotion?: string;
-  dwellTime?: number;
-  siteId: string;
-}
+
 
 export function AudienceAnalyticsPage() {
   const { selectedSiteId } = useOutletContext<OutletCtx>();
@@ -66,10 +59,12 @@ export function AudienceAnalyticsPage() {
           id: `live-${Date.now()}`,
           timestamp: envelope.timestamp,
           ageGroup: (payload['ageGroup'] as string) || (payload['age_group'] as string) || 'unknown',
-          gender: payload['gender'] as string | undefined,
+          gender: (payload['gender'] as string) || 'unknown',
           emotion: payload['emotion'] as string | undefined,
           dwellTime: payload['dwellTime'] as number | undefined,
           siteId: envelope.siteId,
+          confidence: (payload['confidence'] as number) || 1.0,
+          count: (payload['count'] as number) || 1,
         };
         setLiveEvents(prev => [evt, ...prev].slice(0, 50));
       },
@@ -80,7 +75,7 @@ export function AudienceAnalyticsPage() {
     };
   }, [selectedSiteId]);
 
-  const allEvents: AudienceEvent[] = [...liveEvents, ...(histEvents as AudienceEvent[])];
+  const allEvents: AudienceEvent[] = [...liveEvents, ...(histEvents || [])];
 
   // Compute peak hour from events
   const peakHour = React.useMemo(() => {
@@ -228,7 +223,7 @@ export function AudienceAnalyticsPage() {
                 </CardTitle>
                 <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
-                  {liveEvents.length} live · {(histEvents as AudienceEvent[]).length} historique
+                  {liveEvents.length} live · {(histEvents || []).length} historique
                 </span>
               </div>
             </CardHeader>
@@ -244,7 +239,7 @@ export function AudienceAnalyticsPage() {
                       <span className="text-muted-foreground tabular-nums w-28 shrink-0">
                         {new Date(evt.timestamp).toLocaleTimeString('fr-FR')}
                       </span>
-                      <span className="capitalize font-medium">{evt.ageGroup.replace(/_/g, ' ')}</span>
+                      <span className="capitalize font-medium">{String(evt.ageGroup || 'Unknown').replace(/_/g, ' ')}</span>
                       <span className="text-muted-foreground capitalize">{evt.gender ?? '—'}</span>
                       <span className="text-muted-foreground capitalize">{evt.emotion ?? '—'}</span>
                       <span className="text-muted-foreground">{evt.dwellTime != null ? `${evt.dwellTime}s` : '—'}</span>

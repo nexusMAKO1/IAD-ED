@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { MqttService } from '../mqtt/mqtt.service';
 import { MQTT_TOPICS } from '../mqtt/mqtt.topics';
 import { CampaignsService } from './campaigns.service';
@@ -29,7 +34,9 @@ export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
-    this.logger.log('Campaign Decision Engine subscribing to smartvision/edge/demographics');
+    this.logger.log(
+      'Campaign Decision Engine subscribing to smartvision/edge/demographics',
+    );
 
     this.mqttService.subscribe(
       MQTT_TOPICS.EDGE.DEMOGRAPHICS,
@@ -48,7 +55,9 @@ export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
     try {
       const payload = event?.payload;
       if (!payload?.age_group) {
-        this.logger.debug('Received demographics event with missing payload — skipping.');
+        this.logger.debug(
+          'Received demographics event with missing payload — skipping.',
+        );
         return;
       }
 
@@ -63,7 +72,9 @@ export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
       this.ageWindow.push({ ts: now, ageGroup });
 
       // Prune entries older than 5 s
-      this.ageWindow = this.ageWindow.filter((e) => now - e.ts <= this.WINDOW_MS);
+      this.ageWindow = this.ageWindow.filter(
+        (e) => now - e.ts <= this.WINDOW_MS,
+      );
 
       // Enforce campaign switch cooldown
       if (now - this.lastSwitchTime < this.CAMPAIGN_COOLDOWN_MS) return;
@@ -118,7 +129,10 @@ export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
       }
 
       // Match via targetAudience JSON (secondary, e.g. { age_group: "adult" })
-      const targetAudience = campaign.targetAudience as Record<string, any> | null;
+      const targetAudience = campaign.targetAudience as Record<
+        string,
+        any
+      > | null;
       if (targetAudience?.age_group === dominantAgeGroup) {
         score += 15;
       }
@@ -155,9 +169,13 @@ export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
   private resetInactivityTimer() {
     if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
     this.inactivityTimer = setTimeout(() => {
-      this.logger.log('[BACKEND] No detections for 30 s — reverting to default playlist.');
+      this.logger.log(
+        '[BACKEND] No detections for 30 s — reverting to default playlist.',
+      );
       this.currentCampaignId = null;
-      this.mqttService.publish(MQTT_TOPICS.DISPLAY.COMMANDS, { action: 'playlist' });
+      this.mqttService.publish(MQTT_TOPICS.DISPLAY.COMMANDS, {
+        action: 'playlist',
+      });
     }, this.INACTIVITY_MS);
   }
 }

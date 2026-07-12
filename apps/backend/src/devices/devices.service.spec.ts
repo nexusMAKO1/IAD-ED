@@ -68,21 +68,37 @@ describe('DevicesService', () => {
       mockSitesService.findOne.mockResolvedValue(mockSite);
       mockPrismaService.device.create.mockResolvedValue(mockDevice);
 
-      const dto = { name: 'Totem Entrée', type: DeviceType.TOTEM, siteId: 'site-uuid-1234' };
+      const dto = {
+        name: 'Totem Entrée',
+        type: DeviceType.TOTEM,
+        siteId: 'site-uuid-1234',
+      };
       const result = await service.create(dto);
 
       expect(mockSitesService.findOne).toHaveBeenCalledWith('site-uuid-1234');
       expect(mockPrismaService.device.create).toHaveBeenCalledWith({
-        data: { name: 'Totem Entrée', type: DeviceType.TOTEM, ipAddress: null, siteId: 'site-uuid-1234' },
+        data: {
+          name: 'Totem Entrée',
+          type: DeviceType.TOTEM,
+          ipAddress: null,
+          siteId: 'site-uuid-1234',
+        },
         include: { site: { select: { id: true, name: true } } },
       });
       expect(result).toEqual(mockDevice);
     });
 
     it('should throw NotFoundException when siteId does not exist', async () => {
-      mockSitesService.findOne.mockRejectedValue(new NotFoundException('Site introuvable'));
-      await expect(service.create({ name: 'Test', type: DeviceType.SCREEN, siteId: 'bad-uuid' }))
-        .rejects.toThrow(NotFoundException);
+      mockSitesService.findOne.mockRejectedValue(
+        new NotFoundException('Site introuvable'),
+      );
+      await expect(
+        service.create({
+          name: 'Test',
+          type: DeviceType.SCREEN,
+          siteId: 'bad-uuid',
+        }),
+      ).rejects.toThrow(NotFoundException);
       expect(mockPrismaService.device.create).not.toHaveBeenCalled();
     });
   });
@@ -90,7 +106,10 @@ describe('DevicesService', () => {
   describe('update()', () => {
     it('should only include provided fields in the update data', async () => {
       mockPrismaService.device.findUnique.mockResolvedValue(mockDevice);
-      mockPrismaService.device.update.mockResolvedValue({ ...mockDevice, name: 'Totem Hall B' });
+      mockPrismaService.device.update.mockResolvedValue({
+        ...mockDevice,
+        name: 'Totem Hall B',
+      });
 
       await service.update('device-uuid-5678', { name: 'Totem Hall B' });
 
@@ -103,13 +122,17 @@ describe('DevicesService', () => {
 
     it('should throw BadRequestException when empty DTO is provided', async () => {
       mockPrismaService.device.findUnique.mockResolvedValue(mockDevice);
-      await expect(service.update('device-uuid-5678', {})).rejects.toThrow(BadRequestException);
+      await expect(service.update('device-uuid-5678', {})).rejects.toThrow(
+        BadRequestException,
+      );
       expect(mockPrismaService.device.update).not.toHaveBeenCalled();
     });
 
     it('should throw NotFoundException when device id does not exist', async () => {
       mockPrismaService.device.findUnique.mockResolvedValue(null);
-      await expect(service.update('nonexistent', { name: 'X' })).rejects.toThrow(NotFoundException);
+      await expect(
+        service.update('nonexistent', { name: 'X' }),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -120,12 +143,16 @@ describe('DevicesService', () => {
 
       await service.remove('device-uuid-5678');
 
-      expect(mockPrismaService.device.delete).toHaveBeenCalledWith({ where: { id: 'device-uuid-5678' } });
+      expect(mockPrismaService.device.delete).toHaveBeenCalledWith({
+        where: { id: 'device-uuid-5678' },
+      });
     });
 
     it('should NOT call delete and throw NotFoundException when device does not exist', async () => {
       mockPrismaService.device.findUnique.mockResolvedValue(null);
-      await expect(service.remove('ghost-uuid')).rejects.toThrow(NotFoundException);
+      await expect(service.remove('ghost-uuid')).rejects.toThrow(
+        NotFoundException,
+      );
       expect(mockPrismaService.device.delete).not.toHaveBeenCalled();
     });
   });
@@ -147,7 +174,9 @@ describe('DevicesService', () => {
 
     it('should propagate NotFoundException when site does not exist', async () => {
       mockSitesService.findOne.mockRejectedValue(new NotFoundException());
-      await expect(service.findBySite('unknown-site')).rejects.toThrow(NotFoundException);
+      await expect(service.findBySite('unknown-site')).rejects.toThrow(
+        NotFoundException,
+      );
       expect(mockPrismaService.device.findMany).not.toHaveBeenCalled();
     });
   });

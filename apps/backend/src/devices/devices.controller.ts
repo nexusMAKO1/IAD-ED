@@ -70,16 +70,16 @@ export class DevicesController {
   @ApiOperation({ summary: "Lister les dispositifs d'un site" })
   @ApiQuery({
     name: 'siteId',
-    required: true,
+    required: false,
     type: 'string',
-    description: 'UUID du site',
+    description: 'UUID du site (optionnel pour tous les sites)',
   })
   @ApiResponse({
     status: 200,
     description: 'Liste des dispositifs retournée',
   })
   @ApiResponse({ status: 404, description: 'Site introuvable' })
-  findBySite(@Query('siteId', ParseUUIDPipe) siteId: string) {
+  findBySite(@Query('siteId', new ParseUUIDPipe({ optional: true })) siteId?: string) {
     return this.devicesService.findBySite(siteId);
   }
 
