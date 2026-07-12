@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as https from 'https';
 import * as http from 'http';
+import * as os from 'os';
 import mqtt from 'mqtt';
 import 'dotenv/config';
 
@@ -31,16 +32,49 @@ const API_URL = process.env.API_URL || 'http://localhost:3000';
 const MQTT_URL = process.env.MQTT_URL || 'mqtt://localhost:1883';
 const MQTT_USERNAME = process.env.MQTT_USERNAME;
 const MQTT_PASSWORD = process.env.MQTT_PASSWORD;
-const DEVICE_ID = 'display-kiosk-01';
-
-const TOPIC_COMMANDS = 'smartvision/display/commands';
-const TOPIC_PLAYLIST = 'smartvision/display/playlist';
-const TOPIC_STATUS = 'smartvision/display/status';
 
 // Ensure cache directory exists
 if (!fs.existsSync(CACHE_DIR)) {
   fs.mkdirSync(CACHE_DIR, { recursive: true });
 }
+
+// Identity Management via fs
+const identityPath = path.join(CACHE_DIR, 'identity.json');
+let DEVICE_ID = '';
+let SITE_ID = '';
+let SCREEN_ID = '';
+let STATUS = 'UNPAIRED';
+
+if (fs.existsSync(identityPath)) {
+  try {
+    const data = JSON.parse(fs.readFileSync(identityPath, 'utf8'));
+    DEVICE_ID = data.deviceId || '';
+    SITE_ID = data.siteId || '';
+    SCREEN_ID = data.screenId || '';
+    STATUS = data.status || 'UNPAIRED';
+  } catch (e) {
+    console.error('[Identity] Error reading identity.json', e);
+  }
+}
+
+if (!DEVICE_ID) {
+  DEVICE_ID = process.env.DEVICE_ID || `display-${Math.random().toString(16).slice(2, 8)}`;
+}
+
+// Persist the current state
+fs.writeFileSync(identityPath, JSON.stringify({ 
+  deviceId: DEVICE_ID, 
+  siteId: SITE_ID || null, 
+  screenId: SCREEN_ID || null,
+  status: STATUS
+}, null, 2), 'utf8');
+
+console.log(`[Identity] Device: ${DEVICE_ID} | Site: ${SITE_ID || 'None'} | Screen: ${SCREEN_ID || 'None'} | Status: ${STATUS}`);
+
+const TOPIC_COMMANDS = `smartvision/display/${DEVICE_ID}/commands`;
+const TOPIC_PLAYLIST = `smartvision/display/${DEVICE_ID}/playlist`;
+const TOPIC_CONFIG = `smartvision/display/${DEVICE_ID}/config`;
+const TOPIC_DISCOVERY = 'smartvision/display/discovery';
 
 let mainWindow: BrowserWindow | null = null;
 let mqttClient: mqtt.MqttClient | null = null;
@@ -141,16 +175,24 @@ app.whenReady().then(() => {
   createWindow();
   setupMQTT();
 
-  // Heartbeat every 30 s
+  // Discovery Heartbeat every 10 s
+  const startTime = Date.now();
   setInterval(() => {
     if (mqttClient?.connected) {
-      mqttClient.publish(TOPIC_STATUS, JSON.stringify({
+      mqttClient.publish(TOPIC_DISCOVERY, JSON.stringify({
         deviceId: DEVICE_ID,
-        status: 'online',
-        timestamp: new Date().toISOString(),
+        siteId: SITE_ID || null,
+        screenId: SCREEN_ID || null,
+        status: STATUS,
+        hostname: os.hostname(),
+        platform: os.platform(),
+        ip: Object.values(os.networkInterfaces()).flat().find((i: any) => i?.family === 'IPv4' && !i?.internal)?.address || '127.0.0.1',
+        resolution: mainWindow ? `${mainWindow.getBounds().width}x${mainWindow.getBounds().height}` : 'unknown',
+        version: app.getVersion(),
+        uptime: Math.floor((Date.now() - startTime) / 1000)
       }));
     }
-  }, 30_000);
+  }, 10_000);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -178,6 +220,7 @@ function setupMQTT() {
     console.log('[MQTT] Connected — subscribing to display commands');
     mqttClient?.subscribe(TOPIC_COMMANDS, { qos: 1 });
     mqttClient?.subscribe(TOPIC_PLAYLIST, { qos: 1 });
+    mqttClient?.subscribe(TOPIC_CONFIG, { qos: 1 });
     mainWindow?.webContents.send('mqtt-status', { connected: true, topic: TOPIC_COMMANDS });
   });
 
@@ -261,6 +304,26 @@ function setupMQTT() {
       // Persist for offline reload
       fs.writeFileSync(path.join(CACHE_DIR, 'playlist.json'), JSON.stringify(newPlaylist));
       mainWindow?.webContents.send('mqtt-playlist', newPlaylist);
+    }
+    
+    // ── Configuration update (Pairing) ────────────────────────────────
+    else if (topic === TOPIC_CONFIG) {
+      console.log('[MQTT] Received CONFIG update', data);
+      if (data.siteId !== undefined) SITE_ID = data.siteId;
+      if (data.screenId !== undefined) SCREEN_ID = data.screenId;
+      
+      STATUS = SITE_ID ? 'ONLINE' : 'UNPAIRED';
+      
+      fs.writeFileSync(identityPath, JSON.stringify({ 
+        deviceId: DEVICE_ID, 
+        siteId: SITE_ID || null, 
+        screenId: SCREEN_ID || null,
+        status: STATUS
+      }, null, 2), 'utf8');
+      
+      console.log('[Identity] Configuration saved. Restarting application to apply changes...');
+      app.relaunch();
+      app.exit(0);
     }
   });
 }

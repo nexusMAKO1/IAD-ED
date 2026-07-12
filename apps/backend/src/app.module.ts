@@ -25,6 +25,7 @@ import { AudienceEventsModule } from './audience-events/audience-events.module';
 import { CampaignsModule } from './campaigns/campaigns.module';
 import { MetricsModule } from './common/metrics/metrics.module';
 import { SettingsModule } from './settings/settings.module';
+import { DisplayDevicesModule } from './display-devices/display-devices.module';
 
 @Module({
   imports: [
@@ -61,6 +62,9 @@ import { SettingsModule } from './settings/settings.module';
 
     // Audience Analytics Integration (T-033)
     AudienceEventsModule,
+    
+    // Display Discovery & Provisioning
+    DisplayDevicesModule,
 
     // Campaign Management & Decision Engine
     CampaignsModule,

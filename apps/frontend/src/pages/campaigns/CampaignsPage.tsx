@@ -142,6 +142,7 @@ export function CampaignsPage() {
       </div>
     </div>
   );
+}
 
 function CampaignForm({ campaign, onClose }: { campaign: Campaign | null, onClose: () => void }) {
   const { toast } = useToast();

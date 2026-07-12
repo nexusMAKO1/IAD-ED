@@ -7,30 +7,33 @@ import {
 import { MqttService } from '../mqtt/mqtt.service';
 import { MQTT_TOPICS } from '../mqtt/mqtt.topics';
 import { CampaignsService } from './campaigns.service';
+import { DisplayDevicesService } from '../display-devices/display-devices.service';
+import { DisplayStatus } from '@prisma/client';
+
+interface DecisionState {
+  currentCampaignId: string | null;
+  lastSwitchTime: number;
+  ageWindow: { ts: number; ageGroup: string }[];
+  lastDetectionTime: number;
+  inactivityTimer: NodeJS.Timeout | null;
+}
 
 @Injectable()
 export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(CampaignDecisionService.name);
 
-  // ── Current playback state ─────────────────────────────────────────────────
-  private currentCampaignId: string | null = null;
+  // ── State mapped by deviceId ─────────────────────────────────────────────────
+  private stateByDevice = new Map<string, DecisionState>();
 
-  // ── Campaign switch cooldown: minimum 15 s between campaign changes ─────────
+  // ── Constants ─────────────────────────────────────────────────────────────
   private readonly CAMPAIGN_COOLDOWN_MS = 15_000;
-  private lastSwitchTime = 0;
-
-  // ── 5-second dominant-age sliding window ────────────────────────────────────
   private readonly WINDOW_MS = 5_000;
-  private ageWindow: { ts: number; ageGroup: string }[] = [];
-
-  // ── Inactivity: revert to default playlist after 30 s of no detections ─────
   private readonly INACTIVITY_MS = 30_000;
-  private lastDetectionTime = 0;
-  private inactivityTimer: NodeJS.Timeout | null = null;
 
   constructor(
     private readonly mqttService: MqttService,
     private readonly campaignsService: CampaignsService,
+    private readonly displayService: DisplayDevicesService,
   ) {}
 
   onModuleInit() {
@@ -47,7 +50,22 @@ export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleDestroy() {
-    if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
+    for (const state of this.stateByDevice.values()) {
+      if (state.inactivityTimer) clearTimeout(state.inactivityTimer);
+    }
+  }
+
+  private getState(deviceId: string): DecisionState {
+    if (!this.stateByDevice.has(deviceId)) {
+      this.stateByDevice.set(deviceId, {
+        currentCampaignId: null,
+        lastSwitchTime: 0,
+        ageWindow: [],
+        lastDetectionTime: 0,
+        inactivityTimer: null,
+      });
+    }
+    return this.stateByDevice.get(deviceId)!;
   }
 
   // ── Main handler ────────────────────────────────────────────────────────────
@@ -61,47 +79,55 @@ export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
+      const deviceId = event.deviceId;
+      const siteId = event.siteId;
+      if (!deviceId || !siteId) {
+        this.logger.warn('Received demographics event without deviceId or siteId — skipping.');
+        return;
+      }
+
       const ageGroup: string = payload.age_group as string;
       const now = Date.now();
+      const state = this.getState(deviceId);
 
       // Record detection for inactivity tracking
-      this.lastDetectionTime = now;
-      this.resetInactivityTimer();
+      state.lastDetectionTime = now;
+      this.resetInactivityTimer(deviceId, siteId, state);
 
       // Add detection to the rolling 5-second window
-      this.ageWindow.push({ ts: now, ageGroup });
+      state.ageWindow.push({ ts: now, ageGroup });
 
       // Prune entries older than 5 s
-      this.ageWindow = this.ageWindow.filter(
+      state.ageWindow = state.ageWindow.filter(
         (e) => now - e.ts <= this.WINDOW_MS,
       );
 
       // Enforce campaign switch cooldown
-      if (now - this.lastSwitchTime < this.CAMPAIGN_COOLDOWN_MS) return;
+      if (now - state.lastSwitchTime < this.CAMPAIGN_COOLDOWN_MS) return;
 
       // Determine the dominant age over the last 5 s
-      const dominant = this.getDominantAge();
+      const dominant = this.getDominantAge(state.ageWindow);
       if (!dominant) return;
 
-      this.logger.log(`[BACKEND] Detected dominant age group: ${dominant}`);
-      await this.evaluateCampaigns(dominant);
+      this.logger.log(`[BACKEND] Detected dominant age group on camera ${deviceId}: ${dominant}`);
+      await this.evaluateCampaigns(deviceId, siteId, dominant, state);
     } catch (err: any) {
       this.logger.error(`Error in campaign decision engine: ${err.message}`);
     }
   }
 
   // ── Find the most frequent age group in the window ─────────────────────────
-  private getDominantAge(): string | null {
-    if (this.ageWindow.length === 0) return null;
+  private getDominantAge(window: { ts: number; ageGroup: string }[]): string | null {
+    if (window.length === 0) return null;
     const counts: Record<string, number> = {};
-    for (const { ageGroup } of this.ageWindow) {
+    for (const { ageGroup } of window) {
       counts[ageGroup] = (counts[ageGroup] ?? 0) + 1;
     }
     return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
   }
 
   // ── Campaign selection ──────────────────────────────────────────────────────
-  private async evaluateCampaigns(dominantAgeGroup: string) {
+  private async evaluateCampaigns(deviceId: string, siteId: string, dominantAgeGroup: string, state: DecisionState) {
     const activeCampaigns = await this.campaignsService.findActive();
     if (activeCampaigns.length === 0) {
       this.logger.warn('No active campaigns found — skipping decision.');
@@ -146,36 +172,53 @@ export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
     if (!bestCampaign) return;
 
     // Avoid publishing duplicate commands for the same campaign
-    if (bestCampaign.id === this.currentCampaignId) return;
+    if (bestCampaign.id === state.currentCampaignId) return;
 
-    this.currentCampaignId = bestCampaign.id;
-    this.lastSwitchTime = Date.now();
+    state.currentCampaignId = bestCampaign.id;
+    state.lastSwitchTime = Date.now();
 
     this.logger.log(
-      `[BACKEND] Campaign selected: "${bestCampaign.name}" (score=${highestScore}) for age group "${dominantAgeGroup}"`,
+      `[BACKEND] Campaign selected: "${bestCampaign.name}" (score=${highestScore}) for age group "${dominantAgeGroup}" on camera ${deviceId}`,
     );
-    this.logger.log(`[BACKEND] Publishing to smartvision/display/commands`);
 
-    this.mqttService.publish(MQTT_TOPICS.DISPLAY.COMMANDS, {
-      action: 'play',
-      campaignId: bestCampaign.id,
-      mediaType: bestCampaign.mediaType,
-      url: bestCampaign.mediaUrl,
-      duration: bestCampaign.duration ?? 15,
-    });
+    const displays = await this.displayService.findAll({ siteId, status: DisplayStatus.ONLINE });
+    if (displays.length === 0) {
+      this.logger.warn(`No online paired displays found for site ${siteId} — skipping publish.`);
+      return;
+    }
+
+    for (const display of displays) {
+      const topic = MQTT_TOPICS.DISPLAY.COMMANDS(display.deviceId);
+      this.logger.log(`[BACKEND] Publishing to ${topic}`);
+
+      this.mqttService.publish(topic, {
+        action: 'play',
+        campaignId: bestCampaign.id,
+        mediaType: bestCampaign.mediaType,
+        url: bestCampaign.mediaUrl,
+        duration: bestCampaign.duration ?? 15,
+      });
+    }
   }
 
   // ── Inactivity: revert to playlist after 30 s with no detections ────────────
-  private resetInactivityTimer() {
-    if (this.inactivityTimer) clearTimeout(this.inactivityTimer);
-    this.inactivityTimer = setTimeout(() => {
+  private resetInactivityTimer(deviceId: string, siteId: string, state: DecisionState) {
+    if (state.inactivityTimer) clearTimeout(state.inactivityTimer);
+    state.inactivityTimer = setTimeout(async () => {
       this.logger.log(
-        '[BACKEND] No detections for 30 s — reverting to default playlist.',
+        `[BACKEND] No detections for 30 s on camera ${deviceId} — reverting to default playlist for site ${siteId}.`,
       );
-      this.currentCampaignId = null;
-      this.mqttService.publish(MQTT_TOPICS.DISPLAY.COMMANDS, {
-        action: 'playlist',
-      });
+      state.currentCampaignId = null;
+      
+      try {
+        const displays = await this.displayService.findAll({ siteId, status: DisplayStatus.ONLINE });
+        for (const display of displays) {
+          const topic = MQTT_TOPICS.DISPLAY.COMMANDS(display.deviceId);
+          this.mqttService.publish(topic, { action: 'playlist' });
+        }
+      } catch (err) {
+        this.logger.error('Error fetching displays for inactivity revert', err);
+      }
     }, this.INACTIVITY_MS);
   }
 }

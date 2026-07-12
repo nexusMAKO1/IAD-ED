@@ -10,19 +10,26 @@ generator client {
 
 enum DeviceType {
   TOTEM
-  SCREEN              // alias conservé pour compatibilité
-  KIOSK               // alias conservé pour compatibilité
+  SCREEN // alias conservé pour compatibilité
+  KIOSK // alias conservé pour compatibilité
   CAMERA
   WAITING_ROOM_SCREEN // F4.2 — écran salle d'attente
-  TICKET_KIOSK        // F4.2 — borne ticket
+  TICKET_KIOSK // F4.2 — borne ticket
 }
 
 enum DeviceStatus {
   ONLINE
   OFFLINE
   DEGRADED // F4.2 — statut dégradé (partiel)
-  WARNING  // Alerte — problème non critique détecté
-  UNKNOWN  // Statut inconnu / pas encore vu
+  WARNING // Alerte — problème non critique détecté
+  UNKNOWN // Statut inconnu / pas encore vu
+}
+
+enum DisplayStatus {
+  UNPAIRED
+  ONLINE
+  OFFLINE
+  ERROR
 }
 
 enum UserRole {
@@ -48,14 +55,15 @@ model Site {
   name                  String
   address               String
   // F4.3 — Seuils de comportement adaptatif
-  densityThreshold      Int             @default(10)  // personnes/zone déclenchant l'adaptation
-  anomalyQueueThreshold Int             @default(15)  // écart en minutes déclenchant l'alerte F2.9
+  densityThreshold      Int             @default(10) // personnes/zone déclenchant l'adaptation
+  anomalyQueueThreshold Int             @default(15) // écart en minutes déclenchant l'alerte F2.9
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt
   devices               Device[]
   tickets               Ticket[]
   audienceEvents        AudienceEvent[]
   users                 User[]
+  displayDevices        DisplayDevice[]
 
   @@map("sites")
 }
@@ -67,23 +75,47 @@ model Device {
   site            Site            @relation(fields: [siteId], references: [id], onDelete: Cascade)
   type            DeviceType
   status          DeviceStatus    @default(UNKNOWN)
-  ipAddress       String?         // F4.2 — adresse IP optionnelle
-  serialNumber    String?         // Numéro de série physique
-  firmwareVersion String?         // Version du firmware
-  mqttClientId    String?         // Client ID MQTT pour le suivi
-  lastSeen        DateTime?       // Dernière heartbeat reçue
+  ipAddress       String? // F4.2 — adresse IP optionnelle
+  serialNumber    String? // Numéro de série physique
+  firmwareVersion String? // Version du firmware
+  mqttClientId    String? // Client ID MQTT pour le suivi
+  lastSeen        DateTime? // Dernière heartbeat reçue
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @default(now()) @updatedAt
   audienceEvents  AudienceEvent[]
+  displayDevices  DisplayDevice[]
 
   @@index([siteId])
   @@index([type])
   @@map("devices")
 }
 
+model DisplayDevice {
+  id         String        @id @default(uuid()) @db.Uuid
+  deviceId   String        @unique
+  siteId     String?       @db.Uuid
+  site       Site?         @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  screenId   String?       @db.Uuid
+  screen     Device?       @relation(fields: [screenId], references: [id], onDelete: SetNull)
+  hostname   String?
+  ip         String?
+  platform   String?
+  resolution String?
+  status     DisplayStatus @default(UNPAIRED)
+  version    String?
+  uptime     Int           @default(0)
+  lastSeen   DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([siteId])
+  @@index([status])
+  @@map("display_devices")
+}
+
 model User {
   id        String   @id @default(uuid()) @db.Uuid
-  name      String?  // Nom complet optionnel
+  name      String? // Nom complet optionnel
   email     String   @unique
   password  String
   role      UserRole @default(AGENT)

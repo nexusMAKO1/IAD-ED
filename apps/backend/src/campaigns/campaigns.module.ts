@@ -4,9 +4,10 @@ import { CampaignsController } from './campaigns.controller';
 import { CampaignDecisionService } from './campaign-decision.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { MqttModule } from '../mqtt/mqtt.module';
+import { DisplayDevicesModule } from '../display-devices/display-devices.module';
 
 @Module({
-  imports: [PrismaModule, MqttModule],
+  imports: [PrismaModule, MqttModule, DisplayDevicesModule],
   controllers: [CampaignsController],
   providers: [CampaignsService, CampaignDecisionService],
   exports: [CampaignsService],

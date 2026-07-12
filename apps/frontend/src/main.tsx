@@ -14,6 +14,7 @@ import { AudienceAnalyticsPage } from './pages/audience/AudienceAnalyticsPage';
 import { HeatmapPage } from './pages/heatmap/HeatmapPage';
 import { SitesPage } from './pages/sites/SitesPage';
 import { CamerasPage } from './pages/cameras/CamerasPage';
+import { DisplaysPage } from './pages/displays/DisplaysPage';
 import { FleetPage } from './pages/fleet/FleetPage';
 import { CampaignsPage } from './pages/campaigns/CampaignsPage';
 import { ReportsPage } from './pages/reports/ReportsPage';
@@ -79,6 +80,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                 <Route path="heatmap" element={<HeatmapPage />} />
                 <Route path="sites" element={<SitesPage />} />
                 <Route path="cameras" element={<CamerasPage />} />
+                <Route path="displays" element={<DisplaysPage />} />
                 <Route path="fleet" element={<FleetPage />} />
                 <Route path="campaigns" element={<CampaignsPage />} />
                 <Route path="reports" element={<ReportsPage />} />

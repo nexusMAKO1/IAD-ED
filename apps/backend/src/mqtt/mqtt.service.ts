@@ -46,6 +46,7 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
 
   private client: MqttJsClient | null = null;
   private readonly handlers = new Map<string, MqttMessageHandler[]>();
+  private readonly rawHandlers = new Map<string, MqttMessageHandler[]>();
   private heartbeatTimer: NodeJS.Timer | null = null;
 
   /** Expose connection status for health checks */
@@ -202,6 +203,16 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    // Dispatch to raw (unvalidated) handlers first — for non-envelope topics
+    const rawMatchingHandlers = this.getRawHandlers(topic);
+    for (const handler of rawMatchingHandlers) {
+      Promise.resolve(handler(topic, parsed)).catch((err: unknown) => {
+        this.logger.error(
+          `Raw handler error on topic [${topic}]: ${(err as Error).message}`,
+        );
+      });
+    }
+
     // Validate envelope with class-validator
     const dto = plainToInstance(BaseEventDto, parsed);
     validate(dto, { whitelist: false })
@@ -236,6 +247,18 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
     const result: MqttMessageHandler[] = [];
 
     for (const [pattern, handlers] of this.handlers) {
+      if (this.topicMatches(pattern, topic)) {
+        result.push(...handlers);
+      }
+    }
+
+    return result;
+  }
+
+  private getRawHandlers(topic: string): MqttMessageHandler[] {
+    const result: MqttMessageHandler[] = [];
+
+    for (const [pattern, handlers] of this.rawHandlers) {
       if (this.topicMatches(pattern, topic)) {
         result.push(...handlers);
       }
@@ -321,6 +344,23 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
     }
 
     this.logger.log(`Subscribed handler registered for [${topic}]`);
+  }
+
+  /**
+   * Register a raw (unvalidated) message handler for a topic.
+   * Use this for non-standard topics that don't conform to the BaseEventDto envelope
+   * (e.g., the display discovery heartbeat).
+   */
+  subscribeUnvalidated(topic: string, handler: MqttMessageHandler): void {
+    const existing = this.rawHandlers.get(topic) ?? [];
+    existing.push(handler);
+    this.rawHandlers.set(topic, existing);
+
+    if (this._connected) {
+      this.subscribeRaw(topic, 1);
+    }
+
+    this.logger.log(`Raw handler registered for [${topic}]`);
   }
 
   /** Remove all handlers for a given topic and unsubscribe from the broker */
