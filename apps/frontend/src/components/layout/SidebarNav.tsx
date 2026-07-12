@@ -29,22 +29,22 @@ import { cn } from '@/lib/utils';
 import { useMqttConnectionStatus } from '@/mqtt/useMqtt';
 
 const NAV_ITEMS = [
-  { to: '/dashboard',           end: true,  icon: LayoutDashboard, label: 'Dashboard',        group: 'Overview' },
-  { to: '/dashboard/analytics', end: false, icon: BarChart3,       label: 'Live Analytics',   group: 'Overview' },
-  { to: '/dashboard/audience',  end: false, icon: Users,           label: 'Audience',         group: 'Analytics' },
-  { to: '/dashboard/heatmap',   end: false, icon: Map,             label: 'Heatmap',          group: 'Analytics' },
-  { to: '/dashboard/sites',     end: false, icon: Building2,       label: 'Sites',            group: 'Fleet' },
-  { to: '/dashboard/cameras',   end: false, icon: Camera,          label: 'Cameras',          group: 'Fleet' },
-  { to: '/dashboard/fleet',     end: false, icon: MonitorPlay,     label: 'Devices',          group: 'Fleet' },
-  { to: '/dashboard/campaigns', end: false, icon: Megaphone,       label: 'Campaigns',        group: 'Operations' },
-  { to: '/dashboard/reports',   end: false, icon: FileText,        label: 'Reports',          group: 'Operations' },
-  { to: '/dashboard/alerts',    end: false, icon: AlertTriangle,   label: 'Alerts',           group: 'Operations' },
-  { to: '/dashboard/monitoring',end: false, icon: Activity,        label: 'Monitoring',       group: 'System' },
-  { to: '/dashboard/settings',  end: false, icon: Settings,        label: 'Settings',         group: 'System' },
-  { to: '/dashboard/profile',   end: false, icon: User,            label: 'Profile',          group: 'System' },
+  { to: '/dashboard',           end: true,  icon: LayoutDashboard, label: 'Tableau de bord',  group: 'Vue d\'ensemble' },
+  { to: '/dashboard/analytics', end: false, icon: BarChart3,       label: 'Analytique en Direct', group: 'Vue d\'ensemble' },
+  { to: '/dashboard/audience',  end: false, icon: Users,           label: 'Audience',         group: 'Analytique' },
+  { to: '/dashboard/heatmap',   end: false, icon: Map,             label: 'Carte de chaleur', group: 'Analytique' },
+  { to: '/dashboard/sites',     end: false, icon: Building2,       label: 'Sites',            group: 'Parc Matériel' },
+  { to: '/dashboard/cameras',   end: false, icon: Camera,          label: 'Caméras',          group: 'Parc Matériel' },
+  { to: '/dashboard/fleet',     end: false, icon: MonitorPlay,     label: 'Appareils',        group: 'Parc Matériel' },
+  { to: '/dashboard/campaigns', end: false, icon: Megaphone,       label: 'Campagnes',        group: 'Opérations' },
+  { to: '/dashboard/reports',   end: false, icon: FileText,        label: 'Rapports',         group: 'Opérations' },
+  { to: '/dashboard/alerts',    end: false, icon: AlertTriangle,   label: 'Alertes',          group: 'Opérations' },
+  { to: '/dashboard/monitoring',end: false, icon: Activity,        label: 'Supervision',      group: 'Système' },
+  { to: '/dashboard/settings',  end: false, icon: Settings,        label: 'Paramètres',       group: 'Système' },
+  { to: '/dashboard/profile',   end: false, icon: User,            label: 'Profil',           group: 'Système' },
 ] as const;
 
-const GROUPS = ['Overview', 'Analytics', 'Fleet', 'Operations', 'System'] as const;
+const GROUPS = ['Vue d\'ensemble', 'Analytique', 'Parc Matériel', 'Opérations', 'Système'] as const;
 
 interface SidebarNavProps {
   collapsed: boolean;
@@ -157,13 +157,13 @@ export function SidebarNav({ collapsed, onToggle }: SidebarNavProps) {
               aria-hidden="true"
             />
             <span className="text-[10px] text-muted-foreground truncate">
-              {isConnected ? 'MQTT connected' : 'MQTT offline'}
+              {isConnected ? 'MQTT connecté' : 'MQTT hors ligne'}
             </span>
           </div>
         )}
         <button
           onClick={onToggle}
-          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          aria-label={collapsed ? 'Développer la barre latérale' : 'Réduire la barre latérale'}
           className={cn(
             'flex items-center justify-center w-6 h-6 rounded-md hover:bg-secondary transition-colors',
             collapsed && 'mx-auto',

@@ -3,16 +3,20 @@
  * SmartVision IAD Dashboard
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
-import { Building2, Users, Monitor, Camera, MapPin, Activity } from 'lucide-react';
+import { Building2, Users, Monitor, Camera, MapPin, Plus, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { getSites } from '@/api/sites';
+import { getDevices } from '@/api/devices';
 import { StatusBadge } from '@/components/dashboard/StatusBadge';
 import { DensityGauge } from '@/components/charts/DensityGauge';
 import { useMqttConnectionStatus } from '@/mqtt/useMqtt';
+import { mqttClient } from '@/mqtt/mqtt.client';
+import { MQTT_TOPICS } from '@/mqtt/mqtt.topics';
+import { useToast } from '@/hooks/use-toast';
 import type { Site } from '@/types';
 
 const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.1 } } };
@@ -20,10 +24,56 @@ const item = { hidden: { opacity: 0, scale: 0.95 }, visible: { opacity: 1, scale
 
 export function SitesPage() {
   const isConnected = useMqttConnectionStatus();
-  const { data: sites = [], isLoading } = useQuery({
+  const { toast } = useToast();
+  const [deviceStatusMap, setDeviceStatusMap] = useState<Record<string, 'ONLINE' | 'OFFLINE' | 'DEGRADED'>>({});
+
+  const { data: sites = [], isLoading, isError } = useQuery({
     queryKey: ['sites'],
     queryFn: getSites,
   });
+
+  // Fetch all devices (for all sites) to get counts
+  // We only query once sites are loaded
+  const { data: allDevices = [] } = useQuery({
+    queryKey: ['devices', 'all'],
+    queryFn: () => getDevices(''),  // all devices
+    enabled: sites.length > 0,
+    retry: 1,
+  });
+
+  // Count devices per site
+  const deviceCountBySite = React.useMemo(() => {
+    const map: Record<string, number> = {};
+    (allDevices as any[]).forEach((d: any) => {
+      if (d.siteId) map[d.siteId] = (map[d.siteId] || 0) + 1;
+    });
+    return map;
+  }, [allDevices]);
+
+  // MQTT: subscribe to system/health for live device status updates
+  useEffect(() => {
+    const unsub = mqttClient.subscribe(
+      MQTT_TOPICS.SYSTEM.HEALTH,
+      (_topic, envelope) => {
+        const payload = envelope.payload as Record<string, unknown>;
+        const deviceId = envelope.deviceId;
+        const status = (payload?.['status'] as string)?.toUpperCase();
+        if (deviceId && (status === 'ONLINE' || status === 'OFFLINE' || status === 'DEGRADED')) {
+          setDeviceStatusMap(prev => ({ ...prev, [deviceId]: status as 'ONLINE' | 'OFFLINE' | 'DEGRADED' }));
+        }
+      },
+    );
+    return unsub;
+  }, []);
+
+  if (isError) {
+    return (
+      <div className="p-8 flex items-center gap-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400">
+        <AlertCircle className="h-5 w-5 shrink-0" />
+        <span>Impossible de charger les sites. Vérifiez votre connexion au serveur.</span>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
@@ -35,13 +85,15 @@ export function SitesPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <Building2 className="h-6 w-6 text-primary" aria-hidden="true" />
-            Sites Management
+            Gestion des sites
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Overview of all deployed locations and their current status
+            Vue d'ensemble de tous les sites déployés et leur statut actuel
           </p>
         </div>
-        <Button className="glow-primary">Add New Site</Button>
+        <Button className="glow-primary" disabled title="POST /api/v1/sites non implémenté — voir TODO.md">
+          <Plus className="h-4 w-4 mr-2" /> Ajouter un site
+        </Button>
       </motion.div>
 
       {isLoading ? (
@@ -68,31 +120,29 @@ export function SitesPage() {
                 <CardContent className="flex-1 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Visitors (Live)</p>
-                      <p className="text-2xl font-bold flex items-center gap-2 text-muted-foreground">
-                        --
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Appareils</p>
+                      <p className="text-2xl font-bold">
+                        {deviceCountBySite[site.id] ?? 0}
                       </p>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Avg Stay</p>
-                      <p className="text-2xl font-bold text-muted-foreground">--</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">Seuil densité</p>
+                      <p className="text-2xl font-bold text-muted-foreground">
+                        {(site as any).densityThreshold ?? '--'}
+                      </p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-6 pt-2 border-t border-border/50">
                     <div className="flex items-center gap-1.5 text-sm">
                       <Monitor className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">N/A</span> Devices
-                    </div>
-                    <div className="flex items-center gap-1.5 text-sm">
-                      <Camera className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">N/A</span> Cameras
+                      <span className="font-medium">{deviceCountBySite[site.id] ?? 0}</span> Appareils
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter className="pt-0 border-t border-border/50 mt-4 flex gap-2">
                   <Button variant="ghost" className="w-full justify-center text-primary hover:text-primary hover:bg-primary/10">
-                    View Details
+                    Voir les détails
                   </Button>
                 </CardFooter>
               </Card>

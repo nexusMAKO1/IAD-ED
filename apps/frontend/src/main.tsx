@@ -24,7 +24,7 @@ import { ProfilePage } from './pages/profile/ProfilePage';
 
 // Providers & Global CSS
 import { Toaster } from './components/ui/toaster';
-import { mqttClient } from './mqtt/mqtt.client';
+import { AuthProvider, useAuth } from './store/AuthContext';
 import './index.css';
 
 // ---------------------------------------------------------------------------
@@ -41,8 +41,13 @@ const queryClient = new QueryClient({
 
 // A simple Route Guard to protect dashboard paths
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const token = localStorage.getItem('access_token');
-  if (!token) {
+  const { isAuthenticated, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return <div className="flex h-screen w-full items-center justify-center">Loading session...</div>;
+  }
+  
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
   return <>{children}</>;
@@ -51,7 +56,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
         <Routes>
           {/* Public login page */}
           <Route path="/login" element={<LoginPage />} />
@@ -85,6 +91,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>
+      </AuthProvider>
       <Toaster />
     </QueryClientProvider>
   </React.StrictMode>,

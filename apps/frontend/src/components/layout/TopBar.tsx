@@ -23,7 +23,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { LiveBadge } from '@/components/dashboard/LiveBadge';
-import { mqttClient } from '@/mqtt/mqtt.client';
+import { useAuth } from '@/store/AuthContext';
+import { logout as apiLogout } from '@/api/auth';
 import type { Site } from '@/types';
 
 interface TopBarProps {
@@ -45,6 +46,7 @@ function useDateTime() {
 export function TopBar({ sites, selectedSiteId, onSiteChange }: TopBarProps) {
   const navigate = useNavigate();
   const now = useDateTime();
+  const { logout } = useAuth();
   const [siteOpen, setSiteOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -53,14 +55,11 @@ export function TopBar({ sites, selectedSiteId, onSiteChange }: TopBarProps) {
 
   const activeSite = sites.find((s) => s.id === selectedSiteId);
 
-  const handleLogout = useCallback(() => {
-    // Disconnect MQTT before clearing state
-    mqttClient.disconnect();
-    // Clear auth state — triggers redirect to login
-    localStorage.removeItem('access_token');
-    // Full page reload to clear all in-memory state
-    window.location.href = '/login';
-  }, []);
+  const handleLogout = useCallback(async () => {
+    try { await apiLogout(); } catch { /* best-effort */ }
+    logout();
+    navigate('/login', { replace: true });
+  }, [logout, navigate]);
 
   const dateStr = now.toLocaleDateString('en-GB', {
     weekday: 'short',
@@ -103,7 +102,7 @@ export function TopBar({ sites, selectedSiteId, onSiteChange }: TopBarProps) {
           >
             <Building2 className="h-4 w-4 text-primary shrink-0" aria-hidden="true" />
             <span className="max-w-[140px] truncate">
-              {activeSite?.name ?? 'Select site'}
+              {activeSite?.name ?? 'Sélectionner un site'}
             </span>
             <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', siteOpen && 'rotate-180')} aria-hidden="true" />
           </button>
@@ -136,7 +135,7 @@ export function TopBar({ sites, selectedSiteId, onSiteChange }: TopBarProps) {
                   </li>
                 ))}
                 {sites.length === 0 && (
-                  <li className="px-4 py-2.5 text-sm text-muted-foreground">No sites</li>
+                  <li className="px-4 py-2.5 text-sm text-muted-foreground">Aucun site</li>
                 )}
               </motion.ul>
             )}
@@ -153,15 +152,15 @@ export function TopBar({ sites, selectedSiteId, onSiteChange }: TopBarProps) {
           <input
             type="search"
             id="topbar-search"
-            aria-label="Search dashboard"
-            placeholder="Search sites, cameras, devices…"
+            aria-label="Rechercher dans le tableau de bord"
+            placeholder="Rechercher sites, caméras, appareils…"
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
             className="w-full bg-secondary/50 border border-border rounded-lg pl-9 pr-4 py-1.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 transition-all"
           />
           {searchValue && (
             <button
-              aria-label="Clear search"
+              aria-label="Effacer la recherche"
               className="absolute right-2 top-1/2 -translate-y-1/2"
               onClick={() => setSearchValue('')}
             >
@@ -182,7 +181,7 @@ export function TopBar({ sites, selectedSiteId, onSiteChange }: TopBarProps) {
         {/* Notifications */}
         <button
           id="notifications-btn"
-          aria-label={`Notifications — ${notifCount} unread`}
+          aria-label={`Notifications — ${notifCount} non lues`}
           className="relative flex items-center justify-center w-9 h-9 rounded-lg hover:bg-secondary transition-colors"
         >
           <Bell className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -229,7 +228,7 @@ export function TopBar({ sites, selectedSiteId, onSiteChange }: TopBarProps) {
                   onClick={() => { navigate('/dashboard/profile'); setUserOpen(false); }}
                 >
                   <User className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                  Profile
+                  Profil
                 </button>
                 <button
                   role="menuitem"
@@ -237,7 +236,7 @@ export function TopBar({ sites, selectedSiteId, onSiteChange }: TopBarProps) {
                   onClick={() => { navigate('/dashboard/settings'); setUserOpen(false); }}
                 >
                   <Settings className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                  Settings
+                  Paramètres
                 </button>
                 <div className="border-t border-border my-1" role="separator" />
                 <button
@@ -246,7 +245,7 @@ export function TopBar({ sites, selectedSiteId, onSiteChange }: TopBarProps) {
                   onClick={handleLogout}
                 >
                   <LogOut className="h-4 w-4" aria-hidden="true" />
-                  Sign Out
+                  Déconnexion
                 </button>
               </motion.div>
             )}

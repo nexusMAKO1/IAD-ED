@@ -6,9 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Wifi, ShieldAlert, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import apiClient from '@/api/client';
-import { getErrorMessage } from '@/types';
-import { mqttClient } from '@/mqtt/mqtt.client';
+import { login } from '@/api/auth';
+import { useAuth } from '@/store/AuthContext';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -17,6 +16,7 @@ export function LoginPage() {
   const [password, setPassword] = React.useState('admin123');
   const [isLoading, setIsLoading] = React.useState(false);
   const [isDemoLoading, setIsDemoLoading] = React.useState(false);
+  const { setTokens } = useAuth();
 
   const handleLogin = async (e: React.FormEvent, isDemo = false) => {
     e.preventDefault();
@@ -26,17 +26,12 @@ export function LoginPage() {
     else setIsLoading(true);
 
     try {
-      const response = await apiClient.post('/auth/login', {
+      const { accessToken, refreshToken } = await login({
         email: isDemo ? 'admin@expressdisplay.com' : email,
         password: isDemo ? 'admin123' : password,
       });
 
-      const { accessToken } = response.data;
-      localStorage.setItem('access_token', accessToken);
-
-      // Initiate MQTT connection now that the user is authenticated.
-      // The client is a no-op if credentials are absent or already connected.
-      mqttClient.connect();
+      setTokens(accessToken, refreshToken);
 
       toast({
         variant: 'success',
@@ -44,13 +39,11 @@ export function LoginPage() {
         description: 'Bienvenue sur la console Express Display.',
       });
       navigate('/dashboard/fleet');
-    } catch (error: unknown) {
-      // Purge any stale or invalid token to prevent inconsistent auth state
-      localStorage.removeItem('access_token');
+    } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Échec de connexion',
-        description: getErrorMessage(error, 'Identifiants invalides ou serveur indisponible.'),
+        description: error?.message || 'Identifiants invalides ou serveur indisponible.',
       });
     } finally {
       setIsLoading(false);

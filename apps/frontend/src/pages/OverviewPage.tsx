@@ -18,8 +18,9 @@ import { LiveBadge } from '@/components/dashboard/LiveBadge';
 import { VisitorLineChart } from '@/components/charts/VisitorLineChart';
 import { DensityGauge } from '@/components/charts/DensityGauge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { getAudienceStats } from '@/api/audience';
+import { getAudienceStats, getVisitorTimeseries } from '@/api/audience';
 import { useLiveDashboard } from '@/hooks/useLiveDashboard';
+import { useToast } from '@/hooks/use-toast';
 import type { TimeSeriesPoint } from '@/types';
 
 type OutletCtx = { selectedSiteId: string };
@@ -30,13 +31,40 @@ type OutletCtx = { selectedSiteId: string };
 export function OverviewPage() {
   const { selectedSiteId } = useOutletContext<OutletCtx>();
   const live = useLiveDashboard(selectedSiteId);
+  const { toast } = useToast();
 
-  const { data: stats } = useQuery({
+  const { data: stats, isLoading: isLoadingStats, isError: isErrorStats } = useQuery({
     queryKey: ['audienceStats', selectedSiteId],
     queryFn: () => getAudienceStats(selectedSiteId),
     enabled: !!selectedSiteId,
     refetchInterval: 30_000,
   });
+
+  const { data: timeseriesData = [], isLoading: isLoadingTs, isError: isErrorTs } = useQuery({
+    queryKey: ['visitorTimeseries', selectedSiteId, 'minute'],
+    queryFn: () => getVisitorTimeseries(selectedSiteId, 'minute'),
+    enabled: !!selectedSiteId,
+    refetchInterval: 60_000,
+    retry: 1, // Don't retry too much if endpoint is missing
+  });
+
+  const { data: hourlyData = [], isLoading: isLoadingHourly, isError: isErrorHourly } = useQuery({
+    queryKey: ['visitorTimeseries', selectedSiteId, 'hour'],
+    queryFn: () => getVisitorTimeseries(selectedSiteId, 'hour'),
+    enabled: !!selectedSiteId,
+    refetchInterval: 300_000,
+    retry: 1,
+  });
+
+  React.useEffect(() => {
+    if (isErrorStats || isErrorTs || isErrorHourly) {
+      toast({
+        title: 'Data Load Error',
+        description: 'Failed to fetch some dashboard data. The endpoint may be missing or the server is down.',
+        variant: 'destructive',
+      });
+    }
+  }, [isErrorStats, isErrorTs, isErrorHourly, toast]);
 
   // Merge live MQTT data over REST fallback
   const currentVisitors = live.currentVisitors || stats?.currentVisitors || 0;
@@ -69,10 +97,10 @@ export function OverviewPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
             <BarChart2 className="h-6 w-6 text-primary" aria-hidden="true" />
-            Dashboard Overview
+            Vue d'ensemble
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Real-time audience intelligence — SmartVision IAD
+            Intelligence d'audience en temps réel — SmartVision IAD
           </p>
         </div>
         <LiveBadge />
@@ -86,40 +114,40 @@ export function OverviewPage() {
         className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4"
       >
         <KpiCard
-          title="Current Visitors"
+          title="Visiteurs actuels"
           value={currentVisitors}
           icon={Users}
           color="primary"
           trend="up"
-          trendLabel={`${dailyVisitors} today`}
+          trendLabel={`${dailyVisitors} aujourd'hui`}
           delay={0}
         />
         <KpiCard
-          title="Today's Visitors"
+          title="Visiteurs du jour"
           value={dailyVisitors}
           icon={TrendingUp}
           color="success"
           trend="up"
-          trendLabel="Since midnight"
+          trendLabel="Depuis minuit"
           delay={0.06}
         />
         <KpiCard
-          title="Avg Stay Time"
+          title="Temps de séjour moy."
           value={avgWaitTime}
           unit="min"
           icon={Clock}
           color="warning"
           trend={avgWaitTime > 15 ? 'down' : 'neutral'}
-          trendLabel={avgWaitTime > 15 ? 'Above threshold' : 'Within target'}
+          trendLabel={avgWaitTime > 15 ? 'Au-dessus du seuil' : 'Dans la cible'}
           delay={0.12}
         />
         <KpiCard
-          title="Attention Rate"
+          title="Taux d'attention"
           value={`${attentionRate}%`}
           icon={Eye}
           color="primary"
           trend="up"
-          trendLabel="Campaign engagement"
+          trendLabel="Engagement campagne"
           delay={0.18}
         />
       </motion.div>
@@ -132,39 +160,39 @@ export function OverviewPage() {
         className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4"
       >
         <KpiCard
-          title="Avg Queue"
+          title="File d'attente moy."
           value={avgQueueLength}
           icon={Layers}
           color="warning"
           trend={avgQueueLength > 10 ? 'down' : 'neutral'}
-          trendLabel={`Threshold: 10`}
+          trendLabel={`Seuil: 10`}
           delay={0}
         />
         <KpiCard
-          title="Crowd Density"
+          title="Densité de foule"
           value={crowdDensity ? crowdDensity.charAt(0).toUpperCase() + crowdDensity.slice(1) : '—'}
           icon={Waves}
           color={crowdDensity === 'critical' || crowdDensity === 'high' ? 'danger' : crowdDensity === 'medium' ? 'warning' : 'success'}
           trend="neutral"
-          trendLabel={`${currentVisitors} persons detected`}
+          trendLabel={`${currentVisitors} personnes détectées`}
           delay={0.06}
         />
         <KpiCard
-          title="Male"
+          title="Hommes"
           value={`${malePercent}%`}
           icon={UserCheck}
           color="primary"
           trend="neutral"
-          trendLabel="Gender split"
+          trendLabel="Répartition par genre"
           delay={0.12}
         />
         <KpiCard
-          title="Female"
+          title="Femmes"
           value={`${femalePercent}%`}
           icon={UserCheck}
           color="primary"
           trend="neutral"
-          trendLabel="Gender split"
+          trendLabel="Répartition par genre"
           delay={0.18}
         />
       </motion.div>
@@ -177,21 +205,21 @@ export function OverviewPage() {
         className="grid grid-cols-3 gap-4"
       >
         <KpiCard
-          title="Children"
+          title="Enfants"
           value={childrenCount}
           icon={Baby}
           color="success"
           trend="neutral"
-          subtitle="Under 18"
+          subtitle="Moins de 18 ans"
           delay={0}
         />
         <KpiCard
-          title="Adults"
+          title="Adultes"
           value={adultsCount}
           icon={PersonStanding}
           color="primary"
           trend="neutral"
-          subtitle="18–64 years"
+          subtitle="18–64 ans"
           delay={0.06}
         />
         <KpiCard
@@ -200,7 +228,7 @@ export function OverviewPage() {
           icon={UserX}
           color="muted"
           trend="neutral"
-          subtitle="65+ years"
+          subtitle="65 ans et plus"
           delay={0.12}
         />
       </motion.div>
@@ -218,13 +246,19 @@ export function OverviewPage() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                  Visitors — Last 30 min
+                  Visiteurs — 30 dernières min
                 </CardTitle>
                 <LiveBadge showLabel={false} />
               </div>
             </CardHeader>
             <CardContent>
-              <VisitorLineChart data={[]} useArea height={200} color="#7c3aed" />
+              {isLoadingTs ? (
+                <div className="h-[200px] flex items-center justify-center text-muted-foreground">Loading chart...</div>
+              ) : isErrorTs ? (
+                <div className="h-[200px] flex items-center justify-center text-red-500 text-sm">Failed to load time series data</div>
+              ) : (
+                <VisitorLineChart data={timeseriesData} useArea height={200} color="#7c3aed" />
+              )}
             </CardContent>
           </Card>
         </motion.div>
@@ -238,7 +272,7 @@ export function OverviewPage() {
           <Card className="glass h-full">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                Live Crowd Density
+                Densité de foule en direct
               </CardTitle>
             </CardHeader>
             <CardContent className="flex items-center justify-center">
@@ -262,11 +296,17 @@ export function OverviewPage() {
         <Card className="glass">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              Visitors Today — Hourly
+              Visiteurs du jour — Par heure
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <VisitorLineChart data={[]} useArea={false} height={180} color="#22c55e" />
+              {isLoadingHourly ? (
+                <div className="h-[180px] flex items-center justify-center text-muted-foreground">Loading chart...</div>
+              ) : isErrorHourly ? (
+                <div className="h-[180px] flex items-center justify-center text-red-500 text-sm">Failed to load hourly data</div>
+              ) : (
+                <VisitorLineChart data={hourlyData} useArea={false} height={180} color="#22c55e" />
+              )}
           </CardContent>
         </Card>
       </motion.div>

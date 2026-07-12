@@ -38,7 +38,7 @@ export const LiveBadge = React.memo(function LiveBadge({
             isConnected ? 'text-emerald-400' : 'text-slate-500',
           )}
         >
-          {isConnected ? 'Live' : 'Offline'}
+          {isConnected ? 'En direct' : 'Hors ligne'}
         </span>
       )}
     </div>
