@@ -7,7 +7,10 @@ import { DevicesTable } from './DevicesTable';
 import { DeviceFormDialog } from './DeviceFormDialog';
 import { DeleteDeviceDialog } from './DeleteDeviceDialog';
 import { Button } from '@/components/ui/button';
-import { Plus, Monitor, RefreshCw } from 'lucide-react';
+import { Plus, Monitor, RefreshCw, MonitorPlay } from 'lucide-react';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { ErrorState } from '@/components/ui/ErrorState';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { useToast } from '@/hooks/use-toast';
 import {
   Select,
@@ -114,8 +117,8 @@ export function FleetPage() {
     return (
       <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-sm text-muted-foreground font-medium">Chargement des agences...</p>
+          <div className="h-8 w-8 rounded-full border-2 border-blue-500/40 border-t-blue-500 animate-spin" />
+          <p className="text-sm text-muted-foreground font-medium">Chargement des sites…</p>
         </div>
       </div>
     );
@@ -123,89 +126,58 @@ export function FleetPage() {
 
   if (sitesError) {
     return (
-      <div className="flex h-[calc(100vh-4rem)] items-center justify-center p-4">
-        <div className="text-center max-w-md border border-border bg-card p-8 rounded-xl shadow-lg">
-          <p className="text-destructive font-medium mb-3">Impossible de charger les agences.</p>
-          <p className="text-xs text-muted-foreground mb-4">
-            Veuillez vérifier votre connexion au serveur ou vos droits d'accès.
-          </p>
-          <Button onClick={handleRefresh}>Réessayer</Button>
-        </div>
+      <div className="p-8">
+        <ErrorState onRetry={handleRefresh} />
       </div>
     );
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8 animate-fade-in">
-      {/* ── Header & Site Selector ────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Parc d'écrans & Configuration
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Gérez vos dispositifs d'affichage (totems, bornes, écrans) et configurez les seuils comportementaux.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col gap-1">
-            <label htmlFor="site-select" className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
-              Sélectionner une agence
-            </label>
+    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+      <PageHeader
+        title="Parc d'appareils"
+        description="Gérez vos dispositifs d'affichage et configurez les seuils comportementaux par site."
+        icon={MonitorPlay}
+        actions={
+          <div className="flex items-center gap-2">
             <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
-              <SelectTrigger id="site-select" className="w-[220px] bg-card/50 glass">
+              <SelectTrigger id="site-select" className="w-[200px]">
                 <SelectValue placeholder="Choisir un site" />
               </SelectTrigger>
               <SelectContent>
                 {sites.map((site) => (
-                  <SelectItem key={site.id} value={site.id}>
-                    {site.name}
-                  </SelectItem>
+                  <SelectItem key={site.id} value={site.id}>{site.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <Button variant="outline" size="icon" onClick={handleRefresh} title="Rafraîchir">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
           </div>
-
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={handleRefresh}
-            className="h-9 w-9 shrink-0 mt-5 bg-card/50 glass"
-            title="Rafraîchir les données"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
+        }
+      />
 
       {activeSite ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-          {/* Left panel: Site Thresholds (Takes 1 cols on large) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           <div className="lg:col-span-1">
             <ThresholdsCard site={activeSite} />
           </div>
-
-          {/* Right panel: Devices Table (Takes 2 cols on large) */}
           <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold flex items-center gap-2">
-                  <Monitor className="h-5 w-5 text-primary" />
-                  Liste du parc d'écrans
+                <h2 className="text-base font-semibold flex items-center gap-2">
+                  <Monitor className="h-4 w-4 text-blue-400" />
+                  Appareils — {activeSite.name}
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  {devices.length} dispositif{devices.length > 1 ? 's' : ''} enregistré{devices.length > 1 ? 's' : ''}
+                  {devices.length} dispositif{devices.length !== 1 ? 's' : ''} enregistré{devices.length !== 1 ? 's' : ''}
                 </p>
               </div>
-
-              <Button onClick={handleAddClick} className="glow-primary font-medium gap-1.5 shadow-sm">
-                <Plus className="h-4 w-4" />
-                Ajouter un dispositif
+              <Button onClick={handleAddClick} className="gradient-bg-blue border-0 text-white glow-primary gap-1.5">
+                <Plus className="h-4 w-4" /> Ajouter
               </Button>
             </div>
-
-            <div className="border border-border rounded-xl overflow-hidden shadow-lg bg-card">
+            <div className="glass-card overflow-hidden">
               <DevicesTable
                 devices={devices}
                 onEdit={handleEditClick}
@@ -216,9 +188,11 @@ export function FleetPage() {
           </div>
         </div>
       ) : (
-        <div className="text-center py-12 border border-border border-dashed rounded-xl bg-card">
-          <p className="text-muted-foreground text-sm">Veuillez sélectionner ou configurer une agence.</p>
-        </div>
+        <EmptyState
+          icon={MonitorPlay}
+          title="Sélectionnez un site"
+          description="Choisissez un site dans la liste ci-dessus pour gérer ses appareils."
+        />
       )}
 
       {/* ── Dialog Modals ────────────────────────────────────────────────────── */}

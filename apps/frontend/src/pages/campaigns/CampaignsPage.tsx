@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Edit, Trash, Upload, CheckCircle2, XCircle, GripVertical } from 'lucide-react';
+import { Plus, Edit, Trash, Upload, CheckCircle2, XCircle, GripVertical, Megaphone } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { getCampaigns, deleteCampaign, updateCampaignOrder, updateCampaign, createCampaign, uploadCampaignMedia, type Campaign } from '@/api/campaigns';
 
 export function CampaignsPage() {
@@ -51,50 +54,54 @@ export function CampaignsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Campaign Manager</h1>
-          <p className="text-muted-foreground mt-1">Manage advertising campaigns, target audience and playlist order</p>
-        </div>
-        <button
-          onClick={() => setIsCreating(true)}
-          className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
-        >
-          <Plus className="h-4 w-4" />
-          New Campaign
-        </button>
-      </div>
+    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+      <PageHeader
+        title="Gestionnaire de campagnes"
+        description="Gérez les campagnes publicitaires, le ciblage et l'ordre de diffusion"
+        icon={Megaphone}
+        actions={
+          <button
+            onClick={() => setIsCreating(true)}
+            className="flex items-center gap-2 gradient-bg-blue text-white px-4 py-2 rounded-xl text-sm font-semibold glow-primary hover:shadow-blue-500/30 transition-all"
+          >
+            <Plus className="h-4 w-4" /> Nouvelle campagne
+          </button>
+        }
+      />
 
       {(isCreating || isEditing) && (
-        <CampaignForm 
-          campaign={isEditing} 
-          onClose={() => { setIsCreating(false); setIsEditing(null); }} 
-        />
+        <CampaignForm campaign={isEditing} onClose={() => { setIsCreating(false); setIsEditing(null); }} />
       )}
 
-      <div className="border rounded-md glass overflow-hidden">
+      <div className="glass-card overflow-hidden">
         <table className="w-full text-sm text-left">
-          <thead className="bg-muted text-muted-foreground">
-            <tr>
-              <th className="px-4 py-3 w-10"></th>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Media Type</th>
-              <th className="px-4 py-3 font-medium">Duration</th>
-              <th className="px-4 py-3 font-medium">Target Age</th>
-              <th className="px-4 py-3 font-medium text-right">Actions</th>
+          <thead>
+            <tr className="border-b border-border/50">
+              <th className="px-4 py-3 w-10" />
+              <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Nom</th>
+              <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Statut</th>
+              <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Type média</th>
+              <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Durée</th>
+              <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Cible âge</th>
+              <th className="px-4 py-3 text-right text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody className="divide-y divide-border/30">
             {isLoading ? (
-              <tr><td colSpan={7} className="text-center py-8">Loading...</td></tr>
+              <tr><td colSpan={7} className="text-center py-12">
+                <div className="h-6 w-6 border-2 border-blue-500/40 border-t-blue-500 rounded-full animate-spin mx-auto" />
+              </td></tr>
             ) : campaigns.length === 0 ? (
-              <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No campaigns found.</td></tr>
+              <tr><td colSpan={7} className="py-2">
+                <EmptyState icon={Megaphone} title="Aucune campagne" description="Créez votre première campagne publicitaire." />
+              </td></tr>
             ) : campaigns.map((c, index) => (
-              <tr 
-                key={c.id} 
-                className="hover:bg-muted/50 transition-colors"
+              <motion.tr
+                key={c.id}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.04 }}
+                className="hover:bg-white/3 transition-colors"
                 draggable
                 onDragStart={(e) => handleDragStart(e, c.id, c.playlistOrder)}
                 onDragOver={(e) => e.preventDefault()}
@@ -103,39 +110,38 @@ export function CampaignsPage() {
                 <td className="px-4 py-3 cursor-move text-muted-foreground hover:text-foreground">
                   <GripVertical className="h-4 w-4" />
                 </td>
-                <td className="px-4 py-3 font-medium text-foreground">{c.name}</td>
+                <td className="px-4 py-3 font-semibold text-foreground">{c.name}</td>
                 <td className="px-4 py-3">
                   {c.enabled ? (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-500 ring-1 ring-inset ring-emerald-500/20">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Enabled
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Activée
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-500/10 text-slate-400 ring-1 ring-inset ring-slate-500/20">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span> Disabled
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-400 border border-slate-500/20">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-500" /> Désactivée
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-3 uppercase text-xs">{c.mediaType}</td>
-                <td className="px-4 py-3">{c.duration}s</td>
-                <td className="px-4 py-3 text-muted-foreground capitalize">
-                  {c.targetAge || 'All'}
+                <td className="px-4 py-3">
+                  <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 text-[10px] font-bold uppercase tracking-wider border border-blue-500/20">{c.mediaType}</span>
                 </td>
+                <td className="px-4 py-3 text-muted-foreground">{c.duration}s</td>
+                <td className="px-4 py-3 text-muted-foreground capitalize">{c.targetAge || 'Tous'}</td>
                 <td className="px-4 py-3 text-right">
-                  <button onClick={() => setIsEditing(c)} className="p-2 text-muted-foreground hover:text-foreground">
-                    <Edit className="h-4 w-4" />
+                  <button onClick={() => setIsEditing(c)} className="p-1.5 text-muted-foreground hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors">
+                    <Edit className="h-3.5 w-3.5" />
                   </button>
-                  <button onClick={() => deleteMutation.mutate(c.id)} className="p-2 text-red-500 hover:text-red-400">
-                    <Trash className="h-4 w-4" />
+                  <button onClick={() => deleteMutation.mutate(c.id)} className="p-1.5 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors ml-1">
+                    <Trash className="h-3.5 w-3.5" />
                   </button>
                 </td>
-              </tr>
+              </motion.tr>
             ))}
           </tbody>
         </table>
       </div>
     </div>
   );
-}
 
 function CampaignForm({ campaign, onClose }: { campaign: Campaign | null, onClose: () => void }) {
   const { toast } = useToast();

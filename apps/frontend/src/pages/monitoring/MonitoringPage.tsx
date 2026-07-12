@@ -9,6 +9,7 @@ import { Activity, Server, Database, Wifi, WifiOff, RefreshCw, CheckCircle2, XCi
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { StatusBadge } from '@/components/dashboard/StatusBadge';
 import { mqttClient } from '@/mqtt/mqtt.client';
 import { useMqttConnectionStatus } from '@/mqtt/useMqtt';
@@ -68,117 +69,91 @@ export function MonitoringPage() {
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-6"
-      >
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Activity className="h-6 w-6 text-primary" aria-hidden="true" />
-            Supervision système
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Santé du backend, état du broker MQTT et connectivité en temps réel
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={() => refetch()}
-          disabled={isFetching}
-        >
-          <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
-          Rafraîchir
-        </Button>
-      </motion.div>
+      <PageHeader
+        title="Supervision système"
+        description="Santé du backend, état du broker MQTT et connectivité en temps réel"
+        icon={Activity}
+        actions={
+          <Button variant="outline" size="sm" className="gap-2 hover:border-blue-500/40 hover:text-blue-400"
+            onClick={() => refetch()} disabled={isFetching}>
+            <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? 'animate-spin' : ''}`} />
+            Rafraîchir
+          </Button>
+        }
+      />
 
-      {/* Status Overview Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {/* MQTT */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }}>
-          <Card className={`glass border ${mqttConnected ? 'border-emerald-500/30' : 'border-red-500/30'}`}>
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-sm font-medium">Broker MQTT</CardTitle>
-              {mqttConnected
-                ? <Wifi className="h-5 w-5 text-emerald-400" />
-                : <WifiOff className="h-5 w-5 text-red-400" />}
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold mb-1 ${mqttConnected ? 'text-emerald-400' : 'text-red-400'}`}>
-                {mqttConnected ? 'Connecté' : 'Déconnecté'}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {mqttConnected
-                  ? `WebSocket • ws://localhost:9003${mqttPingMs != null ? ` • ~${mqttPingMs}ms` : ''}`
-                  : 'Reconnexion automatique en cours…'}
-              </p>
-            </CardContent>
-          </Card>
+          <div className={`glass-card p-5 ${mqttConnected === 'connected' ? 'border-emerald-500/30' : 'border-red-500/25'}`}>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Broker MQTT</p>
+              {mqttConnected === 'connected'
+                ? <Wifi className="h-4 w-4 text-emerald-400" />
+                : <WifiOff className="h-4 w-4 text-red-400" />}
+            </div>
+            <p className={`text-2xl font-extrabold mb-1 ${mqttConnected === 'connected' ? 'text-emerald-400' : 'text-red-400'}`}>
+              {mqttConnected === 'connected' ? 'Connecté' : 'Déconnecté'}
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              {mqttConnected === 'connected'
+                ? `WebSocket${mqttPingMs != null ? ` • ~${mqttPingMs}ms` : ''}`
+                : 'Reconnexion automatique…'}
+            </p>
+          </div>
         </motion.div>
 
         {/* Backend */}
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
-          <Card className={`glass border ${isError ? 'border-red-500/30' : backendOk ? 'border-emerald-500/30' : 'border-amber-500/30'}`}>
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-sm font-medium">Backend API</CardTitle>
-              <Server className={`h-5 w-5 ${isError ? 'text-red-400' : backendOk ? 'text-emerald-400' : 'text-amber-400'}`} />
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold mb-1 ${isError ? 'text-red-400' : backendOk ? 'text-emerald-400' : 'text-amber-400'}`}>
-                {isLoading ? 'Vérification…' : isError ? 'Inaccessible' : backendOk ? 'Opérationnel' : 'Dégradé'}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {isError
-                  ? 'CORS ou serveur hors ligne — voir TODO.md'
-                  : `GET ${API_URL}/health`}
-              </p>
-            </CardContent>
-          </Card>
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.07 }}>
+          <div className={`glass-card p-5 ${isError ? 'border-red-500/25' : backendOk ? 'border-emerald-500/30' : 'border-amber-500/25'}`}>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Backend API</p>
+              <Server className={`h-4 w-4 ${isError ? 'text-red-400' : backendOk ? 'text-emerald-400' : 'text-amber-400'}`} />
+            </div>
+            <p className={`text-2xl font-extrabold mb-1 ${isError ? 'text-red-400' : backendOk ? 'text-emerald-400' : 'text-amber-400'}`}>
+              {isLoading ? 'Vérification…' : isError ? 'Inaccessible' : backendOk ? 'Opérationnel' : 'Dégradé'}
+            </p>
+            <p className="text-[10px] text-muted-foreground font-mono">{API_URL}/health</p>
+          </div>
         </motion.div>
 
-        {/* Database (from health info) */}
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}>
-          <Card className="glass">
-            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-sm font-medium">Base de données</CardTitle>
-              <Database className="h-5 w-5 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold mb-1">
-                {isLoading ? '…' : (services.find(s => s.name.toLowerCase().includes('db') || s.name.toLowerCase().includes('postgres') || s.name.toLowerCase().includes('database'))?.status ?? 'N/A')}
-              </div>
-              <p className="text-xs text-muted-foreground">PostgreSQL / TimescaleDB</p>
-            </CardContent>
-          </Card>
+        {/* Database */}
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.14 }}>
+          <div className="glass-card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Base de données</p>
+              <Database className="h-4 w-4 text-blue-400" />
+            </div>
+            <p className="text-2xl font-extrabold mb-1 text-foreground">
+              {isLoading ? '…' : (
+                services.find(s => s.name.toLowerCase().includes('db') || s.name.toLowerCase().includes('postgres') || s.name.toLowerCase().includes('database'))?.status ?? 'N/A'
+              )}
+            </p>
+            <p className="text-[10px] text-muted-foreground">PostgreSQL / TimescaleDB</p>
+          </div>
         </motion.div>
       </div>
 
       {/* Sub-service health */}
       {services.length > 0 && (
-        <Card className="glass">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              Sous-services backend
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="divide-y divide-border">
-              {services.map(svc => (
-                <div key={svc.name} className="flex items-center justify-between py-3">
-                  <span className="text-sm font-medium capitalize">{svc.name}</span>
-                  <div className="flex items-center gap-2">
-                    <StatusIcon ok={svc.status === 'up'} />
-                    <span className={`text-xs font-semibold uppercase ${svc.status === 'up' ? 'text-emerald-400' : 'text-red-400'}`}>
-                      {svc.status}
-                    </span>
-                  </div>
+        <div className="glass-card overflow-hidden">
+          <div className="p-4 border-b border-border/40">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Sous-services backend</p>
+          </div>
+          <div className="divide-y divide-border/25">
+            {services.map(svc => (
+              <div key={svc.name} className="flex items-center justify-between px-5 py-3 hover:bg-white/3 transition-colors">
+                <span className="text-sm font-medium capitalize">{svc.name}</span>
+                <div className="flex items-center gap-2">
+                  <StatusIcon ok={svc.status === 'up'} />
+                  <span className={`text-xs font-bold uppercase tabular-nums ${
+                    svc.status === 'up' ? 'text-emerald-400' : 'text-red-400'
+                  }`}>{svc.status}</span>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* CORS warning */}

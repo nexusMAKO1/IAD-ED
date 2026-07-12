@@ -15,6 +15,8 @@ import { getSettings, updateSettings } from '@/api/settings';
 import type { AppSettings } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { getErrorMessage } from '@/types';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { cn } from '@/lib/utils';
 
 export function SettingsPage() {
   const { toast } = useToast();
@@ -61,82 +63,58 @@ export function SettingsPage() {
   if (isLoading) {
     return (
       <div className="flex h-64 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <div className="h-8 w-8 rounded-full border-2 border-blue-500/40 border-t-blue-500 animate-spin" />
       </div>
     );
   }
 
   return (
     <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6">
-      <motion.div
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-6"
-      >
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Settings className="h-6 w-6 text-primary" aria-hidden="true" />
-            Paramètres Système
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Configuration globale : MQTT, caméras, dashboard et notifications.
-          </p>
-        </div>
-        <Button 
-          className="glow-primary gap-2" 
-          onClick={handleSubmit(onSubmit)}
-          disabled={!isDirty || mutation.isPending}
-        >
-          <Save className="h-4 w-4" /> 
-          {mutation.isPending ? 'Sauvegarde...' : 'Sauvegarder'}
-        </Button>
-      </motion.div>
+      <PageHeader
+        title="Paramètres système"
+        description="Configuration globale : MQTT, caméras, dashboard et notifications."
+        icon={Settings}
+        actions={
+          <Button
+            className="gradient-bg-blue border-0 text-white glow-primary gap-2 font-semibold"
+            onClick={handleSubmit(onSubmit)}
+            disabled={!isDirty || mutation.isPending}
+          >
+            <Save className="h-4 w-4" />
+            {mutation.isPending ? 'Sauvegarde…' : 'Sauvegarder'}
+          </Button>
+        }
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="md:col-span-1 space-y-1">
-          <Button 
-            variant="ghost" 
-            className={`w-full justify-start ${activeTab === 'general' ? 'bg-secondary/50 text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}
-            onClick={() => setActiveTab('general')}
-          >
-            <Settings className="h-4 w-4 mr-2" /> Dashboard
-          </Button>
-          <Button 
-            variant="ghost" 
-            className={`w-full justify-start ${activeTab === 'mqtt' ? 'bg-secondary/50 text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}
-            onClick={() => setActiveTab('mqtt')}
-          >
-            <Database className="h-4 w-4 mr-2" /> Broker MQTT
-          </Button>
-          <Button 
-            variant="ghost" 
-            className={`w-full justify-start ${activeTab === 'camera' ? 'bg-secondary/50 text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}
-            onClick={() => setActiveTab('camera')}
-          >
-            <MonitorPlay className="h-4 w-4 mr-2" /> Caméras Edge
-          </Button>
-          <Button 
-            variant="ghost" 
-            className={`w-full justify-start ${activeTab === 'age' ? 'bg-secondary/50 text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}
-            onClick={() => setActiveTab('age')}
-          >
-            <Activity className="h-4 w-4 mr-2" /> Démographie
-          </Button>
-          <Button 
-            variant="ghost" 
-            className={`w-full justify-start ${activeTab === 'tracking' ? 'bg-secondary/50 text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}
-            onClick={() => setActiveTab('tracking')}
-          >
-            <Shield className="h-4 w-4 mr-2" /> Tracking IA
-          </Button>
-          <Button 
-            variant="ghost" 
-            className={`w-full justify-start ${activeTab === 'notifications' ? 'bg-secondary/50 text-foreground font-medium' : 'text-muted-foreground hover:text-foreground'}`}
-            onClick={() => setActiveTab('notifications')}
-          >
-            <Bell className="h-4 w-4 mr-2" /> Notifications
-          </Button>
+        {/* Sidebar tabs */}
+        <div className="md:col-span-1">
+          <div className="glass-card p-2 space-y-0.5">
+            {[
+              { id: 'general',       icon: Settings,    label: 'Dashboard' },
+              { id: 'mqtt',          icon: Database,    label: 'Broker MQTT' },
+              { id: 'camera',        icon: MonitorPlay, label: 'Caméras Edge' },
+              { id: 'age',           icon: Activity,    label: 'Démographie' },
+              { id: 'tracking',      icon: Shield,      label: 'Tracking IA' },
+              { id: 'notifications', icon: Bell,        label: 'Notifications' },
+            ].map(({ id, icon: Icon, label }) => (
+              <button
+                key={id}
+                className={cn(
+                  'w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all text-left',
+                  activeTab === id
+                    ? 'bg-blue-500/12 text-blue-400'
+                    : 'text-muted-foreground hover:bg-white/5 hover:text-foreground',
+                )}
+                onClick={() => setActiveTab(id as typeof activeTab)}
+              >
+                <Icon className={cn('h-4 w-4 shrink-0', activeTab === id ? 'text-blue-400' : 'text-slate-500')} />
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
+
 
         <div className="md:col-span-3 space-y-6">
           <form id="settings-form" onSubmit={handleSubmit(onSubmit)}>

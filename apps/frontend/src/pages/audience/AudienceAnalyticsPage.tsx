@@ -1,35 +1,45 @@
 /**
  * pages/audience/AudienceAnalyticsPage.tsx — Demographics & audience analytics
- * SmartVision IAD Dashboard — fully wired to real API + MQTT live stream
+ * IAD SmartVision Dashboard — Blue/Cyan enterprise theme
+ * Fully wired to real API + MQTT live stream
  */
-
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Users, Clock, Star, TrendingUp, AlertCircle } from 'lucide-react';
+import { Users, Clock, Star, TrendingUp, AlertCircle, Activity } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { KpiCard } from '@/components/dashboard/KpiCard';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { SkeletonKpiCard } from '@/components/ui/SkeletonCard';
 import { DemographicsPieChart } from '@/components/charts/DemographicsPieChart';
-import { AgeBarChart, GenderHourChart } from '@/components/charts/AgeBarChart';
-import { VisitorLineChart } from '@/components/charts/VisitorLineChart';
+import { AgeBarChart } from '@/components/charts/AgeBarChart';
 import { getAudienceStats, getAudienceEvents } from '@/api/audience';
 import { mqttClient } from '@/mqtt/mqtt.client';
 import { MQTT_TOPICS } from '@/mqtt/mqtt.topics';
 import type { AudienceEvent } from '@/types';
 
 type OutletCtx = { selectedSiteId: string };
+const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.07 } } };
 
-const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } };
-const item = { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
+// Colour map for age groups in the live feed
+const AGE_COLORS: Record<string, string> = {
+  child:      'text-amber-400 bg-amber-500/10 border-amber-500/20',
+  teenager:   'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
+  adult:      'text-blue-400 bg-blue-500/10 border-blue-500/20',
+  senior:     'text-purple-400 bg-purple-500/10 border-purple-500/20',
+  unknown:    'text-slate-400 bg-slate-500/10 border-slate-500/20',
+};
 
-
+const GENDER_COLORS: Record<string, string> = {
+  male:   'text-blue-400',
+  female: 'text-pink-400',
+};
 
 export function AudienceAnalyticsPage() {
   const { selectedSiteId } = useOutletContext<OutletCtx>();
   const [liveEvents, setLiveEvents] = useState<AudienceEvent[]>([]);
 
-  // REST — historical stats
   const { data: stats, isLoading: isLoadingStats, isError: isErrorStats } = useQuery({
     queryKey: ['audienceStats', selectedSiteId],
     queryFn: () => getAudienceStats(selectedSiteId),
@@ -37,7 +47,6 @@ export function AudienceAnalyticsPage() {
     refetchInterval: 30_000,
   });
 
-  // REST — recent events list (historical)
   const { data: histEvents = [], isLoading: isLoadingEvents, isError: isErrorEvents } = useQuery({
     queryKey: ['audienceEvents', selectedSiteId],
     queryFn: () => getAudienceEvents(selectedSiteId),
@@ -46,150 +55,113 @@ export function AudienceAnalyticsPage() {
     retry: 1,
   });
 
-  // MQTT — prepend live detections to the top of the events list
   useEffect(() => {
     if (!selectedSiteId) return;
-
-    const unsubscribe = mqttClient.subscribe(
-      MQTT_TOPICS.EDGE.DEMOGRAPHICS,
-      (_topic, envelope) => {
-        const payload = envelope.payload as Record<string, unknown>;
-        if (!payload) return;
-        const evt: AudienceEvent = {
-          id: `live-${Date.now()}`,
-          timestamp: envelope.timestamp,
-          ageGroup: (payload['ageGroup'] as string) || (payload['age_group'] as string) || 'unknown',
-          gender: (payload['gender'] as string) || 'unknown',
-          emotion: payload['emotion'] as string | undefined,
-          dwellTime: payload['dwellTime'] as number | undefined,
-          siteId: envelope.siteId,
-          confidence: (payload['confidence'] as number) || 1.0,
-          count: (payload['count'] as number) || 1,
-        };
-        setLiveEvents(prev => [evt, ...prev].slice(0, 50));
-      },
-    );
-
-    return () => {
-      unsubscribe();
-    };
+    const unsubscribe = mqttClient.subscribe(MQTT_TOPICS.EDGE.DEMOGRAPHICS, (_topic, envelope) => {
+      const payload = envelope.payload as Record<string, unknown>;
+      if (!payload) return;
+      const evt: AudienceEvent = {
+        id: `live-${Date.now()}`,
+        timestamp: envelope.timestamp,
+        ageGroup: (payload['ageGroup'] as string) || (payload['age_group'] as string) || 'unknown',
+        gender: (payload['gender'] as string) || 'unknown',
+        emotion: payload['emotion'] as string | undefined,
+        dwellTime: payload['dwellTime'] as number | undefined,
+        siteId: envelope.siteId,
+        confidence: (payload['confidence'] as number) || 1.0,
+        count: (payload['count'] as number) || 1,
+      };
+      setLiveEvents(prev => [evt, ...prev].slice(0, 50));
+    });
+    return () => { unsubscribe(); };
   }, [selectedSiteId]);
 
   const allEvents: AudienceEvent[] = [...liveEvents, ...(histEvents || [])];
 
-  // Compute peak hour from events
   const peakHour = React.useMemo(() => {
     if (!allEvents.length) return '--';
     const counts: Record<number, number> = {};
-    allEvents.forEach(e => {
-      const h = new Date(e.timestamp).getHours();
-      counts[h] = (counts[h] || 0) + 1;
-    });
+    allEvents.forEach(e => { const h = new Date(e.timestamp).getHours(); counts[h] = (counts[h] || 0) + 1; });
     const maxH = Object.entries(counts).sort(([, a], [, b]) => b - a)[0]?.[0];
     return maxH != null ? `${String(maxH).padStart(2, '0')}:00` : '--';
   }, [allEvents]);
 
-  // Build gender pie chart data from stats
   const genderData = stats ? [
-    { name: 'Hommes', value: stats.malePercent ?? 50, color: '#7c3aed' },
-    { name: 'Femmes', value: stats.femalePercent ?? 50, color: '#ec4899' },
+    { name: 'Hommes',  value: stats.malePercent   ?? 50, color: '#2563EB' },
+    { name: 'Femmes',  value: stats.femalePercent  ?? 50, color: '#EC4899' },
   ] : [];
 
-  // Build age bar chart data from stats
   const ageData = stats ? [
     { label: 'Enfants', count: stats.childrenCount ?? 0 },
-    { label: 'Adultes', count: stats.adultsCount ?? 0 },
-    { label: 'Seniors', count: stats.seniorsCount ?? 0 },
+    { label: 'Adultes', count: stats.adultsCount   ?? 0 },
+    { label: 'Seniors', count: stats.seniorsCount  ?? 0 },
   ] : [];
 
   if (!selectedSiteId) {
     return (
-      <div className="flex h-64 items-center justify-center text-muted-foreground">
-        <p>Veuillez sélectionner un site pour afficher les données d'audience.</p>
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center px-4">
+        <div className="h-16 w-16 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-4">
+          <Users className="h-8 w-8 text-blue-400" />
+        </div>
+        <h3 className="text-lg font-semibold mb-2">Sélectionnez un site</h3>
+        <p className="text-sm text-muted-foreground max-w-xs">
+          Choisissez un site pour afficher les données démographiques d'audience.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-8">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="border-b border-border pb-6"
-      >
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Users className="h-6 w-6 text-primary" aria-hidden="true" />
-          Analytique d'audience
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Démographie, comportements et composition de l'audience en temps réel
-        </p>
-      </motion.div>
+    <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-7">
+      <PageHeader
+        title="Analytique d'audience"
+        description="Démographie, comportements et composition de l'audience en temps réel"
+        icon={Users}
+      />
 
       {/* Error banner */}
       {(isErrorStats || isErrorEvents) && (
-        <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 text-red-400 text-sm">
+        <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/25 rounded-xl px-4 py-3 text-red-400 text-sm">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>Certaines données n'ont pas pu être chargées. Vérifiez que le backend est disponible.</span>
         </div>
       )}
 
-      {/* Summary KPIs */}
-      <motion.div variants={stagger} initial="hidden" animate="visible" className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <motion.div variants={item}>
-          <KpiCard
-            title="Visiteurs actuels"
-            value={isLoadingStats ? '…' : stats?.currentVisitors ?? '--'}
-            icon={Users}
-            color="primary"
-            trend="neutral"
-            trendLabel={stats ? `${stats.dailyVisitors ?? 0} aujourd'hui` : 'Chargement…'}
-          />
+      {/* KPI Row */}
+      {isLoadingStats ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => <SkeletonKpiCard key={i} />)}
+        </div>
+      ) : (
+        <motion.div variants={stagger} initial="hidden" animate="visible"
+          className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <KpiCard title="Visiteurs actuels" value={stats?.currentVisitors ?? '--'} icon={Users}
+            color="primary" trend="neutral" trendLabel={`${stats?.dailyVisitors ?? 0} aujourd'hui`} delay={0} />
+          <KpiCard title="Visiteurs du jour" value={stats?.dailyVisitors ?? '--'} icon={Star}
+            color="success" trend="neutral" trendLabel="Depuis minuit" delay={0.07} />
+          <KpiCard title="Heure de pointe" value={peakHour} icon={Clock}
+            color="warning" trend="neutral" trendLabel="Basé sur l'historique" delay={0.14} />
+          <KpiCard title="Détections live" value={liveEvents.length} icon={Activity}
+            color="cyan" trend="up" trendLabel="Via MQTT" delay={0.21} />
         </motion.div>
-        <motion.div variants={item}>
-          <KpiCard
-            title="Visiteurs du jour"
-            value={isLoadingStats ? '…' : stats?.dailyVisitors ?? '--'}
-            icon={Star}
-            color="success"
-            trend="neutral"
-            trendLabel="Depuis minuit"
-          />
-        </motion.div>
-        <motion.div variants={item}>
-          <KpiCard
-            title="Heure de pointe"
-            value={isLoadingStats ? '…' : peakHour}
-            icon={Clock}
-            color="warning"
-            trend="neutral"
-            trendLabel="Basé sur l'historique"
-          />
-        </motion.div>
-        <motion.div variants={item}>
-          <KpiCard
-            title="Évènements live"
-            value={liveEvents.length}
-            icon={TrendingUp}
-            color="primary"
-            trend="up"
-            trendLabel="Via MQTT"
-          />
-        </motion.div>
-      </motion.div>
+      )}
 
       {/* Charts Grid */}
-      <motion.div variants={stagger} initial="hidden" animate="visible" className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <motion.div variants={stagger} initial="hidden" animate="visible"
+        className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Gender Pie */}
-        <motion.div variants={item}>
-          <Card className="glass">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Répartition par genre</CardTitle>
+        <motion.div variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0 } }}>
+          <Card className="glass-card h-full">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                Répartition par genre
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {isLoadingStats ? (
-                <div className="h-[240px] flex items-center justify-center text-muted-foreground text-sm">Chargement…</div>
+                <div className="h-[240px] flex items-center justify-center">
+                  <div className="h-6 w-6 border-2 border-blue-500/40 border-t-blue-500 rounded-full animate-spin" />
+                </div>
               ) : (
                 <DemographicsPieChart data={genderData} height={240} />
               )}
@@ -198,14 +170,18 @@ export function AudienceAnalyticsPage() {
         </motion.div>
 
         {/* Age Distribution */}
-        <motion.div variants={item}>
-          <Card className="glass">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Répartition par âge</CardTitle>
+        <motion.div variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { delay: 0.07 } } }}>
+          <Card className="glass-card h-full">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                Répartition par âge
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {isLoadingStats ? (
-                <div className="h-[240px] flex items-center justify-center text-muted-foreground text-sm">Chargement…</div>
+                <div className="h-[240px] flex items-center justify-center">
+                  <div className="h-6 w-6 border-2 border-emerald-500/40 border-t-emerald-500 rounded-full animate-spin" />
+                </div>
               ) : (
                 <AgeBarChart data={ageData} height={240} />
               )}
@@ -214,37 +190,79 @@ export function AudienceAnalyticsPage() {
         </motion.div>
 
         {/* Live Events Feed */}
-        <motion.div variants={item} className="md:col-span-2">
-          <Card className="glass">
-            <CardHeader className="pb-2">
+        <motion.div variants={{ hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { delay: 0.14 } } }}
+          className="md:col-span-2">
+          <Card className="glass-card">
+            <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                   Flux de détections live
                 </CardTitle>
-                <span className="text-xs text-emerald-400 font-medium flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
-                  {liveEvents.length} live · {(histEvents || []).length} historique
-                </span>
+                <div className="flex items-center gap-3">
+                  <span className="flex items-center gap-1.5 text-xs font-semibold text-cyan-400">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                    {liveEvents.length} live
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {(histEvents || []).length} historique
+                  </span>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
               {isLoadingEvents && !liveEvents.length ? (
-                <div className="py-8 text-center text-muted-foreground text-sm">Chargement de l'historique…</div>
+                <div className="py-10 text-center text-muted-foreground text-sm">
+                  <div className="h-5 w-5 border-2 border-blue-500/40 border-t-blue-500 rounded-full animate-spin mx-auto mb-3" />
+                  Chargement de l'historique…
+                </div>
               ) : allEvents.length === 0 ? (
-                <div className="py-8 text-center text-muted-foreground text-sm">Aucun événement détecté. En attente de données MQTT…</div>
+                <div className="py-10 text-center text-muted-foreground text-sm">
+                  <Activity className="h-8 w-8 mx-auto mb-3 opacity-30" />
+                  Aucun événement détecté. En attente de données MQTT…
+                </div>
               ) : (
-                <div className="max-h-64 overflow-y-auto divide-y divide-border text-sm">
-                  {allEvents.slice(0, 40).map((evt) => (
-                    <div key={evt.id} className="flex items-center justify-between py-2 px-1 hover:bg-secondary/30">
-                      <span className="text-muted-foreground tabular-nums w-28 shrink-0">
-                        {new Date(evt.timestamp).toLocaleTimeString('fr-FR')}
-                      </span>
-                      <span className="capitalize font-medium">{String(evt.ageGroup || 'Unknown').replace(/_/g, ' ')}</span>
-                      <span className="text-muted-foreground capitalize">{evt.gender ?? '—'}</span>
-                      <span className="text-muted-foreground capitalize">{evt.emotion ?? '—'}</span>
-                      <span className="text-muted-foreground">{evt.dwellTime != null ? `${evt.dwellTime}s` : '—'}</span>
-                    </div>
-                  ))}
+                <div className="rounded-xl overflow-hidden border border-border/30">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-border/40 bg-muted/20">
+                        <th className="px-4 py-2 text-left font-bold uppercase tracking-wider text-muted-foreground">Heure</th>
+                        <th className="px-4 py-2 text-left font-bold uppercase tracking-wider text-muted-foreground">Groupe d'âge</th>
+                        <th className="px-4 py-2 text-left font-bold uppercase tracking-wider text-muted-foreground">Genre</th>
+                        <th className="px-4 py-2 text-left font-bold uppercase tracking-wider text-muted-foreground">Émotion</th>
+                        <th className="px-4 py-2 text-left font-bold uppercase tracking-wider text-muted-foreground">Durée</th>
+                      </tr>
+                    </thead>
+                    <tbody className="max-h-64 overflow-y-auto divide-y divide-border/20">
+                      {allEvents.slice(0, 40).map((evt, i) => {
+                        const ageKey = String(evt.ageGroup || 'unknown').toLowerCase().replace(/\s+/g, '_');
+                        const ageColor = AGE_COLORS[ageKey] ?? AGE_COLORS.unknown;
+                        const genderColor = GENDER_COLORS[evt.gender?.toLowerCase() ?? ''] ?? 'text-muted-foreground';
+                        return (
+                          <motion.tr
+                            key={evt.id}
+                            initial={{ opacity: 0, x: -8 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.02 }}
+                            className="hover:bg-white/3 transition-colors"
+                          >
+                            <td className="px-4 py-2.5 tabular-nums text-muted-foreground">
+                              {new Date(evt.timestamp).toLocaleTimeString('fr-FR')}
+                            </td>
+                            <td className="px-4 py-2.5">
+                              <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold border ${ageColor}`}>
+                                {String(evt.ageGroup || 'Unknown').replace(/_/g, ' ')}
+                              </span>
+                            </td>
+                            <td className={`px-4 py-2.5 font-medium capitalize ${genderColor}`}>{evt.gender ?? '—'}</td>
+                            <td className="px-4 py-2.5 text-muted-foreground capitalize">{evt.emotion ?? '—'}</td>
+                            <td className="px-4 py-2.5 text-muted-foreground">
+                              {evt.dwellTime != null ? `${evt.dwellTime}s` : '—'}
+                            </td>
+                          </motion.tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </CardContent>
