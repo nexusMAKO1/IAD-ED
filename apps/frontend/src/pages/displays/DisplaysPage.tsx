@@ -12,6 +12,8 @@ import { getDisplayDevices, unpairDisplayDevice, removeDisplayDevice } from '@/a
 import { getSites } from '@/api/sites';
 import { useToast } from '@/hooks/use-toast';
 import { PairDisplayModal } from './PairDisplayModal';
+import { useMqtt } from '@/mqtt/useMqtt';
+import { MQTT_TOPICS } from '@/mqtt/mqtt.topics';
 import { cn } from '@/lib/utils';
 
 const stagger: any = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } };
@@ -28,7 +30,13 @@ export function DisplaysPage() {
   const { data: displays = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['displays'],
     queryFn: () => getDisplayDevices(),
-    refetchInterval: 3000, // Real-time polling
+    refetchInterval: 15_000,
+  });
+
+  useMqtt(MQTT_TOPICS.FRONTEND.DEVICE_STATUS, (topic, payload) => {
+    if ((payload as any).deviceType === 'DISPLAY') {
+      queryClient.invalidateQueries({ queryKey: ['displays'] });
+    }
   });
 
   const { data: sites = [] } = useQuery({
@@ -61,7 +69,7 @@ export function DisplaysPage() {
   const filteredDisplays = displays.filter((d: any) => {
     if (activeTab === 'UNPAIRED') return d.status === 'UNPAIRED';
     if (activeTab === 'ONLINE') return d.status === 'ONLINE';
-    if (activeTab === 'OFFLINE') return d.status === 'OFFLINE' || d.status === 'DEGRADED';
+    if (activeTab === 'OFFLINE') return d.status === 'OFFLINE' || d.status === 'WARNING' || d.status === 'UNKNOWN';
     return true;
   });
 

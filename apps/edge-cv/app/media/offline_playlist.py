@@ -14,7 +14,7 @@ import shutil
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import cv2
 import httpx
@@ -219,7 +219,7 @@ class OfflinePlaylistManager:
         except Exception as exc:
             raise StorageError(f"Failed to write playlist file: {exc}") from exc
 
-    def get_playlist(self, playlist_id: str) -> Playlist | None:
+    def get_playlist(self, playlist_id: str) -> Optional[Playlist]:
         """
         Retrieve a playlist from file.
 
@@ -318,7 +318,7 @@ class OfflinePlaylistManager:
         now = datetime.now()
         return playlist.start_date <= now <= playlist.end_date
 
-    def get_active_playlist(self) -> Playlist | None:
+    def get_active_playlist(self) -> Optional[Playlist]:
         """
         Get the active playlist with the highest priority.
         If multiple playlists have the same highest priority, return the newest created.
@@ -333,7 +333,7 @@ class OfflinePlaylistManager:
         active_playlists.sort(key=lambda p: p.priority, reverse=True)
         return active_playlists[0]
 
-    def get_next_media(self) -> MediaItem | None:
+    def get_next_media(self) -> Optional[MediaItem]:
         """
         Return the next scheduled MediaItem in the current active playlist.
         Uses a round-robin playback selector per playlist.

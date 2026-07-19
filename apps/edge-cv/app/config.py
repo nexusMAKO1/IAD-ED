@@ -21,9 +21,13 @@ Environment variables (see .env.example / docker-compose.yml):
 """
 
 from __future__ import annotations
+from typing import List, Optional
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+import json
+import os
+import uuid
 
 
 class AppSettings(BaseSettings):
@@ -113,9 +117,13 @@ class AppSettings(BaseSettings):
         default="123e4567-e89b-12d3-a456-426614174000",
         description="Logical device identifier used in MQTT message envelopes",
     )
-    site_id: str = Field(
-        default="123e4567-e89b-12d3-a456-426614174000",
+    site_id:Optional[ str] = Field(
+        default=None,
         description="Logical site identifier used in MQTT message envelopes",
+    )
+    zone_id:Optional[ str] = Field(
+        default=None,
+        description="Logical zone identifier used in MQTT message envelopes",
     )
 
     # ------------------------------------------------------------------ #
@@ -144,7 +152,7 @@ class AppSettings(BaseSettings):
     # ------------------------------------------------------------------ #
 
     @property
-    def cors_origins_list(self) -> list[str]:
+    def cors_origins_list(self) -> List[str]:
         """Parse the comma-separated CORS origins string into a list."""
         if self.cors_origins.strip() == "*":
             return ["*"]
@@ -153,3 +161,45 @@ class AppSettings(BaseSettings):
 
 # Module-level singleton — import and use this everywhere
 settings = AppSettings()
+
+IDENTITY_FILE = "data/identity.json"
+
+def _load_or_create_identity():
+    if not os.path.exists("data"):
+        os.makedirs("data", exist_ok=True)
+    
+    if os.path.exists(IDENTITY_FILE):
+        with open(IDENTITY_FILE, "r") as f:
+            data = json.load(f)
+            settings.device_id = data.get("deviceId", settings.device_id)
+            settings.site_id = data.get("siteId")
+            settings.zone_id = data.get("zoneId")
+    else:
+        # Generate new identity
+        new_device_id = f"camera-{uuid.uuid4().hex[:8]}"
+        data = {
+            "deviceId": new_device_id,
+            "siteId": None,
+            "zoneId": None,
+            "status": "UNPAIRED"
+        }
+        with open(IDENTITY_FILE, "w") as f:
+            json.dump(data, f, indent=4)
+        
+        settings.device_id = new_device_id
+        settings.site_id = None
+        settings.zone_id = None
+
+_load_or_create_identity()
+
+def save_identity(site_id:Optional[ str], zone_id:Optional[ str]):
+    settings.site_id = site_id
+    settings.zone_id = zone_id
+    data = {
+        "deviceId": settings.device_id,
+        "siteId": site_id,
+        "zoneId": zone_id,
+        "status": "ONLINE" if site_id else "UNPAIRED"
+    }
+    with open(IDENTITY_FILE, "w") as f:
+        json.dump(data, f, indent=4)

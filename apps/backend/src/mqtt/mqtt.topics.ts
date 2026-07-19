@@ -33,6 +33,12 @@ export const MQTT_TOPICS = {
     CAMERA_HEALTH: 'smartvision/edge/camera-health',
     /** QoS 1 — generic processing status events */
     STATUS: 'smartvision/edge/status',
+    /** QoS 1 — discovery heartbeat from unprovisioned edges */
+    DISCOVERY: 'smartvision/edge/discovery',
+    /** QoS 1 — regular heartbeat from edge devices */
+    HEARTBEAT: 'smartvision/edge/heartbeat',
+    /** QoS 1 — configuration for edge device */
+    CONFIG: (deviceId: string) => `smartvision/edge/${deviceId}/config`,
   },
 
   // ---------------------------------------------------------------------------
@@ -65,6 +71,8 @@ export const MQTT_TOPICS = {
     CURRENT: 'smartvision/display/current',
     /** QoS 1 — discovery heartbeat from unprovisioned displays */
     DISCOVERY: 'smartvision/display/discovery',
+    /** QoS 1 — regular heartbeat from display devices */
+    HEARTBEAT: 'smartvision/display/heartbeat',
   },
 
   // ---------------------------------------------------------------------------
@@ -91,6 +99,8 @@ export const MQTT_TOPICS = {
     DASHBOARD: 'smartvision/frontend/dashboard',
     /** QoS 1 — push notifications for operators */
     NOTIFICATIONS: 'smartvision/frontend/notifications',
+    /** QoS 1 — real-time device connectivity status */
+    DEVICE_STATUS: 'smartvision/frontend/device-status',
   },
 
   // ---------------------------------------------------------------------------
@@ -113,8 +123,11 @@ export const BACKEND_SUBSCRIPTIONS = [
   MQTT_TOPICS.EDGE.PERFORMANCE,
   MQTT_TOPICS.EDGE.CAMERA_HEALTH,
   MQTT_TOPICS.EDGE.STATUS,
+  MQTT_TOPICS.EDGE.DISCOVERY,
+  MQTT_TOPICS.EDGE.HEARTBEAT,
   MQTT_TOPICS.DISPLAY.STATUS,
   MQTT_TOPICS.DISPLAY.CURRENT,
   MQTT_TOPICS.DISPLAY.DISCOVERY,
+  MQTT_TOPICS.DISPLAY.HEARTBEAT,
   MQTT_TOPICS.SYSTEM.HEALTH,
 ] as const;

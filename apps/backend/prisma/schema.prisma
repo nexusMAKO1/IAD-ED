@@ -28,8 +28,10 @@ enum DeviceStatus {
 enum DisplayStatus {
   UNPAIRED
   ONLINE
+  WARNING
   OFFLINE
   ERROR
+  UNKNOWN
 }
 
 enum UserRole {
@@ -64,6 +66,7 @@ model Site {
   audienceEvents        AudienceEvent[]
   users                 User[]
   displayDevices        DisplayDevice[]
+  edgeDevices           EdgeDevice[]
 
   @@map("sites")
 }
@@ -105,12 +108,50 @@ model DisplayDevice {
   version    String?
   uptime     Int           @default(0)
   lastSeen   DateTime?
+  lastHeartbeat  DateTime?
+  connectedAt    DateTime?
+  disconnectedAt DateTime?
+  mqttConnected  Boolean       @default(false)
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
 
   @@index([siteId])
   @@index([status])
   @@map("display_devices")
+}
+
+model EdgeDevice {
+  id              String        @id @default(uuid()) @db.Uuid
+  deviceId        String        @unique
+  siteId          String?       @db.Uuid
+  site            Site?         @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  zoneId          String?       
+  hostname        String?
+  friendlyName    String?
+  ip              String?
+  macAddress      String?
+  platform        String?
+  resolution      String?
+  fps             Int?
+  status          DisplayStatus @default(UNPAIRED)
+  version         String?
+  model           String?
+  firmwareVersion String?
+  uptime          Int           @default(0)
+  cpuUsage        Float?
+  memoryUsage     Float?
+  streamUrl       String?
+  mqttConnected   Boolean       @default(false)
+  lastSeen        DateTime?
+  lastHeartbeat   DateTime?
+  connectedAt     DateTime?
+  disconnectedAt  DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([siteId])
+  @@index([status])
+  @@map("edge_devices")
 }
 
 model User {

@@ -36,7 +36,7 @@ import threading
 import time
 from collections import defaultdict
 from datetime import datetime, timezone
-from typing import Any, Callable
+from typing import Any, Callable, Dict, List, Optional
 
 from pydantic import ValidationError
 
@@ -81,15 +81,15 @@ except ImportError:
 # ---------------------------------------------------------------------------
 # Type alias for message handlers
 # ---------------------------------------------------------------------------
-MessageHandler = Callable[[str, dict[str, Any]], None]
+MessageHandler = Callable[[str, Dict[str, Any]], None]
 
 # ---------------------------------------------------------------------------
 # Command-topic → Pydantic model mapping for automatic validation
 # ---------------------------------------------------------------------------
-_COMMAND_SCHEMAS: dict[str, Any] = {}  # populated after imports
+_COMMAND_SCHEMAS: Dict[str, Any] = {}  # populated after imports
 
 
-def _build_command_schemas() -> dict[str, Any]:
+def _build_command_schemas() -> Dict[str, Any]:
     try:
         from app.mqtt.topics import CommandTopics  # noqa: PLC0415
     except ImportError:
@@ -140,13 +140,13 @@ class MQTTClient:
 
         self._connected: bool = False
         self._lock = threading.Lock()
-        self._client: Any = None  # mqtt.Client | None
+        self._client: Any = None  #Optional[ mqtt.Client]
 
         # Handler registry: topic → list of callables
-        self._handlers: dict[str, list[MessageHandler]] = defaultdict(list)
+        self._handlers: Dict[str, List[MessageHandler]] = defaultdict(list)
 
         # Heartbeat thread
-        self._heartbeat_thread: threading.Thread | None = None
+        self._heartbeat_thread: Optional[threading.Thread] = None
         self._stop_heartbeat = threading.Event()
 
         # Build command schemas after imports are settled
@@ -288,7 +288,7 @@ class MQTTClient:
     # ------------------------------------------------------------------ #
 
     def publish(
-        self, topic: str, payload: dict[str, Any], qos: int = 0, retain: bool = False
+        self, topic: str, payload: Dict[str, Any], qos: int = 0, retain: bool = False
     ) -> bool:
         """
         Serialise *payload* to JSON and publish to *topic*.
@@ -305,7 +305,7 @@ class MQTTClient:
         person_count: int,
         inference_msec: float,
         processing_msec: float,
-        detections: list[dict[str, Any]],
+        detections: List[Dict[str, Any]],
     ) -> bool:
         """Publish a detection event — QoS 1."""
         return self.publish(
@@ -323,7 +323,7 @@ class MQTTClient:
         )
 
     def publish_tracking(
-        self, active_count: int, track_ids: list[int], fps: float
+        self, active_count: int, track_ids: List[int], fps: float
     ) -> bool:
         """Publish tracking update — QoS 1."""
         return self.publish(
@@ -340,7 +340,7 @@ class MQTTClient:
         )
 
     def publish_demographics(
-        self, person_count: int, demographics: list[dict[str, Any]]
+        self, person_count: int, demographics: List[Dict[str, Any]]
     ) -> bool:
         """Publish demographics (age estimation) — QoS 1."""
         return self.publish(
@@ -353,10 +353,10 @@ class MQTTClient:
         )
 
     def publish_crowd_density(
-        self, count: int, density: str, zone_id: str | None = None
+        self, count: int, density: str, zone_id: Optional[str] = None
     ) -> bool:
         """Publish crowd density aggregate — QoS 0."""
-        payload: dict[str, Any] = {"count": count, "density": density}
+        payload: Dict[str, Any] = {"count": count, "density": density}
         if zone_id:
             payload["zoneId"] = zone_id
         return self.publish(
@@ -370,11 +370,11 @@ class MQTTClient:
         fps: float,
         inference_msec: float,
         processing_msec: float,
-        cpu_percent: float | None = None,
-        memory_bytes: int | None = None,
+        cpu_percent: Optional[float] = None,
+        memory_bytes: Optional[int] = None,
     ) -> bool:
         """Publish performance telemetry — QoS 0."""
-        payload: dict[str, Any] = {
+        payload: Dict[str, Any] = {
             "fps": round(fps, 2),
             "inferenceMsec": round(inference_msec, 2),
             "processingMsec": round(processing_msec, 2),
@@ -393,11 +393,11 @@ class MQTTClient:
         self,
         online: bool,
         source: str,
-        resolution: str | None = None,
-        fps: float | None = None,
+        resolution: Optional[str] = None,
+        fps: Optional[float] = None,
     ) -> bool:
         """Publish camera health status — QoS 0."""
-        payload: dict[str, Any] = {"online": online, "source": source}
+        payload: Dict[str, Any] = {"online": online, "source": source}
         if resolution:
             payload["resolution"] = resolution
         if fps is not None:
@@ -412,10 +412,10 @@ class MQTTClient:
         self,
         service_id: str,
         status: str,
-        metrics: dict[str, Any] | None = None,
+        metrics: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """Publish a system health heartbeat — QoS 0."""
-        payload: dict[str, Any] = {
+        payload: Dict[str, Any] = {
             "status": status,
             "serviceName": "edge-cv",
             "uptime": time.monotonic(),
@@ -429,11 +429,11 @@ class MQTTClient:
         )
 
     # Legacy compatibility shims (keep existing callers working)
-    def publish_audience_event(self, event: dict[str, Any]) -> bool:
+    def publish_audience_event(self, event: Dict[str, Any]) -> bool:
         """Legacy shim — route to publish_detections if possible."""
         return self.publish(EdgeTopics.DETECTIONS, event, qos=1)
 
-    def publish_audience_aggregate(self, aggregate: dict[str, Any]) -> bool:
+    def publish_audience_aggregate(self, aggregate: Dict[str, Any]) -> bool:
         """Legacy shim — route to publish_crowd_density if possible."""
         return self.publish(EdgeTopics.CROWD_DENSITY, aggregate, qos=0)
 
@@ -452,7 +452,7 @@ class MQTTClient:
     # ------------------------------------------------------------------ #
 
     def _publish_raw(
-        self, topic: str, payload: dict[str, Any], qos: int = 0, retain: bool = False
+        self, topic: str, payload: Dict[str, Any], qos: int = 0, retain: bool = False
     ) -> bool:
         try:
             raw = json.dumps(payload, default=str)
@@ -466,7 +466,7 @@ class MQTTClient:
             log.warning("MQTT publish error on [%s]: %s", topic, exc)
             return False
 
-    def _envelope(self, event: str, data: dict[str, Any]) -> dict[str, Any]:
+    def _envelope(self, event: str, data: Dict[str, Any]) -> Dict[str, Any]:
         return {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "deviceId": self._device_id,
@@ -575,7 +575,7 @@ class MQTTClient:
 
         # ── Parse JSON ──────────────────────────────────────────────────
         try:
-            raw: dict[str, Any] = json.loads(message.payload.decode("utf-8"))
+            raw: Dict[str, Any] = json.loads(message.payload.decode("utf-8"))
         except (ValueError, UnicodeDecodeError) as exc:
             log.warning("MQTT [%s]: malformed payload — %s", topic, exc)
             return

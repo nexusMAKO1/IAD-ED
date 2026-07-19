@@ -15,6 +15,16 @@ export const MQTT_TOPICS = {
     PERFORMANCE: 'smartvision/edge/performance',
     CAMERA_HEALTH: 'smartvision/edge/camera-health',
     STATUS: 'smartvision/edge/status',
+    DISCOVERY: 'smartvision/edge/discovery',
+    HEARTBEAT: 'smartvision/edge/heartbeat',
+  },
+  DISPLAY: {
+    PLAY: 'smartvision/display/play',
+    PLAYLIST: 'smartvision/display/playlist',
+    CACHE: 'smartvision/display/cache',
+    STATUS: 'smartvision/display/status',
+    CURRENT: 'smartvision/display/current',
+    HEARTBEAT: 'smartvision/display/heartbeat',
   },
   BACKEND: {
     EVENTS: 'smartvision/backend/events',
@@ -23,16 +33,10 @@ export const MQTT_TOPICS = {
     ANALYTICS: 'smartvision/backend/analytics',
     CAMPAIGNS: 'smartvision/backend/campaigns',
   },
-  DISPLAY: {
-    PLAY: 'smartvision/display/play',
-    PLAYLIST: 'smartvision/display/playlist',
-    CACHE: 'smartvision/display/cache',
-    STATUS: 'smartvision/display/status',
-    CURRENT: 'smartvision/display/current',
-  },
   FRONTEND: {
     DASHBOARD: 'smartvision/frontend/dashboard',
     NOTIFICATIONS: 'smartvision/frontend/notifications',
+    DEVICE_STATUS: 'smartvision/frontend/device-status',
   },
   SYSTEM: {
     HEALTH: 'smartvision/system/health',
@@ -44,6 +48,7 @@ export const MQTT_TOPICS = {
 export const FRONTEND_SUBSCRIPTIONS = [
   MQTT_TOPICS.FRONTEND.DASHBOARD,
   MQTT_TOPICS.FRONTEND.NOTIFICATIONS,
+  MQTT_TOPICS.FRONTEND.DEVICE_STATUS,
   MQTT_TOPICS.BACKEND.EVENTS,
   MQTT_TOPICS.BACKEND.ALERTS,
   MQTT_TOPICS.BACKEND.QUEUE,
@@ -53,5 +58,6 @@ export const FRONTEND_SUBSCRIPTIONS = [
   MQTT_TOPICS.EDGE.CROWD_DENSITY,
   MQTT_TOPICS.EDGE.PERFORMANCE,
   MQTT_TOPICS.EDGE.CAMERA_HEALTH,
+  MQTT_TOPICS.EDGE.DISCOVERY,
   MQTT_TOPICS.SYSTEM.HEALTH,
 ] as const;

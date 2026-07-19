@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 import os
 import time
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -77,11 +77,11 @@ class AgeEstimator:
 
     def __init__(
         self,
-        model_path: str | None = None,
+        model_path: Optional[str] = None,
         device: str = "cpu",
         batch_size: int = 4,
         input_size: Tuple[int, int] = (224, 224),
-        age_groups: Dict[str, Tuple[int, int]] | None = None,
+        age_groups: Optional[Dict[str, Tuple[int, int]]] = None,
     ) -> None:
         """
         Initialize the Age Estimator.
@@ -129,7 +129,7 @@ class AgeEstimator:
 
         # Human-readable display labels for each internal group key.
         # Used by the visualisation layer — never exposes raw ages.
-        self._display_labels: dict[str, str] = {
+        self._display_labels: Dict[str, str] = {
             "child":       "Child",
             "teen":        "Teen",
             "young_adult": "Young Adult",
@@ -139,8 +139,8 @@ class AgeEstimator:
             "unknown":     "Unknown",
         }
 
-        self.session: ort.InferenceSession | None = None
-        self.input_name: str | None = None
+        self.session: Optional[Any] = None
+        self.input_name: Optional[str] = None
 
         # Load the model if path is provided
         if self.model_path:

@@ -8,6 +8,9 @@ Only the "person" class (COCO class index 0) is returned.
 
 from __future__ import annotations
 
+from typing import List
+
+
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -41,7 +44,7 @@ class Detection:
 class DetectionResult:
     """Batch result for a single inference run."""
 
-    detections: list[Detection]
+    detections: List[Detection]
     inference_ms: float
     person_count: int = field(init=False)
 
@@ -144,7 +147,7 @@ class PersonDetector:
 
         inference_ms = (time.perf_counter() - t0) * 1000.0
 
-        detections: list[Detection] = []
+        detections: List[Detection] = []
         for result in results:
             if result.boxes is None:
                 continue

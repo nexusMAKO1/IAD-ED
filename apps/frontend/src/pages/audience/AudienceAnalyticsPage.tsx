@@ -62,6 +62,7 @@ export function AudienceAnalyticsPage() {
       if (!payload) return;
       const evt: AudienceEvent = {
         id: `live-${Date.now()}`,
+        deviceId: (payload['deviceId'] as string) || 'mqtt-live',
         timestamp: envelope.timestamp,
         ageGroup: (payload['ageGroup'] as string) || (payload['age_group'] as string) || 'unknown',
         gender: (payload['gender'] as string) || 'unknown',
@@ -92,9 +93,9 @@ export function AudienceAnalyticsPage() {
   ] : [];
 
   const ageData = stats ? [
-    { label: 'Enfants', count: stats.childrenCount ?? 0 },
-    { label: 'Adultes', count: stats.adultsCount   ?? 0 },
-    { label: 'Seniors', count: stats.seniorsCount  ?? 0 },
+    { group: 'Enfants', count: stats.childrenCount ?? 0 },
+    { group: 'Adultes', count: stats.adultsCount   ?? 0 },
+    { group: 'Seniors', count: stats.seniorsCount  ?? 0 },
   ] : [];
 
   if (!selectedSiteId) {

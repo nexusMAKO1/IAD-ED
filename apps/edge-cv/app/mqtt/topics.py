@@ -9,6 +9,9 @@ in any other module — always import from here.
 
 from __future__ import annotations
 
+from typing import List
+
+
 # ---------------------------------------------------------------------------
 # Root prefix
 # ---------------------------------------------------------------------------
@@ -26,6 +29,10 @@ class EdgeTopics:
     PERFORMANCE = f"{_ROOT}/edge/performance"
     CAMERA_HEALTH = f"{_ROOT}/edge/camera-health"
     STATUS = f"{_ROOT}/edge/status"
+    DISCOVERY = f"{_ROOT}/edge/discovery"
+
+def config_topic(device_id: str) -> str:
+    return f"{_ROOT}/edge/{device_id}/config"
 
 
 # ---------------------------------------------------------------------------
@@ -57,7 +64,7 @@ TOPIC_STATUS = EdgeTopics.STATUS
 TOPIC_SYSTEM_HEALTH = SystemTopics.HEALTH
 
 # All topics to subscribe on startup
-EDGE_COMMAND_SUBSCRIPTIONS: list[str] = [
+EDGE_COMMAND_SUBSCRIPTIONS: List[str] = [
     CommandTopics.CONFIG_UPDATE,
     CommandTopics.CAMERA,
     CommandTopics.MODEL_UPDATE,

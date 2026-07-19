@@ -11,6 +11,9 @@ Provides:
 
 from __future__ import annotations
 
+from typing import Dict, List
+
+
 import csv
 import time
 from collections import deque
@@ -154,7 +157,7 @@ TEXT_SCALE = 0.55
 TEXT_THICKNESS = 1
 
 
-def draw_detections(frame: cv2.typing.MatLike, detections: list[Detection]) -> None:
+def draw_detections(frame: cv2.typing.MatLike, detections: List[Detection]) -> None:
     """
     Draw green bounding boxes and confidence scores for each detection.
     Mutates the frame in-place.
@@ -261,7 +264,7 @@ def draw_tracked_persons(
         BGR image to annotate (mutated in-place).
     tracked_persons : list of TrackedPerson
         Output of ByteTracker.update() for the current frame.
-    age_cache : dict[int, str]
+    age_cache : Dict[int, str]
         Mapping of track_id -> age group display string (e.g. ``'Adult'``).
         Values are read-only; this function does NOT write to the cache.
     """

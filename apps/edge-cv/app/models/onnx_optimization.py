@@ -42,7 +42,7 @@ import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -93,7 +93,7 @@ except ImportError:
 
         @dataclass  # type: ignore[no-redef]
         class DetectionResult:  # type: ignore[no-redef]
-            detections: list[Detection]
+            detections: List[Detection]
             inference_ms: float
             person_count: int = field(init=False)
 
@@ -213,7 +213,7 @@ class OnnxConfig:
     )
 
 
-def _parse_input_size() -> tuple[int, int]:
+def _parse_input_size() -> Tuple[int, int]:
     """Parse ONNX_INPUT_SIZE env-var (H,W) with safe defaults."""
     raw = os.getenv("ONNX_INPUT_SIZE", "640,640")
     try:
@@ -256,7 +256,7 @@ class BenchmarkResult:
     provider: str = "CPUExecutionProvider"
     model_path: str = ""
 
-    def summary(self) -> dict[str, Any]:
+    def summary(self) -> Dict[str, Any]:
         """Return a JSON-serialisable benchmark summary dictionary."""
         return {
             "model_path": self.model_path,
@@ -274,7 +274,7 @@ class BenchmarkResult:
 # ONNX Model Session Cache
 # ---------------------------------------------------------------------------
 
-_SESSION_CACHE: dict[str, "OnnxInferenceSession"] = {}
+_SESSION_CACHE: Dict[str, "OnnxInferenceSession"] = {}
 
 
 # ---------------------------------------------------------------------------
@@ -304,10 +304,10 @@ class OnnxInferenceSession:
     def __init__(self, model_path: str | Path, config: OnnxConfig) -> None:
         self._model_path = Path(model_path)
         self._config = config
-        self._session: "ort.InferenceSession | None" = None  # type: ignore[name-defined]
+        self._session: "Optional[Any]" = None  # type: ignore[name-defined]
         self._input_name: str = ""
-        self._input_shape: list[int] = []
-        self._output_names: list[str] = []
+        self._input_shape: List[int] = []
+        self._output_names: List[str] = []
         self._active_provider: str = "CPUExecutionProvider"
         self._loaded: bool = False
 
@@ -316,7 +316,7 @@ class OnnxInferenceSession:
     # ------------------------------------------------------------------ #
 
     @classmethod
-    def from_config(cls, config: OnnxConfig | None = None) -> "OnnxInferenceSession":
+    def from_config(cls, config: Optional[OnnxConfig] = None) -> "OnnxInferenceSession":
         """
         Load or retrieve a cached session using the given configuration.
 
@@ -419,7 +419,7 @@ class OnnxInferenceSession:
         if self._config.warmup_iters > 0:
             self.warmup(self._config.warmup_iters)
 
-    def _resolve_providers(self) -> list[str]:
+    def _resolve_providers(self) -> List[str]:
         """
         Resolve the list of ONNX Runtime providers to request.
 
@@ -453,7 +453,7 @@ class OnnxInferenceSession:
         if not self._config.use_gpu:
             return ["CPUExecutionProvider"]
 
-        selected: list[str] = []
+        selected: List[str] = []
         for p in _PROVIDER_PRIORITY:
             if p in available:
                 selected.append(p)
@@ -558,12 +558,12 @@ class OnnxInferenceSession:
         return self._input_name
 
     @property
-    def output_names(self) -> list[str]:
+    def output_names(self) -> List[str]:
         """Names of all output tensors as reported by the ONNX graph."""
         return self._output_names
 
     @property
-    def input_shape(self) -> list[int]:
+    def input_shape(self) -> List[int]:
         """Shape of the first input tensor (may contain None for dynamic axes)."""
         return self._input_shape
 
@@ -573,9 +573,9 @@ class OnnxInferenceSession:
 
     def run_raw(
         self,
-        inputs: dict[str, np.ndarray],
-        output_names: list[str] | None = None,
-    ) -> list[np.ndarray]:
+        inputs: Dict[str, np.ndarray],
+        output_names: Optional[List[str]] = None,
+    ) -> List[np.ndarray]:
         """
         Execute a forward pass with pre-prepared input tensors.
 
@@ -667,7 +667,7 @@ class OnnxInferenceSession:
 
     def _preprocess_yolo(
         self, frame: np.ndarray
-    ) -> tuple[np.ndarray, int, int]:
+    ) -> Tuple[np.ndarray, int, int]:
         """
         Convert an OpenCV BGR frame to a normalised NCHW float tensor
         suitable for YOLOv8 ONNX inference.
@@ -712,7 +712,7 @@ class OnnxInferenceSession:
 
     def preprocess(
         self, frame: np.ndarray
-    ) -> tuple[np.ndarray, int, int]:
+    ) -> Tuple[np.ndarray, int, int]:
         """
         Public alias for ``_preprocess_yolo`` — for use in the benchmark.
 
@@ -733,7 +733,7 @@ class OnnxInferenceSession:
         raw_output: np.ndarray,
         orig_h: int,
         orig_w: int,
-    ) -> list[Detection]:
+    ) -> List[Detection]:
         """
         Decode the raw YOLOv8 ONNX output tensor into Detection objects.
 
@@ -801,7 +801,7 @@ class OnnxInferenceSession:
         scale_x = orig_w / w_in
         scale_y = orig_h / h_in
 
-        detections: list[Detection] = []
+        detections: List[Detection] = []
         for box, conf in zip(boxes_nms, confs_nms):
             x1 = int(np.clip(box[0] * scale_x, 0, orig_w - 1))
             y1 = int(np.clip(box[1] * scale_y, 0, orig_h - 1))
@@ -831,9 +831,9 @@ class OnnxInferenceSession:
 
     def inference(
         self,
-        inputs: np.ndarray | list[np.ndarray],
-        output_names: list[str] | None = None,
-    ) -> list[np.ndarray]:
+        inputs: Union[np.ndarray, List[np.ndarray]],
+        output_names: Optional[List[str]] = None,
+    ) -> List[np.ndarray]:
         """
         Generic inference entry point accepting pre-prepared numpy tensors.
 
@@ -868,7 +868,7 @@ class OnnxInferenceSession:
                 f"got {len(inputs_list)}."
             )
 
-        feed: dict[str, np.ndarray] = {}
+        feed: Dict[str, np.ndarray] = {}
         for name, arr in zip(all_input_names, inputs_list):
             if not isinstance(arr, np.ndarray):
                 raise InvalidInputError(
@@ -882,7 +882,7 @@ class OnnxInferenceSession:
     # Batch inference
     # ------------------------------------------------------------------ #
 
-    def run_batch(self, frames: list[np.ndarray]) -> list[DetectionResult]:
+    def run_batch(self, frames: List[np.ndarray]) -> List[DetectionResult]:
         """
         Run detection inference on a batch of frames.
 
@@ -911,8 +911,8 @@ class OnnxInferenceSession:
         w = self._config.input_width
         dtype = np.float16 if self._config.enable_fp16 else np.float32
 
-        orig_sizes: list[tuple[int, int]] = []
-        blobs: list[np.ndarray] = []
+        orig_sizes: List[Tuple[int, int]] = []
+        blobs: List[np.ndarray] = []
 
         t_pre = time.perf_counter()
         for frame in frames:
@@ -929,7 +929,7 @@ class OnnxInferenceSession:
         inference_ms = (time.perf_counter() - t_inf) * 1000.0
 
         # Decode each image in the batch
-        results: list[DetectionResult] = []
+        results: List[DetectionResult] = []
         t_post = time.perf_counter()
 
         raw = outputs[0]  # (N, 4+nc, anchors) or (N, anchors, 4+nc)
@@ -955,7 +955,7 @@ class OnnxInferenceSession:
 
     def benchmark(
         self,
-        frame: np.ndarray | None = None,
+        frame: Optional[np.ndarray] = None,
         num_iterations: int = 50,
         warmup_iters: int = 5,
     ) -> BenchmarkResult:
@@ -1003,9 +1003,9 @@ class OnnxInferenceSession:
             self.run_raw({self._input_name: blob})
 
         # ── Timed runs ───────────────────────────────────────────────────
-        pre_times: list[float] = []
-        inf_times: list[float] = []
-        post_times: list[float] = []
+        pre_times: List[float] = []
+        inf_times: List[float] = []
+        post_times: List[float] = []
 
         for _ in range(num_iterations):
             t0 = time.perf_counter()
@@ -1100,7 +1100,7 @@ class OnnxInferenceSession:
 
     @staticmethod
     def _validate_frame(
-        frame: np.ndarray | None, context: str = "frame"
+        frame: Optional[np.ndarray], context: str = "frame"
     ) -> None:
         """
         Validate that *frame* is a non-empty OpenCV BGR uint8 image.
@@ -1132,8 +1132,8 @@ class OnnxInferenceSession:
 
 
 def load_model(
-    model_path: str | Path | None = None,
-    config: OnnxConfig | None = None,
+    model_path: Optional[Union[str, Path]] = None,
+    config: Optional[OnnxConfig] = None,
 ) -> OnnxInferenceSession:
     """
     Load (or retrieve from cache) an ONNX model and return a ready-to-use
@@ -1192,7 +1192,7 @@ def warmup(session: OnnxInferenceSession, iterations: int = 3) -> None:
 
 def benchmark(
     session: OnnxInferenceSession,
-    frame: np.ndarray | None = None,
+    frame: Optional[np.ndarray] = None,
     num_iterations: int = 50,
 ) -> BenchmarkResult:
     """
@@ -1228,9 +1228,9 @@ def validate_model(session: OnnxInferenceSession) -> bool:
 def export_to_onnx(
     model: Any,
     output_path: str | Path,
-    input_shape: tuple[int, ...] = (1, 3, 640, 640),
+    input_shape: Tuple[int, ...] = (1, 3, 640, 640),
     opset_version: int = 17,
-    dynamic_axes: dict[str, dict[int, str]] | None = None,
+    dynamic_axes: Optional[Dict[str, Dict[int, str]]] = None,
     fp16: bool = False,
     simplify: bool = True,
 ) -> Path:
@@ -1359,8 +1359,8 @@ def export_to_onnx(
 
 def _letterbox(
     image: np.ndarray,
-    new_shape: tuple[int, int] = (640, 640),
-    color: tuple[int, int, int] = (114, 114, 114),
+    new_shape: Tuple[int, int] = (640, 640),
+    color: Tuple[int, int, int] = (114, 114, 114),
 ) -> np.ndarray:
     """
     Resize image to ``new_shape`` with letterboxing (preserves aspect ratio).
@@ -1457,7 +1457,7 @@ def _nms(
     boxes: np.ndarray,
     scores: np.ndarray,
     iou_threshold: float = 0.45,
-) -> tuple[np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Greedy non-maximum suppression.
 
@@ -1473,7 +1473,7 @@ def _nms(
         return np.empty((0, 4), dtype=np.float32), np.empty(0, dtype=np.float32)
 
     order = scores.argsort()[::-1]
-    kept_indices: list[int] = []
+    kept_indices: List[int] = []
 
     while len(order) > 0:
         idx = order[0]

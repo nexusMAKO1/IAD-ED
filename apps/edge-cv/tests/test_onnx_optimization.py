@@ -26,7 +26,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Optional
 from unittest.mock import MagicMock, Mock, patch, PropertyMock
 import numpy as np
 import pytest
@@ -70,7 +70,7 @@ def _yolov8_raw_output(n_detections: int = 3, nc: int = 80) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 
-def _make_mock_ort_session(output_tensor: np.ndarray | None = None) -> MagicMock:
+def _make_mock_ort_session(output_tensor: Optional[np.ndarray] = None) -> MagicMock:
     """Build a minimal mock mimicking onnxruntime.InferenceSession."""
     session = MagicMock()
 

@@ -35,7 +35,7 @@ import time
 import json
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Dict, Optional
 
 import cv2
 import numpy as np
@@ -49,20 +49,20 @@ from prometheus_client import Gauge, Counter, Histogram
 # ---------------------------------------------------------------------------
 # Internal imports — support both "uvicorn app.main:app" and "python main.py"
 # ---------------------------------------------------------------------------
-try:
-    from app.config import settings
-    from app.detector import DetectionResult, PersonDetector
-    from app.services.camera_manager import CameraManager
-    from app.services.mqtt_client import MQTTClient
-    from app.demographics.age_estimation import AgeEstimator
-    from app.tracking.bytetrack import ByteTracker
-except ImportError:
-    from config import settings  # type: ignore[no-redef]
-    from detector import DetectionResult, PersonDetector  # type: ignore[no-redef]
-    from services.camera_manager import CameraManager  # type: ignore[no-redef]
-    from services.mqtt_client import MQTTClient  # type: ignore[no-redef]
-    from demographics.age_estimation import AgeEstimator  # type: ignore[no-redef]
-    from tracking.bytetrack import ByteTracker  # type: ignore[no-redef]
+import sys
+from pathlib import Path
+
+if __package__ is None or __package__ == "":
+    # Executed directly as a script. Add the root of `apps/edge-cv` to sys.path
+    # so that `from app.config import ...` works.
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from app.config import settings
+from app.detector import DetectionResult, PersonDetector
+from app.services.camera_manager import CameraManager
+from app.services.mqtt_client import MQTTClient
+from app.demographics.age_estimation import AgeEstimator
+from app.tracking.bytetrack import ByteTracker
 
 # ---------------------------------------------------------------------------
 # Logging — structured, level driven by LOG_LEVEL env-var
@@ -79,10 +79,10 @@ log = logging.getLogger("iad.edge-cv")
 # Shared across requests via module globals — FastAPI lifespan initialises
 # these before the first request is accepted.
 # ---------------------------------------------------------------------------
-_detector: PersonDetector | None = None
+_detector: Optional[PersonDetector] = None
 _model_loaded: bool = False
-_age_estimator: AgeEstimator | None = None
-_tracker: ByteTracker | None = None
+_age_estimator: Optional[AgeEstimator] = None
+_tracker: Optional[ByteTracker] = None
 _camera_manager: CameraManager = CameraManager(source=settings.camera_source)
 _mqtt_client: MQTTClient = MQTTClient(
     host=settings.mqtt_host,
@@ -221,22 +221,39 @@ async def lifespan(app: FastAPI):  # noqa: ANN001
     if mqtt_ok:
         log.info("MQTT connected successfully.")
         # Register command handlers
-        try:
-            from app.mqtt.topics import CommandTopics  # noqa: PLC0415
-        except ImportError:
-            from mqtt.topics import CommandTopics  # type: ignore[no-redef]  # noqa: PLC0415
+        from app.mqtt.topics import CommandTopics
 
         def _handle_config_update(topic: str, payload: dict) -> None:
-            log.info("MQTT [%s]: received config update — %s", topic, payload.get("payload"))
+            log.info("MQTT [%s]: received config update — %s", topic, payload)
+            site_id = payload.get("siteId")
+            zone_id = payload.get("zoneId")
+            
+            from app.config import save_identity
+                
+            save_identity(site_id, zone_id)
+            log.info("Updated identity configuration. New siteId: %s, zoneId: %s", site_id, zone_id)
 
         def _handle_camera_command(topic: str, payload: dict) -> None:
             log.info("MQTT [%s]: received camera command — %s", topic, payload.get("payload"))
+            # Depending on action, we could toggle features
+            action = payload.get("action")
+            if action == "enable_detection":
+                settings.enable_detection = True
+            elif action == "disable_detection":
+                settings.enable_detection = False
+            elif action == "update_settings":
+                new_settings = payload.get("payload", {})
+                if "confidence" in new_settings:
+                    settings.model_confidence = float(new_settings["confidence"])
 
         def _handle_model_update(topic: str, payload: dict) -> None:
             log.info("MQTT [%s]: received model update — %s", topic, payload.get("payload"))
 
         def _handle_restart(topic: str, payload: dict) -> None:
-            log.warning("MQTT [%s]: restart command received — scheduling graceful restart.", topic)
+            log.warning("MQTT [%s]: restart command received — exiting process.", topic)
+            import os
+            import signal
+            os.kill(os.getpid(), signal.SIGTERM)
 
         _mqtt_client.register_handler(CommandTopics.CONFIG_UPDATE, _handle_config_update)
         _mqtt_client.register_handler(CommandTopics.CAMERA, _handle_camera_command)
@@ -256,9 +273,50 @@ async def lifespan(app: FastAPI):  # noqa: ANN001
     log.info("=== Edge-CV Service ready ===")
 
     # ------------------------------------------------------------------
+    # Background tasks
+    # ------------------------------------------------------------------
+    import asyncio
+    async def discovery_loop():
+        while True:
+            if _mqtt_client.is_connected:
+                import psutil
+                cpu = psutil.cpu_percent(interval=None)
+                mem = psutil.virtual_memory().percent
+                payload = {
+                    "deviceId": settings.device_id,
+                    "siteId": settings.site_id,
+                    "zoneId": settings.zone_id,
+                    "status": "ONLINE" if settings.site_id else "UNPAIRED",
+                    "hostname": _SERVICE_ID,
+                    "platform": f"{platform.system()} {platform.release()}",
+                    "ip": socket.gethostbyname(socket.gethostname()),
+                    "resolution": "1920x1080",
+                    "fps": 30, # Could be dynamic if extracted from stream
+                    "version": settings.service_version,
+                    "model": settings.model_name,
+                    "firmwareVersion": "1.0.0",
+                    "cpuUsage": cpu,
+                    "memoryUsage": mem,
+                    "streamUrl": f"http://{socket.gethostbyname(socket.gethostname())}:8001/snapshot",
+                    "uptime": int(time.monotonic() - _start_time)
+                }
+                try:
+                    from app.mqtt.topics import EdgeTopics
+                    # We have to bypass _mqtt_client.publish wrappers since there isn't a direct
+                    # discovery method, or we can use the private _client.
+                    _mqtt_client._client.publish(EdgeTopics.DISCOVERY, json.dumps(payload), qos=1)
+                except Exception as e:
+                    log.error("Failed to publish discovery heartbeat: %s", e)
+            await asyncio.sleep(10)
+            
+    task = asyncio.create_task(discovery_loop())
+
+    # ------------------------------------------------------------------
     # Yield — serve requests
     # ------------------------------------------------------------------
     yield
+
+    task.cancel()
 
     # ------------------------------------------------------------------
     # Shutdown
@@ -386,7 +444,7 @@ def _cpu_usage_percent() -> float:
     tags=["Service"],
     response_description="Welcome message and service metadata",
 )
-async def root() -> dict[str, Any]:
+async def root() -> Dict[str, Any]:
     """
     Root endpoint — confirms the service is alive.
 
@@ -413,7 +471,7 @@ async def root() -> dict[str, Any]:
     tags=["Monitoring"],
     response_description="Service health and dependency status",
 )
-async def health() -> dict[str, Any]:
+async def health() -> Dict[str, Any]:
     """
     Liveness and dependency-health endpoint.
 
@@ -456,7 +514,7 @@ async def health() -> dict[str, Any]:
     tags=["Monitoring"],
     response_description="Live runtime telemetry",
 )
-async def status() -> dict[str, Any]:
+async def status() -> Dict[str, Any]:
     """
     Runtime telemetry endpoint.
 
@@ -498,7 +556,7 @@ async def status() -> dict[str, Any]:
     tags=["Monitoring"],
     response_description="Key metrics in JSON format (alternative to /metrics)",
 )
-async def metrics_json() -> dict[str, Any]:
+async def metrics_json() -> Dict[str, Any]:
     """
     JSON-format metrics — useful for quick inspection and non-Prometheus consumers.
 
@@ -525,6 +583,46 @@ async def metrics_json() -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
+# GET /snapshot
+# ---------------------------------------------------------------------------
+
+@app.get(
+    "/snapshot",
+    summary="Capture a camera frame",
+    tags=["Camera"],
+    responses={
+        200: {
+            "content": {"image/jpeg": {}}
+        }
+    }
+)
+async def snapshot():
+    from fastapi.responses import Response
+    if not _camera_manager.is_connected:
+        raise HTTPException(status_code=503, detail="Camera offline")
+        
+    try:
+        source = int(settings.camera_source)
+    except Exception:
+        source = settings.camera_source
+        
+    cap = cv2.VideoCapture(source)
+    if not cap.isOpened():
+        raise HTTPException(status_code=503, detail="Could not open camera")
+        
+    ret, frame = cap.read()
+    cap.release()
+    
+    if not ret:
+        raise HTTPException(status_code=500, detail="Could not read frame from camera")
+        
+    success, encoded = cv2.imencode(".jpg", frame)
+    if not success:
+        raise HTTPException(status_code=500, detail="Could not encode frame to JPEG")
+        
+    return Response(content=encoded.tobytes(), media_type="image/jpeg")
+
+# ---------------------------------------------------------------------------
 # POST /detect
 # ---------------------------------------------------------------------------
 
@@ -537,7 +635,7 @@ async def metrics_json() -> dict[str, Any]:
 )
 async def detect(
     file: UploadFile = File(..., description="Image file (JPEG, PNG, BMP)"),
-) -> dict[str, Any]:
+) -> Dict[str, Any]:
     """
     Run YOLOv8 person detection on an uploaded image.
 
@@ -873,7 +971,7 @@ def _cli_main() -> None:  # pragma: no cover
 
     # track_id → age group display string (e.g. "Adult", "Unknown").
     # Populated lazily; reused across frames to avoid redundant inference.
-    age_cache: dict[int, str] = {}
+    age_cache: Dict[int, str] = {}
     _last_age_estimate_time: float = 0.0   # time.perf_counter() timestamp
 
     fps_counter = FPSCounter(window=30)

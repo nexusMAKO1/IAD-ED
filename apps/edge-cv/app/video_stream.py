@@ -9,6 +9,9 @@ inference loop always gets the latest frame without blocking on I/O.
 
 from __future__ import annotations
 
+from typing import Optional, Tuple
+
+
 import threading
 import time
 import cv2
@@ -32,11 +35,11 @@ class VideoStream:
         self.width = width
         self.height = height
 
-        self.cap: cv2.VideoCapture | None = None
-        self.frame: cv2.typing.MatLike | None = None
+        self.cap: Optional[cv2.VideoCapture] = None
+        self.frame: Optional[cv2.typing.MatLike] = None
         self.lock = threading.Lock()
         self.running = False
-        self._thread: threading.Thread | None = None
+        self._thread: Optional[threading.Thread] = None
 
     # ------------------------------------------------------------------
     # Validation
@@ -132,7 +135,7 @@ class VideoStream:
     # Public API
     # ------------------------------------------------------------------
 
-    def read(self) -> tuple[bool, cv2.typing.MatLike | None]:
+    def read(self) -> Tuple[bool, Optional[cv2.typing.MatLike]]:
         """
         Return the latest captured frame.
 

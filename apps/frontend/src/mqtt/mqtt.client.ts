@@ -240,7 +240,7 @@ class MqttClientService {
     existing.push(handler as MqttHandler);
     this.handlers.set(topic, existing);
 
-    if (this._connected && this.client) {
+    if (this.isConnected && this.client) {
       this.client.subscribe(topic, { qos: 1 }, (err) => {
         if (err) log.error(`Subscribe error [${topic}]: ${err.message}`);
         else log.info(`Subscribed to [${topic}]`);
@@ -457,18 +457,27 @@ class MqttClientService {
       return;
     }
 
-    // Validate envelope shape
-    if (
-      typeof parsed['timestamp'] !== 'string' ||
-      typeof parsed['deviceId'] !== 'string' ||
-      typeof parsed['siteId'] !== 'string' ||
-      typeof parsed['event'] !== 'string'
-    ) {
-      log.warn(`[${topic}]: invalid envelope shape — message rejected.`);
-      return;
+    // Topics published by the backend for frontend consumption use a different
+    // shape than device event envelopes. They don't carry siteId/event fields.
+    // Pass them through directly without the strict envelope check.
+    const isSystemTopic =
+      topic.startsWith('smartvision/frontend/') ||
+      topic.startsWith('smartvision/system/');
+
+    if (!isSystemTopic) {
+      // Validate standard device event envelope shape
+      if (
+        typeof parsed['timestamp'] !== 'string' ||
+        typeof parsed['deviceId'] !== 'string' ||
+        typeof parsed['siteId'] !== 'string' ||
+        typeof parsed['event'] !== 'string'
+      ) {
+        log.warn(`[${topic}]: invalid envelope shape — message rejected.`);
+        return;
+      }
     }
 
-    log.debug(`[${topic}]: ${parsed['event']} from ${parsed['deviceId']}`);
+    log.debug(`[${topic}]: received from ${String(parsed['deviceId'] ?? 'system')}`);
 
     // Dispatch to handlers (exact match + wildcard)
     for (const [pattern, handlers] of this.handlers) {

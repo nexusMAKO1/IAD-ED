@@ -26,6 +26,7 @@ import { CampaignsModule } from './campaigns/campaigns.module';
 import { MetricsModule } from './common/metrics/metrics.module';
 import { SettingsModule } from './settings/settings.module';
 import { DisplayDevicesModule } from './display-devices/display-devices.module';
+import { EdgeDevicesModule } from './devices/edge-devices/edge-devices.module';
 
 @Module({
   imports: [
@@ -65,6 +66,7 @@ import { DisplayDevicesModule } from './display-devices/display-devices.module';
     
     // Display Discovery & Provisioning
     DisplayDevicesModule,
+    EdgeDevicesModule,
 
     // Campaign Management & Decision Engine
     CampaignsModule,

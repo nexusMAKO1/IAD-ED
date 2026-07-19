@@ -12,6 +12,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
+import type { PieLabelRenderProps } from 'recharts';
 
 interface PieDataPoint {
   name: string;
@@ -26,15 +27,19 @@ interface DemographicsPieChartProps {
   outerRadius?: number;
 }
 
-const CustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: {
-  cx: number; cy: number; midAngle: number;
-  innerRadius: number; outerRadius: number; percent: number;
-}) => {
+
+const CustomLabel = (props: PieLabelRenderProps) => {
+  const { cx, cy, midAngle, innerRadius, outerRadius, percent } = props;
+  if (percent == null || percent < 0.05) return null;
   const RADIAN = Math.PI / 180;
-  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-  const y = cy + radius * Math.sin(-midAngle * RADIAN);
-  if (percent < 0.05) return null;
+  const cxN = Number(cx ?? 0);
+  const cyN = Number(cy ?? 0);
+  const irN = Number(innerRadius ?? 0);
+  const orN = Number(outerRadius ?? 0);
+  const maN = Number(midAngle ?? 0);
+  const radius = irN + (orN - irN) * 0.5;
+  const x = cxN + radius * Math.cos(-maN * RADIAN);
+  const y = cyN + radius * Math.sin(-maN * RADIAN);
   return (
     <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={12} fontWeight={600}>
       {`${(percent * 100).toFixed(0)}%`}
@@ -84,7 +89,7 @@ export const DemographicsPieChart = React.memo(function DemographicsPieChart({
           }}
           labelStyle={{ color: 'hsl(215 20% 55%)' }}
           itemStyle={{ color: 'hsl(213 31% 91%)' }}
-          formatter={(value: number) => [`${value}%`, '']}
+          formatter={(value) => [`${Number(value ?? 0)}%`, '']}
         />
         <Legend
           iconType="circle"

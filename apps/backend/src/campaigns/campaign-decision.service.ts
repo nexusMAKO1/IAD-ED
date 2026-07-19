@@ -8,6 +8,7 @@ import { MqttService } from '../mqtt/mqtt.service';
 import { MQTT_TOPICS } from '../mqtt/mqtt.topics';
 import { CampaignsService } from './campaigns.service';
 import { DisplayDevicesService } from '../display-devices/display-devices.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { DisplayStatus } from '@prisma/client';
 
 interface DecisionState {
@@ -34,6 +35,7 @@ export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
     private readonly mqttService: MqttService,
     private readonly campaignsService: CampaignsService,
     private readonly displayService: DisplayDevicesService,
+    private readonly prisma: PrismaService,
   ) {}
 
   onModuleInit() {
@@ -88,6 +90,17 @@ export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
 
       const ageGroup: string = payload.age_group as string;
       const now = Date.now();
+      
+      // Verify that the EdgeDevice is actually paired
+      const edgeDevice = await this.prisma.edgeDevice.findUnique({
+        where: { deviceId },
+      });
+
+      if (!edgeDevice || edgeDevice.status !== DisplayStatus.ONLINE) {
+        this.logger.debug(`Camera ${deviceId} is not paired or online. Ignoring demographics.`);
+        return;
+      }
+
       const state = this.getState(deviceId);
 
       // Record detection for inactivity tracking

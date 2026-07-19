@@ -8,6 +8,9 @@ paho-mqtt is mocked so tests are hermetic and CI-friendly.
 
 from __future__ import annotations
 
+from typing import Dict, Optional
+
+
 import json
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, Mock, patch
@@ -27,7 +30,7 @@ def _make_message(topic: str, payload: dict) -> MagicMock:
     return msg
 
 
-def _valid_envelope(event: str = "test", extra_payload: dict | None = None) -> dict:
+def _valid_envelope(event: str = "test", extra_payload: Optional[Dict] = None) -> dict:
     return {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "deviceId": "camera01",

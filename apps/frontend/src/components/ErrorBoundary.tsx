@@ -22,7 +22,18 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Uncaught error:', error, errorInfo);
+    // ──────────────────────────────────────────────────────────────────────────
+    // Enhanced diagnostic logging — DO NOT remove. This helps identify crashes
+    // such as "TypeError: undefined is not an object (evaluating 't.length')"
+    // by printing the full context at the time of failure.
+    // ──────────────────────────────────────────────────────────────────────────
+    console.group('%c🔴 ErrorBoundary caught an unhandled React error', 'color:red;font-weight:bold;font-size:13px');
+    console.error('Error:', error.message);
+    console.error('Error type:', error.constructor?.name ?? 'Unknown');
+    console.error('Stack trace:', error.stack);
+    console.error('Component stack (where crash occurred):', errorInfo.componentStack);
+    console.error('Current route:', window.location.pathname + window.location.search);
+    console.groupEnd();
   }
 
   public render() {

@@ -4,9 +4,13 @@
  */
 
 import { Module } from '@nestjs/common';
-import { HealthController } from './health.controller';
+import { HealthController, SystemController } from './health.controller';
+import { HeartbeatMonitorService } from './heartbeat-monitor.service';
+import { MqttModule } from '../mqtt/mqtt.module';
 
 @Module({
-  controllers: [HealthController],
+  imports: [MqttModule],
+  controllers: [HealthController, SystemController],
+  providers: [HeartbeatMonitorService],
 })
 export class HealthModule {}

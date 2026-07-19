@@ -6,11 +6,11 @@
  */
 import React, { useState, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
   Users, Clock, Eye, BarChart2, Layers, UserCheck,
-  Baby, PersonStanding, UserX, Waves, TrendingUp, Activity,
+  Baby, PersonStanding, UserX, Waves, TrendingUp, MonitorPlay, Camera, ShieldAlert, AlertTriangle
 } from 'lucide-react';
 import { KpiCard } from '@/components/dashboard/KpiCard';
 import { VisitorLineChart } from '@/components/charts/VisitorLineChart';
@@ -20,6 +20,10 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { SkeletonKpiCard } from '@/components/ui/SkeletonCard';
 import { getAudienceStats, getVisitorTimeseries } from '@/api/audience';
 import { useLiveDashboard } from '@/hooks/useLiveDashboard';
+import { getEdgeDevices } from '@/api/edge-devices';
+import { getDisplayDevices } from '@/api/display-devices';
+import { useMqtt } from '@/mqtt/useMqtt';
+import { MQTT_TOPICS } from '@/mqtt/mqtt.topics';
 
 type OutletCtx = { selectedSiteId: string };
 
@@ -28,6 +32,12 @@ const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.07 } }
 export function OverviewPage() {
   const { selectedSiteId } = useOutletContext<OutletCtx>();
   const live = useLiveDashboard(selectedSiteId);
+  const queryClient = useQueryClient();
+
+  useMqtt(MQTT_TOPICS.FRONTEND.DEVICE_STATUS, () => {
+    queryClient.invalidateQueries({ queryKey: ['edgeDevices', selectedSiteId] });
+    queryClient.invalidateQueries({ queryKey: ['displayDevices', selectedSiteId] });
+  });
 
   const { data: stats, isLoading: isLoadingStats } = useQuery({
     queryKey: ['audienceStats', selectedSiteId],
@@ -51,6 +61,36 @@ export function OverviewPage() {
     refetchInterval: 300_000,
     retry: 1,
   });
+
+  const { data: edgeDevices = [], isLoading: isLoadingCameras } = useQuery({
+    queryKey: ['edgeDevices', selectedSiteId],
+    queryFn: () => getEdgeDevices(),
+    enabled: !!selectedSiteId,
+  });
+
+  const { data: displayDevices = [], isLoading: isLoadingDisplays } = useQuery({
+    queryKey: ['displayDevices', selectedSiteId],
+    queryFn: () => getDisplayDevices({ siteId: selectedSiteId }),
+    enabled: !!selectedSiteId,
+  });
+
+  // Filter edge devices for current site if site is selected, or use backend filtering if added later.
+  // getEdgeDevices currently returns all devices. We filter here.
+  const siteCameras = edgeDevices.filter((d: any) => d.siteId === selectedSiteId);
+
+  const cameraStats = useMemo(() => {
+    return siteCameras.reduce((acc: any, dev: any) => {
+      acc[dev.status] = (acc[dev.status] || 0) + 1;
+      return acc;
+    }, { ONLINE: 0, OFFLINE: 0, WARNING: 0, UNKNOWN: 0, UNPAIRED: 0, ERROR: 0 });
+  }, [siteCameras]);
+
+  const displayStats = useMemo(() => {
+    return displayDevices.reduce((acc: any, dev: any) => {
+      acc[dev.status] = (acc[dev.status] || 0) + 1;
+      return acc;
+    }, { ONLINE: 0, OFFLINE: 0, WARNING: 0, UNKNOWN: 0, UNPAIRED: 0, ERROR: 0 });
+  }, [displayDevices]);
 
   const currentVisitors = live.currentVisitors || stats?.currentVisitors || 0;
   const crowdDensity    = live.crowdDensity    || stats?.crowdDensity    || null;
@@ -105,6 +145,35 @@ export function OverviewPage() {
             color="cyan" trend="up" trendLabel="Engagement campagne" delay={0.21} />
         </motion.div>
       )}
+
+      {/* ── Device Health Row ───────────────────────────────────────────────── */}
+      <div className="space-y-4">
+        <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground px-1">
+          État des équipements (Temps Réel)
+        </h2>
+        {isLoadingCameras || isLoadingDisplays ? (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => <SkeletonKpiCard key={i} />)}
+          </div>
+        ) : (
+          <motion.div variants={stagger} initial="hidden" animate="visible"
+            className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            
+            <KpiCard title="Caméras Connectées" value={cameraStats.ONLINE} icon={Camera}
+              color="success" trend="neutral" trendLabel={`${siteCameras.length} total`} delay={0} />
+            <KpiCard title="Caméras Déconnectées" value={cameraStats.OFFLINE + cameraStats.WARNING} icon={AlertTriangle}
+              color={cameraStats.OFFLINE > 0 ? "danger" : (cameraStats.WARNING > 0 ? "warning" : "muted")} 
+              trend="neutral" trendLabel="Hors-ligne ou instable" delay={0.07} />
+
+            <KpiCard title="Écrans Connectés" value={displayStats.ONLINE} icon={MonitorPlay}
+              color="success" trend="neutral" trendLabel={`${displayDevices.length} total`} delay={0.14} />
+            <KpiCard title="Écrans Déconnectés" value={displayStats.OFFLINE + displayStats.WARNING} icon={AlertTriangle}
+              color={displayStats.OFFLINE > 0 ? "danger" : (displayStats.WARNING > 0 ? "warning" : "muted")} 
+              trend="neutral" trendLabel="Hors-ligne ou instable" delay={0.21} />
+              
+          </motion.div>
+        )}
+      </div>
 
       {/* ── Secondary KPI Row ─────────────────────────────────────────────── */}
       {!isLoadingStats && (

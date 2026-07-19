@@ -52,7 +52,7 @@ import time
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum, auto
-from typing import Any
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 from scipy.optimize import linear_sum_assignment
@@ -105,7 +105,7 @@ class TrackedPerson:
     track_id : int
         Globally unique, monotonically increasing identifier assigned at
         track creation. Never reused within a tracker session.
-    bbox : list[int]
+    bbox : List[int]
         Bounding box in pixel coordinates: [x1, y1, x2, y2].
     confidence : float
         Detection confidence score that triggered this track update.
@@ -122,7 +122,7 @@ class TrackedPerson:
     """
 
     track_id: int
-    bbox: list[int]
+    bbox: List[int]
     confidence: float
     class_name: str = "person"
     state: TrackState = TrackState.TENTATIVE
@@ -175,13 +175,13 @@ class KalmanTrack:
         dtype=np.float64,
     )
 
-    def __init__(self, bbox: list[int], confidence: float) -> None:
+    def __init__(self, bbox: List[int], confidence: float) -> None:
         """
         Initialise a new Kalman track.
 
         Parameters
         ----------
-        bbox : list[int]
+        bbox : List[int]
             Initial bounding box [x1, y1, x2, y2].
         confidence : float
             Detection confidence (0.0–1.0).
@@ -238,7 +238,7 @@ class KalmanTrack:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _bbox_to_obs(bbox: list[int] | list[float]) -> np.ndarray:
+    def _bbox_to_obs(bbox: Union[List[int], List[float]]) -> np.ndarray:
         """Convert [x1, y1, x2, y2] → [cx, cy, aspect, height]."""
         x1, y1, x2, y2 = float(bbox[0]), float(bbox[1]), float(bbox[2]), float(bbox[3])
         w = x2 - x1
@@ -249,7 +249,7 @@ class KalmanTrack:
         return np.array([cx, cy, aspect, h], dtype=np.float64)
 
     @staticmethod
-    def _obs_to_bbox(state: np.ndarray) -> list[int]:
+    def _obs_to_bbox(state: np.ndarray) -> List[int]:
         """Convert [cx, cy, aspect, height, ...] → [x1, y1, x2, y2]."""
         cx, cy, aspect, h = state[0], state[1], state[2], state[3]
         w = aspect * h
@@ -277,13 +277,13 @@ class KalmanTrack:
         if self.time_since_update > 1:
             self.hit_streak = 0
 
-    def update(self, bbox: list[int], confidence: float) -> None:
+    def update(self, bbox: List[int], confidence: float) -> None:
         """
         Correct state from a new matched detection.
 
         Parameters
         ----------
-        bbox : list[int]
+        bbox : List[int]
             Matched detection bounding box [x1, y1, x2, y2].
         confidence : float
             Matched detection confidence.
@@ -307,7 +307,7 @@ class KalmanTrack:
     # ------------------------------------------------------------------
 
     @property
-    def bbox(self) -> list[int]:
+    def bbox(self) -> List[int]:
         """Current predicted bounding box [x1, y1, x2, y2]."""
         return self._obs_to_bbox(self._x)
 
@@ -368,7 +368,7 @@ def _iou_batch(bboxes_a: np.ndarray, bboxes_b: np.ndarray) -> np.ndarray:
 
 def _linear_assignment(
     cost_matrix: np.ndarray,
-) -> tuple[list[tuple[int, int]], list[int], list[int]]:
+) -> Tuple[List[Tuple[int, int]], List[int], List[int]]:
     """
     Solve the linear assignment problem using the Hungarian algorithm.
 
@@ -392,7 +392,7 @@ def _linear_assignment(
         )
 
     row_ind, col_ind = linear_sum_assignment(cost_matrix)
-    matches: list[tuple[int, int]] = list(zip(row_ind.tolist(), col_ind.tolist()))
+    matches: List[Tuple[int, int]] = list(zip(row_ind.tolist(), col_ind.tolist()))
 
     matched_track_idxs = {m[0] for m in matches}
     matched_det_idxs = {m[1] for m in matches}
@@ -408,10 +408,10 @@ def _linear_assignment(
 
 
 def _associate(
-    tracks: list[KalmanTrack],
-    detections: list[dict[str, Any]],
+    tracks: List[KalmanTrack],
+    detections: List[Dict[str, Any]],
     iou_threshold: float,
-) -> tuple[list[tuple[int, int]], list[int], list[int]]:
+) -> Tuple[List[Tuple[int, int]], List[int], List[int]]:
     """
     Associate tracks to detections via IoU-based Hungarian assignment.
 
@@ -427,8 +427,8 @@ def _associate(
     Returns
     -------
     matches : list of (track_list_idx, det_list_idx)
-    unmatched_track_idxs : list[int]
-    unmatched_det_idxs : list[int]
+    unmatched_track_idxs : List[int]
+    unmatched_det_idxs : List[int]
     """
     if not tracks or not detections:
         return [], list(range(len(tracks))), list(range(len(detections)))
@@ -461,7 +461,7 @@ def _associate(
 # ===========================================================================
 
 
-def _validate_detection(det: dict[str, Any], frame_h: int, frame_w: int) -> None:
+def _validate_detection(det: Dict[str, Any], frame_h: int, frame_w: int) -> None:
     """
     Validate a single detection dictionary.
 
@@ -555,13 +555,13 @@ class ByteTracker:
 
     def __init__(
         self,
-        track_high_thresh: float | None = None,
-        track_low_thresh: float | None = None,
-        match_thresh: float | None = None,
-        second_match_thresh: float | None = None,
-        max_time_lost: int | None = None,
-        fps: int | None = None,
-        min_hits: int | None = None,
+        track_high_thresh: Optional[float] = None,
+        track_low_thresh: Optional[float] = None,
+        match_thresh: Optional[float] = None,
+        second_match_thresh: Optional[float] = None,
+        max_time_lost: Optional[int] = None,
+        fps: Optional[int] = None,
+        min_hits: Optional[int] = None,
     ) -> None:
         # ------------------------------------------------------------------
         # Read configuration from environment variables with constructor overrides
@@ -612,9 +612,9 @@ class ByteTracker:
             )
 
         # Internal track pools
-        self._active_tracks: list[KalmanTrack] = []  # TENTATIVE + ACTIVE
-        self._lost_tracks: list[KalmanTrack] = []  # LOST
-        self._removed_tracks: list[KalmanTrack] = []  # for diagnostics
+        self._active_tracks: List[KalmanTrack] = []  # TENTATIVE + ACTIVE
+        self._lost_tracks: List[KalmanTrack] = []  # LOST
+        self._removed_tracks: List[KalmanTrack] = []  # for diagnostics
 
         self._frame_count: int = 0
 
@@ -636,10 +636,10 @@ class ByteTracker:
 
     def update(
         self,
-        detections: Sequence[dict[str, Any]],
+        detections: Sequence[Dict[str, Any]],
         frame_h: int = 1080,
         frame_w: int = 1920,
-    ) -> list[TrackedPerson]:
+    ) -> List[TrackedPerson]:
         """
         Process one frame of detections and return tracked persons.
 
@@ -663,7 +663,7 @@ class ByteTracker:
 
         Returns
         -------
-        list[TrackedPerson]
+        List[TrackedPerson]
             All ACTIVE (confirmed) tracked persons in this frame.
             TENTATIVE tracks are not returned until they reach min_hits.
 
@@ -686,7 +686,7 @@ class ByteTracker:
         # ------------------------------------------------------------------
         # 0. Validate all incoming detections
         # ------------------------------------------------------------------
-        valid_dets: list[dict[str, Any]] = []
+        valid_dets: List[Dict[str, Any]] = []
         for det in detections:
             try:
                 _validate_detection(det, frame_h, frame_w)
@@ -759,7 +759,7 @@ class ByteTracker:
             iou_threshold=1.0 - self.second_match_thresh,
         )
 
-        recovered_ids: list[int] = []
+        recovered_ids: List[int] = []
         for trk_idx, det_idx in matches_3:
             trk = self._lost_tracks[trk_idx]
             det = unmatched_high[det_idx]
@@ -781,7 +781,7 @@ class ByteTracker:
         # ------------------------------------------------------------------
         # 6. Mark still-unmatched active tracks as LOST
         # ------------------------------------------------------------------
-        lost_ids: list[int] = []
+        lost_ids: List[int] = []
         truly_unmatched = {unmatched_active_trks[i] for i in still_unmatched_active}
         for trk in truly_unmatched:
             if trk.state != TrackState.TENTATIVE:
@@ -800,7 +800,7 @@ class ByteTracker:
         # ------------------------------------------------------------------
         # 7. Create new tentative tracks from unmatched HIGH-conf detections
         # ------------------------------------------------------------------
-        new_track_ids: list[int] = []
+        new_track_ids: List[int] = []
         for det_idx in unmatched_high_dets_after_3:
             det = unmatched_high[det_idx]
             new_trk = KalmanTrack(det["bbox"], float(det["confidence"]))
@@ -816,8 +816,8 @@ class ByteTracker:
         # ------------------------------------------------------------------
         # 8. Delete expired lost tracks
         # ------------------------------------------------------------------
-        removed_ids: list[int] = []
-        new_lost: list[KalmanTrack] = []
+        removed_ids: List[int] = []
+        new_lost: List[KalmanTrack] = []
         for trk in self._lost_tracks:
             if trk.time_since_update > self.max_time_lost:
                 trk.state = TrackState.REMOVED
@@ -900,7 +900,7 @@ class ByteTracker:
         """Total number of frames processed since initialisation (or last reset)."""
         return self._frame_count
 
-    def status(self) -> dict[str, int]:
+    def status(self) -> Dict[str, int]:
         """
         Return a snapshot of the current tracker state for monitoring.
 
