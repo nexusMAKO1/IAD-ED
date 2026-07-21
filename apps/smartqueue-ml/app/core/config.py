@@ -53,6 +53,40 @@ class Settings(BaseSettings):
     MQTT_PORT: int = 1883
     MQTT_USER: str = ""
     MQTT_PASSWORD: str = ""
+    MQTT_CONNECT_RETRIES: int = 3
+    MQTT_CONNECT_RETRY_DELAY_SECONDS: float = 2.0
+    MQTT_PUBLISH_TIMEOUT_SECONDS: float = 5.0
+
+    # -----------------------------------------------------------------------
+    # T-015 — MQTT Topics (from T-001 interface contracts)
+    # -----------------------------------------------------------------------
+    MQTT_TOPIC_QUEUE_STATUS: str = "smartqueue/status"
+    MQTT_TOPIC_PREDICTIONS: str = "smartqueue/predictions"
+    MQTT_TOPIC_ANOMALIES: str = "alerts/anomalies"
+    MQTT_TOPIC_DASHBOARD_ALERT: str = "alerts/dashboard"
+    DASHBOARD_ALERT_QOS: int = 1
+    MQTT_TOPIC_HEALTH: str = "system/health"
+    MQTT_HEALTH_INTERVAL_SECONDS: float = 30.0
+
+    # -----------------------------------------------------------------------
+    # T-015 — Anomaly Detection (CDC F2.9)
+    # Business-owned parameters — see spec §1.8 for governance rules.
+    # -----------------------------------------------------------------------
+    ANOMALY_WINDOW_SIZE: int = 100          # per-service_type sliding window
+    ANOMALY_MIN_SAMPLES: int = 10           # minimum data points before z-score is meaningful
+    ANOMALY_Z_THRESHOLD: float = 3.0        # warning floor
+    ANOMALY_Z_CRITICAL: float = 4.0         # critical threshold
+    ANOMALY_Z_FATAL: float = 5.0            # fatal threshold
+    ANOMALY_COOLDOWN_SECONDS: int = 120     # suppress repeat alerts for sustained anomaly
+    ANOMALY_RECENT_ALERTS_MAXLEN: int = 50  # max recent alerts kept in memory
+
+
+    # -----------------------------------------------------------------------
+    # T-015 — Recommended Actions (CDC F2.10 — static rule table keyed on severity)
+    # -----------------------------------------------------------------------
+    RECOMMENDED_ACTION_WARNING: str = "Surveiller la file — envisager d'ouvrir un guichet supplémentaire."
+    RECOMMENDED_ACTION_CRITICAL: str = "Ouvrir immédiatement un guichet supplémentaire ou réaffecter du personnel."
+    RECOMMENDED_ACTION_FATAL: str = "Intervention urgente requise — mobiliser tout le personnel disponible."
 
     class Config:
         env_file = ".env"

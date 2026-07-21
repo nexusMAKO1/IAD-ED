@@ -6,9 +6,9 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from prometheus_client import Counter, Histogram, Info
 
 from app.core.config import settings
-from app.routers import predict
+from app.routers import predict, alerts, health
 from app.services.model_store import load_model, is_model_loaded
-from app.stubs.mqtt_client_stub import connect_mqtt
+from app.core.mqtt_client import mqtt_client
 
 logger = structlog.get_logger().bind(
     service="smartqueue-ml",
@@ -52,19 +52,21 @@ async def lifespan(app: FastAPI):
 
     # 2. Connect MQTT
     try:
-        connect_mqtt()
+        mqtt_client.start()
     except Exception:
         logger.exception("mqtt_connect_failed")
 
-    # 3. Log startup
+    # 3. Log startup & config
     logger.info(
         "startup_complete",
         port=settings.ML_PORT,
     )
+    logger.info(f"Anomaly thresholds: WARNING={settings.ANOMALY_Z_THRESHOLD}, CRITICAL={settings.ANOMALY_Z_CRITICAL}, FATAL={settings.ANOMALY_Z_FATAL}")
 
     yield
 
     # Shutdown
+    mqtt_client.stop()
     logger.info("shutdown")
 
 
@@ -80,6 +82,8 @@ Instrumentator().instrument(app).expose(app)
 # Import routers
 
 app.include_router(predict.router)
+app.include_router(alerts.router)
+app.include_router(health.router)
 
 
 @app.get("/")
@@ -90,13 +94,4 @@ def read_root():
         "docs": "/docs",
     }
 
-@app.get("/health")
-def health_check():
-    return {
-        "status": "ok",
-        "services": {
-            "model": "loaded" if is_model_loaded() else "not_loaded",
-            "mqtt": "not_connected",
-            "redis": "unknown"
-        }
-    }
+

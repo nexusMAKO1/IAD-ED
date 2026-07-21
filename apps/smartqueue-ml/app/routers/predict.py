@@ -1,19 +1,54 @@
 import asyncio
 import random
+import logging
 from datetime import datetime, UTC
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 
-from app.schemas.prediction import PredictRequest, BatchPredictRequest, PredictionResponse
+from app.schemas.prediction import PredictRequest, BatchPredictRequest, PredictionResponse, MQTTPredictionPayload
 from app.schemas.queue import QueueStatusPayload
 from app.services.exceptions import PredictionServiceError
 from app.services import predictor
+from app.services.anomaly import anomaly_detector
 from app.core.config import settings
+from app.core.mqtt_client import mqtt_client
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["predictions"])
+
+
+def _predict_side_effects(
+    service_type: str,
+    priority: str,
+    response: PredictionResponse,
+):
+    """Background task: publish prediction to MQTT and run anomaly check.
+
+    Each step is independently wrapped so a failure in one never blocks the other.
+    """
+    # 1. Publish prediction to smartqueue/predictions
+    try:
+        payload = MQTTPredictionPayload(
+            predicted_wait_time_seconds=response.predicted_wait_time_seconds,
+            confidence_interval_percentage=response.confidence_interval_percentage,
+            congestion_level=response.congestion_level,
+        )
+        mqtt_client.publish_prediction(payload)
+        logger.debug("prediction_published", extra={"service_type": service_type})
+    except Exception:
+        logger.exception("prediction_publish_failed", extra={"service_type": service_type})
+
+    # 2. Anomaly detection
+    try:
+        anomaly_detector.check_anomaly(service_type, response.predicted_wait_time_seconds)
+    except Exception:
+        logger.exception("anomaly_check_failed", extra={"service_type": service_type})
+
 
 @router.get("/queue/predict", response_model=PredictionResponse)
 async def predict(
     service_type: str,
+    background_tasks: BackgroundTasks,
     priority: str = "standard",
     queue_length: int = 0,
     active_agents: int = 2
@@ -35,14 +70,14 @@ async def predict(
             queue_length=queue_length,
             active_agents=active_agents
         )
-        # T-015 will hook in via BackgroundTasks here for anomaly detection and MQTT
+        background_tasks.add_task(_predict_side_effects, service_type, priority, response)
         return response
     except PredictionServiceError as e:
         raise HTTPException(status_code=503, detail={"error_code": e.error_code, "message": e.message})
 
 
 @router.post("/queue/predict/batch", response_model=list[PredictionResponse])
-async def predict_batch(request: BatchPredictRequest):
+async def predict_batch(request: BatchPredictRequest, background_tasks: BackgroundTasks):
     responses = []
     try:
         for item in request.items:
@@ -53,7 +88,7 @@ async def predict_batch(request: BatchPredictRequest):
                 active_agents=item.active_agents
             )
             responses.append(response)
-        # T-015 will hook in via BackgroundTasks here
+            background_tasks.add_task(_predict_side_effects, item.service_type, item.priority, response)
         return responses
     except PredictionServiceError as e:
         raise HTTPException(status_code=503, detail={"error_code": e.error_code, "message": e.message})
@@ -86,8 +121,7 @@ async def queue_status():
 
 @router.get("/queue/anomalies", response_model=list)
 async def queue_anomalies():
-    # T-015 will replace this with anomaly.get_recent_anomalies()
-    return []
+    return anomaly_detector.get_recent_anomalies()
 
 
 @router.get("/queue/stats")

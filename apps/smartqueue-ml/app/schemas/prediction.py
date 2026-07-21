@@ -70,6 +70,8 @@ class AnomalyAlert(BaseModel):
     severity: Literal["warning", "critical", "fatal"]
     error_code: str
     message: str
+    service_type: str = ""
+    recommended_action: str = ""
 
 
 class HealthResponse(BaseModel):

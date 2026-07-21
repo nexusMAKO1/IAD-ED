@@ -8,7 +8,7 @@ from fastapi import APIRouter
 from app.core.config import settings
 from app.schemas.prediction import HealthResponse
 from app.services.model_store import is_model_loaded
-from app.stubs.mqtt_client_stub import is_mqtt_connected
+from app.core.mqtt_client import mqtt_client
 
 logger = structlog.get_logger().bind(
     service="smartqueue-ml",
@@ -32,7 +32,7 @@ async def health_check():
     # 1. Check model
     try:
         model_loaded = is_model_loaded()
-        services["model"] = "ok" if model_loaded else "error"
+        services["model"] = "loaded" if model_loaded else "not_loaded"
     except Exception:
         logger.exception("model_check_error")
         model_loaded = False
@@ -53,12 +53,12 @@ async def health_check():
 
     # 3. Check MQTT
     try:
-        mqtt_connected = is_mqtt_connected()
-        services["mqtt"] = "ok" if mqtt_connected else "error"
+        mqtt_connected = mqtt_client.is_mqtt_connected()
+        services["mqtt"] = "connected" if mqtt_connected else "not_connected"
     except Exception:
         logger.exception("mqtt_check_error")
         mqtt_connected = False
-        services["mqtt"] = "error"
+        services["mqtt"] = "not_connected"
 
     # 4. Determine overall status
     if model_loaded and redis_up and mqtt_connected:
