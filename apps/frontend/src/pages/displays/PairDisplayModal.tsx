@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useMutation } from '@tanstack/react-query';
-import { pairDisplayDevice } from '@/api/display-devices';
+import { assignSiteDevice } from '@/api/devices';
 import { useToast } from '@/hooks/use-toast';
 import { Link2 } from 'lucide-react';
 
@@ -21,7 +21,7 @@ export function PairDisplayModal({ device, sites, isOpen, onClose, onSuccess }: 
   const { toast } = useToast();
 
   const pairMutation = useMutation({
-    mutationFn: () => pairDisplayDevice(device.id, selectedSiteId),
+    mutationFn: () => assignSiteDevice(device.id, { siteId: selectedSiteId }),
     onSuccess: () => {
       toast({ title: 'Afficheur associé avec succès', variant: 'success' });
       onSuccess();

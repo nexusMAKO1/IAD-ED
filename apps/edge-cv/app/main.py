@@ -221,7 +221,7 @@ async def lifespan(app: FastAPI):  # noqa: ANN001
     if mqtt_ok:
         log.info("MQTT connected successfully.")
         # Register command handlers
-        from app.mqtt.topics import CommandTopics
+        from app.mqtt.topics import CommandTopics, config_topic
 
         def _handle_config_update(topic: str, payload: dict) -> None:
             log.info("MQTT [%s]: received config update — %s", topic, payload)
@@ -255,7 +255,7 @@ async def lifespan(app: FastAPI):  # noqa: ANN001
             import signal
             os.kill(os.getpid(), signal.SIGTERM)
 
-        _mqtt_client.register_handler(CommandTopics.CONFIG_UPDATE, _handle_config_update)
+        _mqtt_client.register_handler(config_topic(settings.device_id), _handle_config_update)
         _mqtt_client.register_handler(CommandTopics.CAMERA, _handle_camera_command)
         _mqtt_client.register_handler(CommandTopics.MODEL_UPDATE, _handle_model_update)
         _mqtt_client.register_handler(CommandTopics.RESTART, _handle_restart)
@@ -286,6 +286,7 @@ async def lifespan(app: FastAPI):  # noqa: ANN001
                     "deviceId": settings.device_id,
                     "siteId": settings.site_id,
                     "zoneId": settings.zone_id,
+                    "deviceType": "EDGE_CAMERA",
                     "status": "ONLINE" if settings.site_id else "UNPAIRED",
                     "hostname": _SERVICE_ID,
                     "platform": f"{platform.system()} {platform.release()}",
@@ -293,18 +294,18 @@ async def lifespan(app: FastAPI):  # noqa: ANN001
                     "resolution": "1920x1080",
                     "fps": 30, # Could be dynamic if extracted from stream
                     "version": settings.service_version,
-                    "model": settings.model_name,
+                    "model": getattr(settings, "model_name", "yolov8n"),
                     "firmwareVersion": "1.0.0",
                     "cpuUsage": cpu,
                     "memoryUsage": mem,
                     "streamUrl": f"http://{socket.gethostbyname(socket.gethostname())}:8001/snapshot",
-                    "uptime": int(time.monotonic() - _start_time)
+                    "uptime": int(time.monotonic() - _start_time),
+                    "timestamp": datetime.now(timezone.utc).isoformat()
                 }
                 try:
                     from app.mqtt.topics import EdgeTopics
-                    # We have to bypass _mqtt_client.publish wrappers since there isn't a direct
-                    # discovery method, or we can use the private _client.
-                    _mqtt_client._client.publish(EdgeTopics.DISCOVERY, json.dumps(payload), qos=1)
+                    envelope = _mqtt_client._envelope("discovery", payload)
+                    _mqtt_client._client.publish(EdgeTopics.DISCOVERY, json.dumps(envelope), qos=1)
                 except Exception as e:
                     log.error("Failed to publish discovery heartbeat: %s", e)
             await asyncio.sleep(10)

@@ -1,19 +1,24 @@
 /**
- * devices.module.ts — Devices Feature Module
- * IAD & SmartQueue AI — Express Display SmartVision (T-032)
+ * devices.module.ts — Unified Devices Feature Module
  *
- * Importe SitesModule pour utiliser SitesService (validation d'existence du site).
+ * Provides:
+ *   - DevicesController   REST API for all device types
+ *   - DevicesService      CRUD + assignment logic
+ *   - DeviceRegistryService  MQTT heartbeat handler (upserts Device table)
+ *   - PresenceService     Heartbeat monitor (status transitions)
  */
 
 import { Module } from '@nestjs/common';
 import { DevicesController } from './devices.controller';
 import { DevicesService } from './devices.service';
-import { SitesModule } from '../sites/sites.module';
+import { DeviceRegistryService } from './device-registry.service';
+import { PresenceService } from './presence.service';
+import { MqttModule } from '../mqtt/mqtt.module';
 
 @Module({
-  imports: [SitesModule],
+  imports: [MqttModule],
   controllers: [DevicesController],
-  providers: [DevicesService],
-  exports: [DevicesService],
+  providers: [DevicesService, DeviceRegistryService, PresenceService],
+  exports: [DevicesService, DeviceRegistryService, PresenceService],
 })
 export class DevicesModule {}

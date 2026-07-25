@@ -37,15 +37,15 @@ async function main() {
 
   // 2. Create Device
   const device = await prisma.device.upsert({
-    where: { id: deviceId },
+    where: { deviceId },
     update: { status: 'ONLINE' },
     create: {
-      id: deviceId,
+      deviceId,
       siteId: site.id,
       name: 'Edge-CV Test Camera',
-      type: 'CAMERA',
+      type: 'EDGE_CAMERA',
       status: 'ONLINE',
-      ipAddress: '127.0.0.1',
+      ip: '127.0.0.1',
     },
   });
   console.log(`Device created: ${device.name}`);

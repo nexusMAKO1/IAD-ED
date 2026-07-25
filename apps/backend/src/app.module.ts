@@ -1,9 +1,6 @@
 /**
  * app.module.ts — Root Application Module
- * IAD & SmartQueue AI — Express Display SmartVision (T-012)
- *
- * Configures the global ConfigModule (with Joi validation),
- * Prisma database, health check module, and authentication/user domains.
+ * IAD & SmartQueue AI — Express Display SmartVision
  */
 
 import { Module } from '@nestjs/common';
@@ -25,8 +22,6 @@ import { AudienceEventsModule } from './audience-events/audience-events.module';
 import { CampaignsModule } from './campaigns/campaigns.module';
 import { MetricsModule } from './common/metrics/metrics.module';
 import { SettingsModule } from './settings/settings.module';
-import { DisplayDevicesModule } from './display-devices/display-devices.module';
-import { EdgeDevicesModule } from './devices/edge-devices/edge-devices.module';
 
 @Module({
   imports: [
@@ -57,16 +52,12 @@ import { EdgeDevicesModule } from './devices/edge-devices/edge-devices.module';
     AuthModule,
     UsersModule,
 
-    // Fleet Management (T-032 / F4.2 & F4.3)
+    // Unified Fleet Management — Single Source of Truth
     SitesModule,
     DevicesModule,
 
     // Audience Analytics Integration (T-033)
     AudienceEventsModule,
-    
-    // Display Discovery & Provisioning
-    DisplayDevicesModule,
-    EdgeDevicesModule,
 
     // Campaign Management & Decision Engine
     CampaignsModule,

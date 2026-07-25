@@ -1,6 +1,6 @@
 {
     "deviceId": "camera-918ad4ed",
-    "siteId": null,
+    "siteId": "123e4567-e89b-12d3-a456-426614174000",
     "zoneId": null,
-    "status": "UNPAIRED"
+    "status": "ONLINE"
 }

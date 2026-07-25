@@ -13,9 +13,9 @@ echo "================================================================"
 # ---------------------------------------------------------------------------
 # 1. Run Prisma migrations (idempotent — safe to run every time)
 # ---------------------------------------------------------------------------
-echo "[entrypoint] Running Prisma migrations..."
-npx prisma migrate deploy
-echo "[entrypoint] Migrations applied."
+echo "[entrypoint] Syncing database schema with Prisma..."
+npx prisma db push --accept-data-loss
+echo "[entrypoint] Schema synchronized."
 
 # ---------------------------------------------------------------------------
 # 2. Seed the database if the admin user does not exist

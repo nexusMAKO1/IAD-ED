@@ -28,6 +28,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 import json
 import os
 import uuid
+import socket
+from pathlib import Path
 
 
 class AppSettings(BaseSettings):
@@ -162,11 +164,12 @@ class AppSettings(BaseSettings):
 # Module-level singleton — import and use this everywhere
 settings = AppSettings()
 
-IDENTITY_FILE = "data/identity.json"
+IDENTITY_FILE = str(Path(__file__).resolve().parent.parent / "data" / "identity.json")
 
 def _load_or_create_identity():
-    if not os.path.exists("data"):
-        os.makedirs("data", exist_ok=True)
+    data_dir = os.path.dirname(IDENTITY_FILE)
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir, exist_ok=True)
     
     if os.path.exists(IDENTITY_FILE):
         with open(IDENTITY_FILE, "r") as f:
@@ -181,6 +184,8 @@ def _load_or_create_identity():
             "deviceId": new_device_id,
             "siteId": None,
             "zoneId": None,
+            "hostname": socket.gethostname(),
+            "version": settings.service_version,
             "status": "UNPAIRED"
         }
         with open(IDENTITY_FILE, "w") as f:
@@ -189,6 +194,8 @@ def _load_or_create_identity():
         settings.device_id = new_device_id
         settings.site_id = None
         settings.zone_id = None
+        
+    settings.mqtt_client_id = f"edge-cv-{settings.device_id}"
 
 _load_or_create_identity()
 
@@ -199,6 +206,8 @@ def save_identity(site_id:Optional[ str], zone_id:Optional[ str]):
         "deviceId": settings.device_id,
         "siteId": site_id,
         "zoneId": zone_id,
+        "hostname": socket.gethostname(),
+        "version": settings.service_version,
         "status": "ONLINE" if site_id else "UNPAIRED"
     }
     with open(IDENTITY_FILE, "w") as f:

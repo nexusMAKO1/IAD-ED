@@ -41,12 +41,19 @@ export class AudienceEventsService implements OnModuleInit {
 
       const siteId = event.siteId;
       const deviceId = event.deviceId;
+
+      if (!siteId) {
+        this.logger.debug(`Ignoring detection event from unpaired device ${deviceId}`);
+        return;
+      }
       // Using new Date() instead of event.timestamp string as Prisma expects Date
       const timestamp = new Date(event.timestamp);
 
       let youngCount = 0;
       let adultCount = 0;
       let seniorCount = 0;
+      let maleCount = 0;
+      let femaleCount = 0;
 
       for (const det of dto.detections) {
         const group = det.age_group;
@@ -60,6 +67,13 @@ export class AudienceEventsService implements OnModuleInit {
           // default to adult if unknown
           adultCount++;
         }
+
+        const gender = det.gender?.toLowerCase();
+        if (gender === 'male') {
+          maleCount++;
+        } else if (gender === 'female') {
+          femaleCount++;
+        }
       }
 
       const peopleCount = dto.personCount;
@@ -68,13 +82,15 @@ export class AudienceEventsService implements OnModuleInit {
 
       await this.prisma.audienceEvent.create({
         data: {
-          siteId,
-          deviceId,
+          site: { connect: { id: siteId } },
+          device: { connect: { deviceId } },
           timestamp,
           peopleCount,
           youngCount,
           adultCount,
           seniorCount,
+          maleCount,
+          femaleCount,
           densityScore,
           avgDwellTime,
         },
@@ -199,11 +215,15 @@ export class AudienceEventsService implements OnModuleInit {
         totalYoung: bigint;
         totalAdult: bigint;
         totalSenior: bigint;
+        totalMale: bigint;
+        totalFemale: bigint;
       }[]
     >`SELECT COALESCE(SUM("peopleCount"), 0) AS "totalPeople",
              COALESCE(SUM("youngCount"), 0) AS "totalYoung",
              COALESCE(SUM("adultCount"), 0) AS "totalAdult",
-             COALESCE(SUM("seniorCount"), 0) AS "totalSenior"
+             COALESCE(SUM("seniorCount"), 0) AS "totalSenior",
+             COALESCE(SUM("maleCount"), 0) AS "totalMale",
+             COALESCE(SUM("femaleCount"), 0) AS "totalFemale"
       FROM audience_events
       WHERE "siteId" = ${siteId}::uuid
         AND timestamp >= NOW() - INTERVAL '7 days'`;
@@ -224,12 +244,13 @@ export class AudienceEventsService implements OnModuleInit {
       totalYoung: 0n,
       totalAdult: 0n,
       totalSenior: 0n,
+      totalMale: 0n,
+      totalFemale: 0n,
     };
     const total = Number(agg.totalPeople);
 
-    // Fake gender split since the backend schema doesn't store gender yet
-    const male = Math.floor(total * 0.45);
-    const female = total - male;
+    const male = Number(agg.totalMale);
+    const female = Number(agg.totalFemale);
 
     // We split young into child and young_adult for the expected payload
     const totalYoung = Number(agg.totalYoung);

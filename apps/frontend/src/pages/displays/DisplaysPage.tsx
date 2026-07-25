@@ -8,7 +8,7 @@ import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { StatusBadge } from '@/components/dashboard/StatusBadge';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getDisplayDevices, unpairDisplayDevice, removeDisplayDevice } from '@/api/display-devices';
+import { getDevices, unpairDevice, deleteDevice } from '@/api/devices';
 import { getSites } from '@/api/sites';
 import { useToast } from '@/hooks/use-toast';
 import { PairDisplayModal } from './PairDisplayModal';
@@ -29,7 +29,7 @@ export function DisplaysPage() {
 
   const { data: displays = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['displays'],
-    queryFn: () => getDisplayDevices(),
+    queryFn: () => getDevices({ type: 'DISPLAY' }),
     refetchInterval: 15_000,
   });
 
@@ -45,7 +45,7 @@ export function DisplaysPage() {
   });
 
   const unpairMutation = useMutation({
-    mutationFn: (id: string) => unpairDisplayDevice(id),
+    mutationFn: (id: string) => unpairDevice(id),
     onSuccess: () => {
       toast({ title: 'Afficheur dissocié avec succès', variant: 'success' });
       queryClient.invalidateQueries({ queryKey: ['displays'] });
@@ -56,7 +56,7 @@ export function DisplaysPage() {
   });
 
   const removeMutation = useMutation({
-    mutationFn: (id: string) => removeDisplayDevice(id),
+    mutationFn: (id: string) => deleteDevice(id),
     onSuccess: () => {
       toast({ title: 'Afficheur supprimé', variant: 'success' });
       queryClient.invalidateQueries({ queryKey: ['displays'] });
@@ -190,7 +190,7 @@ export function DisplaysPage() {
                       <MonitorPlay className="h-3.5 w-3.5" />
                       <span className="uppercase tracking-wider text-[10px]">Résolution</span>
                     </div>
-                    <p className="font-medium text-foreground truncate">{display.resolution}</p>
+                    <p className="font-medium text-foreground truncate">{display.displayMetadata?.screenResolution || display.resolution}</p>
                   </div>
                   <div className="bg-slate-900/50 rounded-lg p-3 border border-border/30">
                     <div className="flex items-center gap-1.5 text-muted-foreground mb-1">

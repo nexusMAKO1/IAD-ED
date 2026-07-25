@@ -7,11 +7,13 @@ import React, { useState, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { BarChart3, Zap } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LiveBadge } from '@/components/dashboard/LiveBadge';
 import { VisitorLineChart, MultiVisitorChart } from '@/components/charts/VisitorLineChart';
 import { DensityGauge } from '@/components/charts/DensityGauge';
 import { useLiveDashboard } from '@/hooks/useLiveDashboard';
+import { getVisitorTimeseries } from '@/api/audience';
 import type { TimeSeriesPoint } from '@/types';
 
 type OutletCtx = { selectedSiteId: string };
@@ -41,6 +43,34 @@ export function LiveAnalyticsPage() {
     hidden: { opacity: 0, y: 16 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
   };
+
+  const { data: timeseriesMinute = [], isLoading: isLoadingMin } = useQuery({
+    queryKey: ['visitorTimeseries', selectedSiteId, 'minute'],
+    queryFn: () => getVisitorTimeseries(selectedSiteId, 'minute'),
+    enabled: !!selectedSiteId,
+    refetchInterval: 30_000,
+  });
+
+  const { data: timeseriesHour = [], isLoading: isLoadingHour } = useQuery({
+    queryKey: ['visitorTimeseries', selectedSiteId, 'hour'],
+    queryFn: () => getVisitorTimeseries(selectedSiteId, 'hour'),
+    enabled: !!selectedSiteId,
+    refetchInterval: 60_000,
+  });
+
+  if (!selectedSiteId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center px-4">
+        <div className="h-16 w-16 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-4">
+          <Zap className="h-8 w-8 text-blue-400" />
+        </div>
+        <h3 className="text-lg font-semibold mb-2">Select a Site</h3>
+        <p className="text-sm text-muted-foreground max-w-xs">
+          Please select a site from the top navigation to view live analytics.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 md:p-8 max-w-7xl mx-auto space-y-6">
@@ -91,7 +121,13 @@ export function LiveAnalyticsPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <VisitorLineChart data={[]} useArea color="#7c3aed" height={200} />
+              {isLoadingMin ? (
+                <div className="h-[200px] flex items-center justify-center">
+                  <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : (
+                <VisitorLineChart data={timeseriesMinute} useArea color="#7c3aed" height={200} />
+              )}
             </CardContent>
           </Card>
         </motion.div>
@@ -124,7 +160,13 @@ export function LiveAnalyticsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <VisitorLineChart data={[]} useArea={false} color="#22c55e" height={200} />
+              {isLoadingHour ? (
+                <div className="h-[200px] flex items-center justify-center">
+                  <div className="h-6 w-6 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : (
+                <VisitorLineChart data={timeseriesHour} useArea={false} color="#22c55e" height={200} />
+              )}
             </CardContent>
           </Card>
         </motion.div>
@@ -138,7 +180,13 @@ export function LiveAnalyticsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <MultiVisitorChart data={[]} height={200} />
+              {isLoadingHour ? (
+                <div className="h-[200px] flex items-center justify-center">
+                  <div className="h-6 w-6 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : (
+                <MultiVisitorChart data={timeseriesHour} height={200} />
+              )}
             </CardContent>
           </Card>
         </motion.div>

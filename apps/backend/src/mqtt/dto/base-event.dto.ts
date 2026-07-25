@@ -26,8 +26,8 @@ export class BaseEventDto {
 
   /** Logical site identifier */
   @IsString()
-  @IsNotEmpty()
-  siteId!: string;
+  @IsOptional()
+  siteId?: string | null;
 
   /** Discriminator for the event type */
   @IsString()

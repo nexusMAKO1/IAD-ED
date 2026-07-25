@@ -22,6 +22,10 @@ export class DetectionItemDto {
   @IsOptional()
   @IsString()
   age_group?: string;
+
+  @IsOptional()
+  @IsString()
+  gender?: string;
 }
 
 export class DetectionsPayloadDto {

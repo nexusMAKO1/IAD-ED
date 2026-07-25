@@ -1,12 +1,14 @@
 /**
- * devices.controller.ts — Devices Endpoints
- * IAD & SmartQueue AI — Express Display SmartVision (T-032 / F4.2)
+ * devices.controller.ts — Unified Devices REST API
  *
- * Expose le CRUD complet des dispositifs avec protection JWT + RBAC.
- * - GET   /api/devices?siteId=xxx  → tous les rôles authentifiés
- * - POST  /api/devices             → ADMIN, MANAGER
- * - PATCH /api/devices/:id         → ADMIN, MANAGER
- * - DELETE /api/devices/:id        → ADMIN, MANAGER
+ * GET    /devices                     List all (with optional filters)
+ * GET    /devices/:id                 Get one device (with metadata)
+ * PATCH  /devices/:id                 Update name / siteId / status
+ * POST   /devices/:id/assign-site     Assign to a site
+ * POST   /devices/:id/unpair          Unassign from site
+ * POST   /devices/:id/restart         Send restart command (cameras / displays)
+ * POST   /devices/:id/settings        Update camera detection settings
+ * DELETE /devices/:id                 Delete a device
  */
 
 import {
@@ -28,16 +30,13 @@ import {
   ApiOperation,
   ApiParam,
   ApiQuery,
-  ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { UserRole } from '@prisma/client';
+import { DeviceType, DeviceStatus, UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { DevicesService } from './devices.service';
-import { CreateDeviceDto } from './dto/create-device.dto';
-import { UpdateDeviceDto } from './dto/update-device.dto';
 
 @ApiTags('Devices')
 @Controller('devices')
@@ -46,76 +45,107 @@ import { UpdateDeviceDto } from './dto/update-device.dto';
 export class DevicesController {
   constructor(private readonly devicesService: DevicesService) {}
 
-  /**
-   * POST /api/devices
-   * Crée un nouveau dispositif — réservé à ADMIN et MANAGER.
-   */
-  @Post()
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  @ApiOperation({ summary: 'Créer un nouveau dispositif' })
-  @ApiResponse({ status: 201, description: 'Dispositif créé avec succès' })
-  @ApiResponse({ status: 400, description: 'Données invalides' })
-  @ApiResponse({ status: 403, description: 'Rôle insuffisant' })
-  @ApiResponse({ status: 404, description: 'Site introuvable' })
-  create(@Body() createDeviceDto: CreateDeviceDto) {
-    return this.devicesService.create(createDeviceDto);
-  }
+  // ─── List ─────────────────────────────────────────────────────────────────
 
-  /**
-   * GET /api/devices?siteId=xxx
-   * Liste les dispositifs d'un site — accessible à tous les rôles authentifiés.
-   */
   @Get()
-  @ApiOperation({ summary: "Lister les dispositifs d'un site" })
-  @ApiQuery({
-    name: 'siteId',
-    required: false,
-    type: 'string',
-    description: 'UUID du site (optionnel pour tous les sites)',
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Liste des dispositifs retournée',
-  })
-  @ApiResponse({ status: 404, description: 'Site introuvable' })
-  findBySite(@Query('siteId', new ParseUUIDPipe({ optional: true })) siteId?: string) {
-    return this.devicesService.findBySite(siteId);
+  @ApiOperation({ summary: 'List all devices (supports type/siteId/status filters)' })
+  @ApiQuery({ name: 'siteId', required: false })
+  @ApiQuery({ name: 'type', required: false, enum: DeviceType })
+  @ApiQuery({ name: 'status', required: false, enum: DeviceStatus })
+  @ApiQuery({ name: 'unassigned', required: false, type: Boolean })
+  findAll(
+    @Query('siteId') siteId?: string,
+    @Query('type') type?: DeviceType,
+    @Query('status') status?: DeviceStatus,
+    @Query('unassigned') unassigned?: string,
+  ) {
+    return this.devicesService.findAll({
+      siteId,
+      type,
+      status,
+      unassigned: unassigned === 'true',
+    });
   }
 
-  /**
-   * PATCH /api/devices/:id
-   * Mise à jour partielle — réservé à ADMIN et MANAGER.
-   */
+  // ─── Get one ──────────────────────────────────────────────────────────────
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get a single device with full metadata' })
+  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
+  findOne(@Param('id', ParseUUIDPipe) id: string) {
+    return this.devicesService.findOne(id);
+  }
+
+  // ─── Update ───────────────────────────────────────────────────────────────
+
   @Patch(':id')
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  @ApiOperation({ summary: 'Mettre à jour un dispositif' })
-  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
-  @ApiResponse({ status: 200, description: 'Dispositif mis à jour' })
-  @ApiResponse({ status: 400, description: 'Données invalides' })
-  @ApiResponse({ status: 403, description: 'Rôle insuffisant' })
-  @ApiResponse({ status: 404, description: 'Dispositif introuvable' })
+  @ApiOperation({ summary: 'Update device name / siteId / status' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() updateDeviceDto: UpdateDeviceDto,
+    @Body() body: Record<string, any>,
   ) {
-    return this.devicesService.update(id, updateDeviceDto);
+    return this.devicesService.update(id, body);
   }
 
-  /**
-   * DELETE /api/devices/:id
-   * Suppression d'un dispositif — réservé à ADMIN et MANAGER.
-   */
+  // ─── Assign site ──────────────────────────────────────────────────────────
+
+  @Post(':id/assign-site')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @ApiOperation({ summary: 'Assign device to a site' })
+  @HttpCode(HttpStatus.OK)
+  assignSite(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: { siteId: string; zoneId?: string; screenId?: string },
+  ) {
+    return this.devicesService.assignSite(id, body.siteId, body);
+  }
+
+  // ─── Unpair ───────────────────────────────────────────────────────────────
+
+  @Post(':id/unpair')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @ApiOperation({ summary: 'Unassign device from its site' })
+  @HttpCode(HttpStatus.OK)
+  unpair(@Param('id', ParseUUIDPipe) id: string) {
+    return this.devicesService.unpair(id);
+  }
+
+  // ─── Restart ──────────────────────────────────────────────────────────────
+
+  @Post(':id/restart')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @ApiOperation({ summary: 'Send restart command to device' })
+  @HttpCode(HttpStatus.OK)
+  restart(@Param('id', ParseUUIDPipe) id: string) {
+    return this.devicesService.restartDevice(id);
+  }
+
+  // ─── Camera settings ──────────────────────────────────────────────────────
+
+  @Post(':id/settings')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @ApiOperation({ summary: 'Update camera detection settings' })
+  @HttpCode(HttpStatus.OK)
+  updateSettings(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: Record<string, any>,
+  ) {
+    return this.devicesService.updateCameraSettings(id, body);
+  }
+
+  // ─── Delete ───────────────────────────────────────────────────────────────
+
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN, UserRole.MANAGER)
-  @ApiOperation({ summary: 'Supprimer un dispositif' })
-  @ApiParam({ name: 'id', type: 'string', format: 'uuid' })
-  @ApiResponse({ status: 204, description: 'Dispositif supprimé' })
-  @ApiResponse({ status: 403, description: 'Rôle insuffisant' })
-  @ApiResponse({ status: 404, description: 'Dispositif introuvable' })
+  @ApiOperation({ summary: 'Delete a device' })
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.devicesService.remove(id);
   }

@@ -17,10 +17,10 @@ import { ErrorState } from '@/components/ui/ErrorState';
 import { StatusBadge } from '@/components/dashboard/StatusBadge';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  getEdgeDevices, unpairEdgeDevice, deleteEdgeDevice,
-  assignSiteEdgeDevice, restartEdgeDevice, updateEdgeDevice,
-  type EdgeDevice,
-} from '@/api/edge-devices';
+  getDevices, unpairDevice, deleteDevice,
+  assignSiteDevice, restartDevice, updateDevice,
+} from '@/api/devices';
+import type { Device as EdgeDevice } from '@/types';
 import { getSites } from '@/api/sites';
 import { useMqtt } from '@/mqtt/useMqtt';
 import { MQTT_TOPICS } from '@/mqtt/mqtt.topics';
@@ -534,8 +534,8 @@ export function CamerasPage() {
 
   // ─── API Queries ────────────────────────────────────────────────────────────
   const { data: devicesRaw = [], isLoading, isError, refetch } = useQuery({
-    queryKey: ['edge-devices'],
-    queryFn: getEdgeDevices,
+    queryKey: ['devices', 'EDGE_CAMERA'],
+    queryFn: () => getDevices({ type: 'EDGE_CAMERA' }),
     refetchInterval: 15_000,
   });
 
@@ -545,31 +545,31 @@ export function CamerasPage() {
   });
 
   // ─── Mutations ──────────────────────────────────────────────────────────────
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['edge-devices'] });
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['devices', 'EDGE_CAMERA'] });
 
   const assignMutation = useMutation({
     mutationFn: ({ id, siteId, zoneId }: { id: string; siteId: string; zoneId: string }) =>
-      assignSiteEdgeDevice(id, { siteId, zoneId }),
+      assignSiteDevice(id, { siteId, zoneId }),
     onSuccess: () => { invalidate(); setAssignModalCamId(null); },
   });
 
   const renameMutation = useMutation({
     mutationFn: ({ id, name }: { id: string; name: string }) =>
-      updateEdgeDevice(id, { friendlyName: name }),
+      updateDevice(id, { name }),
     onSuccess: () => { invalidate(); setRenameModalCam(null); },
   });
 
   const unpairMutation = useMutation({
-    mutationFn: (id: string) => unpairEdgeDevice(id),
+    mutationFn: (id: string) => unpairDevice(id),
     onSuccess: invalidate,
   });
 
   const restartMutation = useMutation({
-    mutationFn: (id: string) => restartEdgeDevice(id),
+    mutationFn: (id: string) => restartDevice(id),
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteEdgeDevice(id),
+    mutationFn: (id: string) => deleteDevice(id),
     onSuccess: invalidate,
   });
 
@@ -622,9 +622,16 @@ export function CamerasPage() {
   useMqtt(MQTT_TOPICS.FRONTEND.DEVICE_STATUS, handleDeviceStatus as any);
 
   // Merge live MQTT data with REST data
-  const devices: EdgeDevice[] = useMemo(() => {
-    return devicesRaw.map(d => ({
+  const devices: any[] = useMemo(() => {
+    return devicesRaw.map((d: any) => ({
       ...d,
+      friendlyName: d.name,
+      cpuUsage: d.cameraMetadata?.cpuUsage,
+      memoryUsage: d.cameraMetadata?.memoryUsage,
+      fps: d.cameraMetadata?.fps,
+      zoneId: d.cameraMetadata?.zoneId,
+      model: d.cameraMetadata?.model,
+      streamUrl: d.cameraMetadata?.streamUrl,
       ...(liveDevices[d.deviceId] || {}),
     }));
   }, [devicesRaw, liveDevices]);

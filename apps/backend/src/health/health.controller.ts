@@ -6,25 +6,11 @@
 import { Controller, Get, VERSION_NEUTRAL } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
-import { HeartbeatMonitorService } from './heartbeat-monitor.service';
-
 interface HealthResponse {
   status: string;
   service: string;
   version: string;
   timestamp: string;
-}
-
-@ApiTags('System')
-@Controller({ path: 'system', version: '1' })
-export class SystemController {
-  constructor(private readonly heartbeatMonitor: HeartbeatMonitorService) {}
-
-  @Get('heartbeat-monitor')
-  @ApiOperation({ summary: 'Heartbeat Monitor Diagnostics' })
-  getHeartbeatMonitorDiagnostics() {
-    return this.heartbeatMonitor.getDiagnostics();
-  }
 }
 
 @ApiTags('Health')
@@ -51,5 +37,16 @@ export class HealthController {
       version: '1.0.0',
       timestamp: new Date().toISOString(),
     };
+  }
+}
+
+// Kept as a stub for backwards compatibility — diagnostics now in DevicesModule
+@ApiTags('System')
+@Controller({ path: 'system', version: '1' })
+export class SystemController {
+  @Get('heartbeat-monitor')
+  @ApiOperation({ summary: 'Presence Service Diagnostics (stub)' })
+  getHeartbeatMonitorDiagnostics() {
+    return { message: 'Diagnostics are now handled by PresenceService in DevicesModule' };
   }
 }

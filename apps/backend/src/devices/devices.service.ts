@@ -1,9 +1,8 @@
 /**
- * devices.service.ts — Devices Business Logic
- * IAD & SmartQueue AI — Express Display SmartVision (T-032 / F4.2)
+ * devices.service.ts — Unified Device Business Logic
  *
- * CRUD complet des dispositifs (écrans, totems, bornes).
- * Chaque dispositif est toujours rattaché à un site existant.
+ * Single source of truth for all device types (EDGE_CAMERA, DISPLAY, etc).
+ * Wraps DeviceRegistryService for assignment and provides CRUD operations.
  */
 
 import {
@@ -12,11 +11,12 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Device } from '@prisma/client';
+import { DeviceType, DeviceStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { SitesService } from '../sites/sites.service';
-import { CreateDeviceDto } from './dto/create-device.dto';
-import { UpdateDeviceDto } from './dto/update-device.dto';
+import { MqttService } from '../mqtt/mqtt.service';
+import { MQTT_TOPICS } from '../mqtt/mqtt.topics';
+import { PresenceService } from './presence.service';
+import { DeviceRegistryService } from './device-registry.service';
 
 @Injectable()
 export class DevicesService {
@@ -24,155 +24,192 @@ export class DevicesService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly sitesService: SitesService,
+    private readonly mqtt: MqttService,
+    private readonly registry: DeviceRegistryService,
   ) {}
 
-  /**
-   * Crée un nouveau dispositif rattaché à un site existant.
-   * Lève NotFoundException si le siteId est inconnu.
-   */
-  async create(dto: CreateDeviceDto): Promise<Device> {
-    // Validate that the site exists (throws 404 if not)
-    await this.sitesService.findOne(dto.siteId);
+  // ─── Read ──────────────────────────────────────────────────────────────────
 
-    try {
-      const device = await this.prisma.device.create({
-        data: {
-          name: dto.name,
-          type: dto.type,
-          ipAddress: dto.ipAddress ?? null,
-          siteId: dto.siteId,
-          serialNumber: dto.serialNumber,
-          firmwareVersion: dto.firmwareVersion,
-          mqttClientId: dto.mqttClientId,
-        },
-        include: { site: { select: { id: true, name: true } } },
-      });
+  async findAll(filters?: {
+    siteId?: string;
+    type?: DeviceType;
+    status?: DeviceStatus;
+    unassigned?: boolean;
+  }) {
+    const where: any = {};
+    if (filters?.siteId) where.siteId = filters.siteId;
+    if (filters?.type) where.type = filters.type;
+    if (filters?.status) where.status = filters.status;
+    if (filters?.unassigned) where.siteId = null;
 
-      this.logger.log(
-        `Dispositif créé: ${device.name} (${device.id}) sur le site ${dto.siteId}`,
+    const now = new Date();
+    const devices = await this.prisma.device.findMany({
+      where,
+      include: {
+        site: { select: { id: true, name: true } },
+        cameraMetadata: true,
+        displayMetadata: true,
+      },
+      orderBy: { lastHeartbeat: 'desc' },
+    });
+
+    // Apply real-time status correction (same as PresenceService logic)
+    return devices.map((d) => {
+      const computed = PresenceService.computeStatus(
+        d.lastHeartbeat,
+        d.lastSeen,
+        now,
+        d.status,
       );
-      return device;
-    } catch (error: any) {
-      if (error.code === 'P2003') {
-        throw new BadRequestException(
-          `Le site référencé '${dto.siteId}' est invalide`,
-        );
-      }
-      this.logger.error(
-        `Erreur lors de la création du dispositif: ${error.message}`,
-        error.stack,
-      );
-      throw new BadRequestException('Impossible de créer le dispositif');
-    }
+      return { ...d, status: computed ?? d.status };
+    });
   }
 
-  /**
-   * Retourne tous les dispositifs d'un site, triés par nom.
-   * Le siteId est obligatoire pour éviter de retourner tous les dispositifs.
-   */
-  async findBySite(siteId?: string): Promise<Device[]> {
-    // Validate that the site exists first if provided
-    if (siteId) {
-      await this.sitesService.findOne(siteId);
-    }
+  async findOne(id: string) {
+    const device = await this.prisma.device.findUnique({
+      where: { id },
+      include: {
+        site: true,
+        cameraMetadata: true,
+        displayMetadata: true,
+      },
+    });
+    if (!device) throw new NotFoundException(`Device '${id}' not found`);
 
-    try {
-      return await this.prisma.device.findMany({
-        where: siteId ? { siteId } : undefined,
-        orderBy: { name: 'asc' },
-      });
-    } catch (error: any) {
-      this.logger.error(
-        `Erreur lors de la récupération des dispositifs: ${error.message}`,
-        error.stack,
-      );
-      throw new BadRequestException(
-        'Impossible de lister les dispositifs de ce site',
-      );
-    }
+    const now = new Date();
+    const computed = PresenceService.computeStatus(
+      device.lastHeartbeat,
+      device.lastSeen,
+      now,
+      device.status,
+    );
+    return { ...device, status: computed ?? device.status };
   }
 
-  /**
-   * Retourne un dispositif par son UUID.
-   * Lève NotFoundException si absent.
-   */
-  async findOne(id: string): Promise<Device> {
-    try {
+  // ─── Assign / Unpair ───────────────────────────────────────────────────────
+
+  async assignSite(
+    id: string,
+    siteId: string,
+    extra: Record<string, any> = {},
+  ) {
+    // Validate site exists
+    const site = await this.prisma.site.findUnique({ where: { id: siteId } });
+    if (!site) throw new NotFoundException(`Site '${siteId}' not found`);
+
+    // Update optional zone for cameras
+    if (extra.zoneId) {
       const device = await this.prisma.device.findUnique({ where: { id } });
-      if (!device) {
-        throw new NotFoundException(`Dispositif avec l'id '${id}' introuvable`);
+      if (device) {
+        await this.prisma.cameraMetadata.upsert({
+          where: { deviceId: device.id },
+          create: { deviceId: device.id, zoneId: extra.zoneId },
+          update: { zoneId: extra.zoneId },
+        });
       }
-      return device;
-    } catch (error: any) {
-      if (error instanceof NotFoundException) throw error;
-      this.logger.error(
-        `Erreur lors de la recherche du dispositif '${id}': ${error.message}`,
-        error.stack,
-      );
-      throw new NotFoundException(`Dispositif avec l'id '${id}' introuvable`);
     }
+
+    return this.registry.assignToSite(id, siteId, extra);
   }
 
-  /**
-   * Met à jour partiellement un dispositif (nom, IP, type, statut forcé).
-   */
-  async update(id: string, dto: UpdateDeviceDto): Promise<Device> {
-    const existing = await this.findOne(id); // Assert existence
+  async unpair(id: string) {
+    return this.registry.assignToSite(id, null);
+  }
 
-    if (Object.keys(dto).length === 0) {
-      throw new BadRequestException('Aucun champ à mettre à jour fourni');
-    }
+  // ─── Update ────────────────────────────────────────────────────────────────
 
-    try {
-      // if siteId is changing, we should verify the new site exists
-      if (dto.siteId && dto.siteId !== existing.siteId) {
-        const siteExists = await this.prisma.site.findUnique({ where: { id: dto.siteId } });
-        if (!siteExists) {
-          throw new NotFoundException(`Site cible avec l'id '${dto.siteId}' introuvable`);
-        }
-      }
+  async update(id: string, dto: any) {
+    const existing = await this.findOne(id);
 
-      const updated = await this.prisma.device.update({
-        where: { id },
-        data: dto,
+    const updated = await this.prisma.device.update({
+      where: { id },
+      data: {
+        name: dto.name ?? undefined,
+        siteId: dto.siteId !== undefined ? dto.siteId : undefined,
+        status: dto.status ?? undefined,
+        ip: dto.ip ?? undefined,
+      },
+      include: {
+        site: true,
+        cameraMetadata: true,
+        displayMetadata: true,
+      },
+    });
+
+    this.logger.log(`Device updated: ${updated.name} (${id})`);
+
+    // Broadcast rename/update to all frontend subscribers
+    this.mqtt.publish(MQTT_TOPICS.FRONTEND.DEVICE_UPDATED, {
+      event: 'device.updated',
+      id: updated.id,
+      deviceId: updated.deviceId,
+      name: updated.name,
+      siteId: updated.siteId,
+      status: updated.status,
+      type: updated.type,
+    });
+
+    return updated;
+  }
+
+  // ─── Camera-specific actions ───────────────────────────────────────────────
+
+  async restartDevice(id: string) {
+    const device = await this.findOne(id);
+    this.mqtt.publish(MQTT_TOPICS.COMMANDS.RESTART, {
+      deviceId: device.deviceId,
+      action: 'restart',
+    });
+    return { success: true, message: 'Restart command sent' };
+  }
+
+  async updateCameraSettings(id: string, settings: any) {
+    const device = await this.findOne(id);
+    this.mqtt.publish(MQTT_TOPICS.COMMANDS.CAMERA, {
+      deviceId: device.deviceId,
+      action: 'update_settings',
+      payload: settings,
+    });
+
+    // Persist detectionEnabled / ageEstimatorEnabled if provided
+    if (
+      settings.detectionEnabled !== undefined ||
+      settings.ageEstimatorEnabled !== undefined
+    ) {
+      await this.prisma.cameraMetadata.upsert({
+        where: { deviceId: device.id },
+        create: {
+          deviceId: device.id,
+          detectionEnabled: settings.detectionEnabled ?? true,
+          ageEstimatorEnabled: settings.ageEstimatorEnabled ?? true,
+        },
+        update: {
+          detectionEnabled: settings.detectionEnabled ?? undefined,
+          ageEstimatorEnabled: settings.ageEstimatorEnabled ?? undefined,
+        },
       });
-
-      this.logger.log(`Dispositif mis à jour: ${updated.name} (${id})`);
-      return updated;
-    } catch (error: any) {
-      if (error.code === 'P2025') {
-        throw new NotFoundException(`Dispositif avec l'id '${id}' introuvable`);
-      }
-      this.logger.error(
-        `Erreur lors de la mise à jour du dispositif: ${error.message}`,
-        error.stack,
-      );
-      throw new BadRequestException(
-        'Impossible de mettre à jour le dispositif',
-      );
     }
+
+    return { success: true };
   }
 
-  /**
-   * Supprime un dispositif.
-   * La suppression en cascade des AudienceEvents est gérée par Prisma (onDelete: Cascade).
-   */
-  async remove(id: string): Promise<void> {
-    await this.findOne(id); // Assert existence
+  // ─── Delete ────────────────────────────────────────────────────────────────
 
-    try {
-      await this.prisma.device.delete({ where: { id } });
-      this.logger.log(`Dispositif supprimé: ${id}`);
-    } catch (error: any) {
-      if (error.code === 'P2025') {
-        throw new NotFoundException(`Dispositif avec l'id '${id}' introuvable`);
-      }
-      this.logger.error(
-        `Erreur lors de la suppression du dispositif: ${error.message}`,
-        error.stack,
-      );
-      throw new BadRequestException('Impossible de supprimer le dispositif');
-    }
+  async remove(id: string) {
+    const device = await this.prisma.device.findUnique({ where: { id } });
+    if (!device) throw new NotFoundException(`Device '${id}' not found`);
+
+    // Cascade deletes camera/display metadata via FK
+    await this.prisma.device.delete({ where: { id } });
+
+    this.logger.log(`Device deleted: ${device.deviceId} (${device.type})`);
+
+    // Broadcast deletion to all frontend subscribers
+    this.mqtt.publish(MQTT_TOPICS.FRONTEND.DEVICE_UPDATED, {
+      event: 'device.deleted',
+      id: device.id,
+      deviceId: device.deviceId,
+      type: device.type,
+    });
   }
 }

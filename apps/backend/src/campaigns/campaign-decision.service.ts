@@ -7,9 +7,9 @@ import {
 import { MqttService } from '../mqtt/mqtt.service';
 import { MQTT_TOPICS } from '../mqtt/mqtt.topics';
 import { CampaignsService } from './campaigns.service';
-import { DisplayDevicesService } from '../display-devices/display-devices.service';
+import { DevicesService } from '../devices/devices.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { DisplayStatus } from '@prisma/client';
+import { DeviceType, DeviceStatus } from '@prisma/client';
 
 interface DecisionState {
   currentCampaignId: string | null;
@@ -23,10 +23,8 @@ interface DecisionState {
 export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(CampaignDecisionService.name);
 
-  // ── State mapped by deviceId ─────────────────────────────────────────────────
   private stateByDevice = new Map<string, DecisionState>();
 
-  // ── Constants ─────────────────────────────────────────────────────────────
   private readonly CAMPAIGN_COOLDOWN_MS = 15_000;
   private readonly WINDOW_MS = 5_000;
   private readonly INACTIVITY_MS = 30_000;
@@ -34,7 +32,7 @@ export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly mqttService: MqttService,
     private readonly campaignsService: CampaignsService,
-    private readonly displayService: DisplayDevicesService,
+    private readonly devicesService: DevicesService,
     private readonly prisma: PrismaService,
   ) {}
 
@@ -70,13 +68,14 @@ export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
     return this.stateByDevice.get(deviceId)!;
   }
 
-  // ── Main handler ────────────────────────────────────────────────────────────
   private async handleDemographicsEvent(event: Record<string, any>) {
     try {
       const payload = event?.payload;
-      if (!payload?.age_group) {
+      const parsedAgeGroup = payload?.age_group || payload?.ageGroup;
+
+      if (!parsedAgeGroup) {
         this.logger.debug(
-          'Received demographics event with missing payload — skipping.',
+          'Received demographics event with missing age group payload — skipping.',
         );
         return;
       }
@@ -88,37 +87,31 @@ export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
         return;
       }
 
-      const ageGroup: string = payload.age_group as string;
+      const ageGroup: string = parsedAgeGroup as string;
       const now = Date.now();
-      
-      // Verify that the EdgeDevice is actually paired
-      const edgeDevice = await this.prisma.edgeDevice.findUnique({
+
+      // Verify that the device is actually paired and online via unified Device table
+      const device = await this.prisma.device.findUnique({
         where: { deviceId },
       });
 
-      if (!edgeDevice || edgeDevice.status !== DisplayStatus.ONLINE) {
+      if (!device || device.status !== DeviceStatus.ONLINE) {
         this.logger.debug(`Camera ${deviceId} is not paired or online. Ignoring demographics.`);
         return;
       }
 
       const state = this.getState(deviceId);
 
-      // Record detection for inactivity tracking
       state.lastDetectionTime = now;
       this.resetInactivityTimer(deviceId, siteId, state);
 
-      // Add detection to the rolling 5-second window
       state.ageWindow.push({ ts: now, ageGroup });
-
-      // Prune entries older than 5 s
       state.ageWindow = state.ageWindow.filter(
         (e) => now - e.ts <= this.WINDOW_MS,
       );
 
-      // Enforce campaign switch cooldown
       if (now - state.lastSwitchTime < this.CAMPAIGN_COOLDOWN_MS) return;
 
-      // Determine the dominant age over the last 5 s
       const dominant = this.getDominantAge(state.ageWindow);
       if (!dominant) return;
 
@@ -129,7 +122,6 @@ export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  // ── Find the most frequent age group in the window ─────────────────────────
   private getDominantAge(window: { ts: number; ageGroup: string }[]): string | null {
     if (window.length === 0) return null;
     const counts: Record<string, number> = {};
@@ -139,7 +131,6 @@ export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
     return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
   }
 
-  // ── Campaign selection ──────────────────────────────────────────────────────
   private async evaluateCampaigns(deviceId: string, siteId: string, dominantAgeGroup: string, state: DecisionState) {
     const activeCampaigns = await this.campaignsService.findActive();
     if (activeCampaigns.length === 0) {
@@ -153,25 +144,19 @@ export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
     for (const campaign of activeCampaigns) {
       let score = 0;
 
-      // Priority boost
       if (campaign.priority === 'high') score += 10;
       else if (campaign.priority === 'standard') score += 5;
 
-      // Match via targetAge string (primary)
       const targetAge: string | null = campaign.targetAge ?? null;
       if (targetAge) {
         if (targetAge === dominantAgeGroup) {
           score += 20;
         } else if (targetAge !== 'all') {
-          score -= 10; // Hard mismatch penalty
+          score -= 10;
         }
       }
 
-      // Match via targetAudience JSON (secondary, e.g. { age_group: "adult" })
-      const targetAudience = campaign.targetAudience as Record<
-        string,
-        any
-      > | null;
+      const targetAudience = campaign.targetAudience as Record<string, any> | null;
       if (targetAudience?.age_group === dominantAgeGroup) {
         score += 15;
       }
@@ -183,8 +168,6 @@ export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
     }
 
     if (!bestCampaign) return;
-
-    // Avoid publishing duplicate commands for the same campaign
     if (bestCampaign.id === state.currentCampaignId) return;
 
     state.currentCampaignId = bestCampaign.id;
@@ -194,7 +177,13 @@ export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
       `[BACKEND] Campaign selected: "${bestCampaign.name}" (score=${highestScore}) for age group "${dominantAgeGroup}" on camera ${deviceId}`,
     );
 
-    const displays = await this.displayService.findAll({ siteId, status: DisplayStatus.ONLINE });
+    // Use unified DevicesService to find online Display devices in the site
+    const displays = await this.devicesService.findAll({
+      siteId,
+      type: DeviceType.DISPLAY,
+      status: DeviceStatus.ONLINE,
+    });
+
     if (displays.length === 0) {
       this.logger.warn(`No online paired displays found for site ${siteId} — skipping publish.`);
       return;
@@ -214,7 +203,6 @@ export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  // ── Inactivity: revert to playlist after 30 s with no detections ────────────
   private resetInactivityTimer(deviceId: string, siteId: string, state: DecisionState) {
     if (state.inactivityTimer) clearTimeout(state.inactivityTimer);
     state.inactivityTimer = setTimeout(async () => {
@@ -222,9 +210,13 @@ export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
         `[BACKEND] No detections for 30 s on camera ${deviceId} — reverting to default playlist for site ${siteId}.`,
       );
       state.currentCampaignId = null;
-      
+
       try {
-        const displays = await this.displayService.findAll({ siteId, status: DisplayStatus.ONLINE });
+        const displays = await this.devicesService.findAll({
+          siteId,
+          type: DeviceType.DISPLAY,
+          status: DeviceStatus.ONLINE,
+        });
         for (const display of displays) {
           const topic = MQTT_TOPICS.DISPLAY.COMMANDS(display.deviceId);
           this.mqttService.publish(topic, { action: 'playlist' });

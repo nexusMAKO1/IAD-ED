@@ -6,10 +6,9 @@
 // ─── Enums (mirrored from Prisma) ─────────────────────────────────────────────
 
 export type DeviceType =
+  | 'DISPLAY'
+  | 'EDGE_CAMERA'
   | 'TOTEM'
-  | 'SCREEN'
-  | 'KIOSK'
-  | 'CAMERA'
   | 'WAITING_ROOM_SCREEN'
   | 'TICKET_KIOSK';
 
@@ -31,17 +30,56 @@ export interface Site {
 
 export interface Device {
   id: string;
+  deviceId: string;
   name: string;
   type: DeviceType;
+  siteId: string | null;
   status: DeviceStatus;
-  ipAddress: string | null;
-  serialNumber: string | null;
+  hostname: string | null;
+  ip: string | null;
+  platform: string | null;
+  version: string | null;
   firmwareVersion: string | null;
   mqttClientId: string | null;
+  lastHeartbeat: string | null;
   lastSeen: string | null;
-  siteId: string;
+  connectedAt: string | null;
+  disconnectedAt: string | null;
+  mqttConnected: boolean;
+  uptime: number;
   createdAt: string;
   updatedAt: string;
+  
+  // Relations
+  site?: any;
+  cameraMetadata?: CameraMetadata | null;
+  displayMetadata?: DisplayMetadata | null;
+}
+
+export interface CameraMetadata {
+  id: string;
+  deviceId: string;
+  fps: number | null;
+  resolution: string | null;
+  streamUrl: string | null;
+  cameraIndex: number | null;
+  model: string | null;
+  cpuUsage: number | null;
+  memoryUsage: number | null;
+  zoneId: string | null;
+  detectionEnabled: boolean;
+  ageEstimatorEnabled: boolean;
+  macAddress: string | null;
+}
+
+export interface DisplayMetadata {
+  id: string;
+  deviceId: string;
+  screenResolution: string | null;
+  playlist: string | null;
+  activeCampaign: string | null;
+  kioskVersion: string | null;
+  screenId: string | null;
 }
 
 // ─── DTOs (Request payloads) ────────────────────────────────────────────────────
@@ -54,14 +92,14 @@ export interface UpdateSiteThresholdsPayload {
 export interface CreateDevicePayload {
   name: string;
   type: DeviceType;
-  ipAddress?: string;
+  ip?: string;
   siteId: string;
 }
 
 export interface UpdateDevicePayload {
   name?: string;
   type?: DeviceType;
-  ipAddress?: string;
+  ip?: string;
   status?: DeviceStatus;
   serialNumber?: string;
   firmwareVersion?: string;
@@ -167,42 +205,7 @@ export interface AudienceEvent {
 
 // ─── SmartVision IAD — Cameras ────────────────────────────────────────────────
 
-export type CameraStatus = 'online' | 'offline' | 'degraded' | 'calibrating';
 
-export interface Camera {
-  id: string;
-  name: string;
-  siteId: string;
-  status: CameraStatus;
-  fps: number;
-  latencyMs: number;
-  yoloModel: string;
-  cpuPercent: number;
-  ramPercent: number;
-  temperatureC: number;
-  resolution: string;
-  source: string;
-  lastSeen: string;
-}
-
-// ─── SmartVision IAD — Edge Devices ───────────────────────────────────────────
-
-export type ServiceStatus = 'healthy' | 'degraded' | 'unhealthy' | 'offline';
-
-export interface EdgeDevice {
-  id: string;
-  name: string;
-  siteId: string;
-  status: ServiceStatus;
-  ipAddress: string;
-  cpuPercent: number;
-  ramPercent: number;
-  fps: number;
-  latencyMs: number;
-  temperatureC: number;
-  modelVersion: string;
-  lastHeartbeat: string;
-}
 
 // ─── SmartVision IAD — Alerts ─────────────────────────────────────────────────
 

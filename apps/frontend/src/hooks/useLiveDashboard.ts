@@ -84,16 +84,34 @@ export function useLiveDashboard(siteId?: string): LiveDashboardState {
     [siteId],
   );
 
-  // Demographics handler — reads from generic payload shape
+  // Use local state for cumulative demographic counts
+  const [demoCounts, setDemoCounts] = useState({ male: 1, female: 1 });
+
+  // Demographics handler — parses individual events
   const handleDemographics = useCallback(
-    (_topic: string, payload: { siteId: string; payload?: { malePercent?: number; femalePercent?: number } }) => {
-      if (siteId && payload.siteId !== siteId) return;
-      setState((prev) => ({
-        ...prev,
-        malePercent: payload.payload?.malePercent ?? prev.malePercent,
-        femalePercent: payload.payload?.femalePercent ?? prev.femalePercent,
-        lastUpdated: new Date(),
-      }));
+    (_topic: string, envelope: any) => {
+      if (siteId && envelope.siteId !== siteId) return;
+      const payload = envelope.payload || {};
+      const gender = String(payload.gender || '').toLowerCase();
+      
+      setDemoCounts((prev) => {
+        const next = { ...prev };
+        if (gender === 'male') next.male++;
+        else if (gender === 'female') next.female++;
+        
+        const total = next.male + next.female;
+        const malePercent = Math.round((next.male / total) * 100);
+        const femalePercent = 100 - malePercent;
+        
+        setState((s) => ({
+          ...s,
+          malePercent,
+          femalePercent,
+          lastUpdated: new Date(),
+        }));
+        
+        return next;
+      });
     },
     [siteId],
   );

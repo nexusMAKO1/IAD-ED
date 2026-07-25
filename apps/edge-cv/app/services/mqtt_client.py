@@ -471,6 +471,7 @@ class MQTTClient:
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "deviceId": self._device_id,
             "siteId": self._site_id,
+            "deviceType": "EDGE_CAMERA",
             "event": event,
             "payload": data,
         }

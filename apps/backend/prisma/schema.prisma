@@ -8,29 +8,22 @@ generator client {
   previewFeatures = ["metrics"]
 }
 
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
 enum DeviceType {
+  DISPLAY            // Display Kiosk
+  EDGE_CAMERA        // Edge-CV camera
   TOTEM
-  SCREEN // alias conservé pour compatibilité
-  KIOSK // alias conservé pour compatibilité
-  CAMERA
-  WAITING_ROOM_SCREEN // F4.2 — écran salle d'attente
-  TICKET_KIOSK // F4.2 — borne ticket
+  WAITING_ROOM_SCREEN
+  TICKET_KIOSK
 }
 
 enum DeviceStatus {
+  UNPAIRED   // Discovered but not assigned to a site
   ONLINE
+  WARNING    // Heartbeat late (30-60 s)
   OFFLINE
-  DEGRADED // F4.2 — statut dégradé (partiel)
-  WARNING // Alerte — problème non critique détecté
-  UNKNOWN // Statut inconnu / pas encore vu
-}
-
-enum DisplayStatus {
-  UNPAIRED
-  ONLINE
-  WARNING
-  OFFLINE
-  ERROR
+  DEGRADED
   UNKNOWN
 }
 
@@ -52,111 +45,115 @@ enum MLModelType {
   SMARTQUEUE
 }
 
+// ─── Site ─────────────────────────────────────────────────────────────────────
+
 model Site {
   id                    String          @id @default(uuid()) @db.Uuid
   name                  String
   address               String
-  // F4.3 — Seuils de comportement adaptatif
-  densityThreshold      Int             @default(10) // personnes/zone déclenchant l'adaptation
-  anomalyQueueThreshold Int             @default(15) // écart en minutes déclenchant l'alerte F2.9
+  densityThreshold      Int             @default(10)
+  anomalyQueueThreshold Int             @default(15)
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt
+
   devices               Device[]
   tickets               Ticket[]
   audienceEvents        AudienceEvent[]
   users                 User[]
-  displayDevices        DisplayDevice[]
-  edgeDevices           EdgeDevice[]
 
   @@map("sites")
 }
 
+// ─── Device (Master Registry) ─────────────────────────────────────────────────
+
 model Device {
-  id              String          @id @default(uuid()) @db.Uuid
-  name            String          @default("Dispositif") // F4.2 — nom lisible de l'écran avec valeur par défaut pour la migration
-  siteId          String          @db.Uuid
-  site            Site            @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  id              String       @id @default(uuid()) @db.Uuid
+  deviceId        String       @unique          // persistent hardware identity
+  name            String       @default("Device")
   type            DeviceType
-  status          DeviceStatus    @default(UNKNOWN)
-  ipAddress       String? // F4.2 — adresse IP optionnelle
-  serialNumber    String? // Numéro de série physique
-  firmwareVersion String? // Version du firmware
-  mqttClientId    String? // Client ID MQTT pour le suivi
-  lastSeen        DateTime? // Dernière heartbeat reçue
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @default(now()) @updatedAt
+  siteId          String?      @db.Uuid         // null = Unassigned
+  site            Site?        @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  status          DeviceStatus @default(UNPAIRED)
+
+  // Network / identity
+  hostname        String?
+  ip              String?
+  platform        String?
+  version         String?
+  firmwareVersion String?
+  mqttClientId    String?
+
+  // Heartbeat tracking
+  lastHeartbeat   DateTime?
+  lastSeen        DateTime?
+  connectedAt     DateTime?
+  disconnectedAt  DateTime?
+  mqttConnected   Boolean      @default(false)
+  uptime          Int          @default(0)
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @default(now()) @updatedAt
+
+  // Type-specific metadata (1-to-1)
+  cameraMetadata  CameraMetadata?
+  displayMetadata DisplayMetadata?
+
+  // Relations
   audienceEvents  AudienceEvent[]
-  displayDevices  DisplayDevice[]
 
   @@index([siteId])
   @@index([type])
+  @@index([status])
   @@map("devices")
 }
 
-model DisplayDevice {
-  id         String        @id @default(uuid()) @db.Uuid
-  deviceId   String        @unique
-  siteId     String?       @db.Uuid
-  site       Site?         @relation(fields: [siteId], references: [id], onDelete: SetNull)
-  screenId   String?       @db.Uuid
-  screen     Device?       @relation(fields: [screenId], references: [id], onDelete: SetNull)
-  hostname   String?
-  ip         String?
-  platform   String?
-  resolution String?
-  status     DisplayStatus @default(UNPAIRED)
-  version    String?
-  uptime     Int           @default(0)
-  lastSeen   DateTime?
-  lastHeartbeat  DateTime?
-  connectedAt    DateTime?
-  disconnectedAt DateTime?
-  mqttConnected  Boolean       @default(false)
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+// ─── CameraMetadata ──────────────────────────────────────────────────────────
 
-  @@index([siteId])
-  @@index([status])
-  @@map("display_devices")
+model CameraMetadata {
+  id                  String   @id @default(uuid()) @db.Uuid
+  device              Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  deviceId            String   @unique @db.Uuid
+
+  fps                 Int?
+  resolution          String?
+  streamUrl           String?
+  cameraIndex         Int?
+  model               String?
+  cpuUsage            Float?
+  memoryUsage         Float?
+  zoneId              String?
+  detectionEnabled    Boolean  @default(true)
+  ageEstimatorEnabled Boolean  @default(true)
+  macAddress          String?
+
+  updatedAt           DateTime @updatedAt
+
+  @@map("camera_metadata")
 }
 
-model EdgeDevice {
-  id              String        @id @default(uuid()) @db.Uuid
-  deviceId        String        @unique
-  siteId          String?       @db.Uuid
-  site            Site?         @relation(fields: [siteId], references: [id], onDelete: SetNull)
-  zoneId          String?       
-  hostname        String?
-  friendlyName    String?
-  ip              String?
-  macAddress      String?
-  platform        String?
-  resolution      String?
-  fps             Int?
-  status          DisplayStatus @default(UNPAIRED)
-  version         String?
-  model           String?
-  firmwareVersion String?
-  uptime          Int           @default(0)
-  cpuUsage        Float?
-  memoryUsage     Float?
-  streamUrl       String?
-  mqttConnected   Boolean       @default(false)
-  lastSeen        DateTime?
-  lastHeartbeat   DateTime?
-  connectedAt     DateTime?
-  disconnectedAt  DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+// ─── DisplayMetadata ─────────────────────────────────────────────────────────
 
-  @@index([siteId])
-  @@index([status])
-  @@map("edge_devices")
+model DisplayMetadata {
+  id               String   @id @default(uuid()) @db.Uuid
+  device           Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  deviceId         String   @unique @db.Uuid
+
+  screenResolution String?
+  playlist         String?
+  activeCampaign   String?
+  kioskVersion     String?
+  screenId         String?
+
+  updatedAt        DateTime @updatedAt
+
+  @@map("display_metadata")
 }
+
+// ─── User ─────────────────────────────────────────────────────────────────────
 
 model User {
   id        String   @id @default(uuid()) @db.Uuid
-  name      String? // Nom complet optionnel
+  name      String?
   email     String   @unique
   password  String
   role      UserRole @default(AGENT)
@@ -168,6 +165,8 @@ model User {
   @@index([siteId])
   @@map("users")
 }
+
+// ─── Campaign ─────────────────────────────────────────────────────────────────
 
 model Campaign {
   id             String    @id @default(uuid()) @db.Uuid
@@ -193,6 +192,8 @@ model Campaign {
   @@map("campaigns")
 }
 
+// ─── AudienceEvent ────────────────────────────────────────────────────────────
+
 model AudienceEvent {
   id           String   @default(uuid()) @db.Uuid
   siteId       String   @db.Uuid
@@ -206,14 +207,17 @@ model AudienceEvent {
   youngCount   Int
   adultCount   Int
   seniorCount  Int
+  maleCount    Int      @default(0)
+  femaleCount  Int      @default(0)
 
-  // Composite primary key including timestamp is required for TimescaleDB hypertables
   @@id([id, timestamp])
   @@index([siteId])
   @@index([deviceId])
   @@index([timestamp])
   @@map("audience_events")
 }
+
+// ─── Ticket ───────────────────────────────────────────────────────────────────
 
 model Ticket {
   id                   String       @id @default(uuid()) @db.Uuid
@@ -233,6 +237,8 @@ model Ticket {
   @@map("tickets")
 }
 
+// ─── MLModel ──────────────────────────────────────────────────────────────────
+
 model MLModel {
   id        String      @id @default(uuid()) @db.Uuid
   type      MLModelType
@@ -244,8 +250,8 @@ model MLModel {
   @@map("ml_models")
 }
 
-/// Singleton table storing all application settings as a JSON blob.
-/// Only one row with id = 'singleton' should ever exist.
+// ─── SystemSettings ───────────────────────────────────────────────────────────
+
 model SystemSettings {
   id        String   @id @default("singleton")
   settings  Json     @default("{}")

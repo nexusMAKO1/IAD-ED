@@ -99,8 +99,12 @@ export const MQTT_TOPICS = {
     DASHBOARD: 'smartvision/frontend/dashboard',
     /** QoS 1 — push notifications for operators */
     NOTIFICATIONS: 'smartvision/frontend/notifications',
-    /** QoS 1 — real-time device connectivity status */
+    /** QoS 1 — real-time device connectivity status (ONLINE/WARNING/OFFLINE) */
     DEVICE_STATUS: 'smartvision/frontend/device-status',
+    /** QoS 1 — device created / renamed / assigned / deleted */
+    DEVICE_UPDATED: 'smartvision/frontend/device-updated',
+    /** QoS 1 — site created / renamed / deleted */
+    SITE_UPDATED: 'smartvision/frontend/site-updated',
   },
 
   // ---------------------------------------------------------------------------

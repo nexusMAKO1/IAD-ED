@@ -20,8 +20,7 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { SkeletonKpiCard } from '@/components/ui/SkeletonCard';
 import { getAudienceStats, getVisitorTimeseries } from '@/api/audience';
 import { useLiveDashboard } from '@/hooks/useLiveDashboard';
-import { getEdgeDevices } from '@/api/edge-devices';
-import { getDisplayDevices } from '@/api/display-devices';
+import { getDevices } from '@/api/devices';
 import { useMqtt } from '@/mqtt/useMqtt';
 import { MQTT_TOPICS } from '@/mqtt/mqtt.topics';
 
@@ -35,8 +34,7 @@ export function OverviewPage() {
   const queryClient = useQueryClient();
 
   useMqtt(MQTT_TOPICS.FRONTEND.DEVICE_STATUS, () => {
-    queryClient.invalidateQueries({ queryKey: ['edgeDevices', selectedSiteId] });
-    queryClient.invalidateQueries({ queryKey: ['displayDevices', selectedSiteId] });
+    queryClient.invalidateQueries({ queryKey: ['devices', selectedSiteId] });
   });
 
   const { data: stats, isLoading: isLoadingStats } = useQuery({
@@ -63,20 +61,18 @@ export function OverviewPage() {
   });
 
   const { data: edgeDevices = [], isLoading: isLoadingCameras } = useQuery({
-    queryKey: ['edgeDevices', selectedSiteId],
-    queryFn: () => getEdgeDevices(),
+    queryKey: ['devices', selectedSiteId, 'EDGE_CAMERA'],
+    queryFn: () => getDevices({ siteId: selectedSiteId, type: 'EDGE_CAMERA' }),
     enabled: !!selectedSiteId,
   });
 
   const { data: displayDevices = [], isLoading: isLoadingDisplays } = useQuery({
-    queryKey: ['displayDevices', selectedSiteId],
-    queryFn: () => getDisplayDevices({ siteId: selectedSiteId }),
+    queryKey: ['devices', selectedSiteId, 'DISPLAY'],
+    queryFn: () => getDevices({ siteId: selectedSiteId, type: 'DISPLAY' }),
     enabled: !!selectedSiteId,
   });
 
-  // Filter edge devices for current site if site is selected, or use backend filtering if added later.
-  // getEdgeDevices currently returns all devices. We filter here.
-  const siteCameras = edgeDevices.filter((d: any) => d.siteId === selectedSiteId);
+  const siteCameras = edgeDevices;
 
   const cameraStats = useMemo(() => {
     return siteCameras.reduce((acc: any, dev: any) => {
