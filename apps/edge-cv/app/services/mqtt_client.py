@@ -116,18 +116,20 @@ class MQTTClient:
     client_id:  MQTT client identifier string.
     keepalive:  Connection keepalive in seconds (default 60).
     site_id:    Logical site identifier used in message envelopes.
+    status_callback: Callback to get the current health status of the device.
     """
 
     def __init__(
         self,
-        host: str,
+        host: str = "mosquitto",
         port: int = 1883,
-        username: str = "",
-        password: str = "",
+        username: Optional[str] = None,
+        password: Optional[str] = None,
         client_id: str = "edge-cv-service",
         keepalive: int = 60,
-        site_id: str = "123e4567-e89b-12d3-a456-426614174000",
-        device_id: str = "123e4567-e89b-12d3-a456-426614174000",
+        site_id: Optional[str] = None,
+        device_id: Optional[str] = None,
+        status_callback: Optional[Callable[[], str]] = None,
     ) -> None:
         self._host = host
         self._port = port
@@ -137,6 +139,7 @@ class MQTTClient:
         self._keepalive = keepalive
         self._site_id = site_id
         self._device_id: str = device_id
+        self._status_callback = status_callback
 
         self._connected: bool = False
         self._lock = threading.Lock()
@@ -491,9 +494,12 @@ class MQTTClient:
             try:
                 mem = psutil.Process().memory_info().rss
                 cpu = psutil.cpu_percent(interval=None)
+                
+                status = self._status_callback() if self._status_callback else "healthy"
+                
                 self.publish_health(
                     service_id=self._device_id,
-                    status="healthy",
+                    status=status,
                     metrics={"cpuPercent": cpu, "memoryBytes": mem},
                 )
             except Exception as exc:  # pragma: no cover

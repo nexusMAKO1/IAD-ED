@@ -22,6 +22,7 @@ import { AudienceEventsModule } from './audience-events/audience-events.module';
 import { CampaignsModule } from './campaigns/campaigns.module';
 import { MetricsModule } from './common/metrics/metrics.module';
 import { SettingsModule } from './settings/settings.module';
+import { CampaignAnalyticsModule } from './campaign-analytics/campaign-analytics.module';
 
 @Module({
   imports: [
@@ -61,6 +62,9 @@ import { SettingsModule } from './settings/settings.module';
 
     // Campaign Management & Decision Engine
     CampaignsModule,
+
+    // Campaign Performance Analytics
+    CampaignAnalyticsModule,
 
     // Application Settings (persisted)
     SettingsModule,

@@ -84,6 +84,11 @@ _model_loaded: bool = False
 _age_estimator: Optional[AgeEstimator] = None
 _tracker: Optional[ByteTracker] = None
 _camera_manager: CameraManager = CameraManager(source=settings.camera_source)
+def _get_device_status() -> str:
+    if not settings.site_id:
+        return "UNPAIRED"
+    return "ONLINE" if _camera_manager.is_connected else "DEGRADED"
+
 _mqtt_client: MQTTClient = MQTTClient(
     host=settings.mqtt_host,
     port=settings.mqtt_port,
@@ -93,6 +98,7 @@ _mqtt_client: MQTTClient = MQTTClient(
     keepalive=settings.mqtt_keepalive,
     site_id=settings.site_id,
     device_id=settings.device_id,
+    status_callback=_get_device_status,
 )
 
 # Startup timestamp for uptime calculation
@@ -287,7 +293,7 @@ async def lifespan(app: FastAPI):  # noqa: ANN001
                     "siteId": settings.site_id,
                     "zoneId": settings.zone_id,
                     "deviceType": "EDGE_CAMERA",
-                    "status": "ONLINE" if settings.site_id else "UNPAIRED",
+                    "status": _get_device_status(),
                     "hostname": _SERVICE_ID,
                     "platform": f"{platform.system()} {platform.release()}",
                     "ip": socket.gethostbyname(socket.gethostname()),

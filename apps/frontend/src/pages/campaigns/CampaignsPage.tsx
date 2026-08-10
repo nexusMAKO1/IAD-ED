@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Edit, Trash, Upload, CheckCircle2, XCircle, GripVertical, Megaphone } from 'lucide-react';
+import { Plus, Edit, Trash, Upload, CheckCircle2, XCircle, GripVertical, Megaphone, BarChart3 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -60,12 +61,17 @@ export function CampaignsPage() {
         description="Gérez les campagnes publicitaires, le ciblage et l'ordre de diffusion"
         icon={Megaphone}
         actions={
-          <button
-            onClick={() => setIsCreating(true)}
-            className="flex items-center gap-2 gradient-bg-blue text-white px-4 py-2 rounded-xl text-sm font-semibold glow-primary hover:shadow-blue-500/30 transition-all"
-          >
-            <Plus className="h-4 w-4" /> Nouvelle campagne
-          </button>
+          <div className="flex items-center gap-3">
+            <Link to="/campaigns/performance" className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-white/10 hover:bg-white/5 transition-all text-white">
+              <BarChart3 className="h-4 w-4" /> Performance
+            </Link>
+            <button
+              onClick={() => setIsCreating(true)}
+              className="flex items-center gap-2 gradient-bg-blue text-white px-4 py-2 rounded-xl text-sm font-semibold glow-primary hover:shadow-blue-500/30 transition-all"
+            >
+              <Plus className="h-4 w-4" /> Nouvelle campagne
+            </button>
+          </div>
         }
       />
 
@@ -128,7 +134,10 @@ export function CampaignsPage() {
                 <td className="px-4 py-3 text-muted-foreground">{c.duration}s</td>
                 <td className="px-4 py-3 text-muted-foreground capitalize">{c.targetAge || 'Tous'}</td>
                 <td className="px-4 py-3 text-right">
-                  <button onClick={() => setIsEditing(c)} className="p-1.5 text-muted-foreground hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors">
+                  <Link to={`/campaigns/${c.id}/analytics`} className="p-1.5 inline-block text-muted-foreground hover:text-purple-400 hover:bg-purple-500/10 rounded-lg transition-colors">
+                    <BarChart3 className="h-3.5 w-3.5" />
+                  </Link>
+                  <button onClick={() => setIsEditing(c)} className="p-1.5 text-muted-foreground hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors ml-1">
                     <Edit className="h-3.5 w-3.5" />
                   </button>
                   <button onClick={() => deleteMutation.mutate(c.id)} className="p-1.5 text-muted-foreground hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors ml-1">

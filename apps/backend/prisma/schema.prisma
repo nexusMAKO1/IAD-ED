@@ -189,6 +189,11 @@ model Campaign {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
+  impressions    CampaignImpression[]
+  dailyStats     CampaignDailyStatistic[]
+  metric         CampaignMetric?
+  insights       CampaignInsight[]
+
   @@map("campaigns")
 }
 
@@ -259,3 +264,130 @@ model SystemSettings {
 
   @@map("system_settings")
 }
+
+// ─── Campaign Performance Analytics ──────────────────────────────────────────
+
+enum ImpressionStatus {
+  PLAYING
+  COMPLETED
+  INTERRUPTED
+}
+
+enum PerformanceGrade {
+  EXCELLENT   // >= 85
+  VERY_GOOD   // >= 70
+  GOOD        // >= 50
+  AVERAGE     // >= 30
+  WEAK        // < 30
+}
+
+/// One row per campaign play event triggered by the backend decision engine.
+model CampaignImpression {
+  id                  String            @id @default(uuid()) @db.Uuid
+  campaignId          String            @db.Uuid
+  campaign            Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  /// Database ID of the DISPLAY device that played the ad
+  displayDeviceId     String            @db.Uuid
+  siteId              String            @db.Uuid
+  startedAt           DateTime          @default(now())
+  endedAt             DateTime?
+  plannedDurationSec  Int               @default(15)
+  mediaType           String            @default("video")
+  priority            String            @default("standard")
+  status              ImpressionStatus  @default(PLAYING)
+
+  viewEvents          CampaignViewEvent[]
+
+  @@index([campaignId])
+  @@index([siteId])
+  @@index([startedAt])
+  @@map("campaign_impressions")
+}
+
+/// One row per unique ByteTrack ID observed during an impression.
+model CampaignViewEvent {
+  id           String             @id @default(uuid()) @db.Uuid
+  impressionId String             @db.Uuid
+  impression   CampaignImpression @relation(fields: [impressionId], references: [id], onDelete: Cascade)
+  trackId      Int
+  ageGroup     String             @default("unknown")
+  firstSeenAt  DateTime
+  lastSeenAt   DateTime
+  dwellSeconds Float              @default(0)
+  siteId       String             @db.Uuid
+  /// Hardware deviceId of the Edge-CV camera that saw this person
+  cameraDeviceId String
+
+  @@unique([impressionId, trackId])
+  @@index([impressionId])
+  @@index([siteId])
+  @@map("campaign_view_events")
+}
+
+/// Aggregated daily KPIs per campaign, computed by the nightly Cron job.
+model CampaignDailyStatistic {
+  id               String   @id @default(uuid()) @db.Uuid
+  campaignId       String   @db.Uuid
+  campaign         Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  date             DateTime @db.Date
+  impressions      Int      @default(0)
+  reach            Int      @default(0)
+  avgViewTimeSec   Float    @default(0)
+  medianViewTimeSec Float   @default(0)
+  minViewTimeSec   Float    @default(0)
+  maxViewTimeSec   Float    @default(0)
+  attentionRate    Float    @default(0)
+  completionRate   Float    @default(0)
+  avgAudience      Float    @default(0)
+  engagementScore  Float    @default(0)
+  performanceScore Float    @default(0)
+  grade            PerformanceGrade @default(WEAK)
+  childCount       Int      @default(0)
+  youngAdultCount  Int      @default(0)
+  adultCount       Int      @default(0)
+  seniorCount      Int      @default(0)
+  peakHour         Int?
+  avgCrowdDensity  Float    @default(0)
+
+  @@unique([campaignId, date])
+  @@index([campaignId])
+  @@index([date])
+  @@map("campaign_daily_statistics")
+}
+
+/// Rolling real-time metric snapshot, updated every 5 min by Cron.
+model CampaignMetric {
+  id               String           @id @default(uuid()) @db.Uuid
+  campaignId       String           @unique @db.Uuid
+  campaign         Campaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  totalImpressions Int              @default(0)
+  totalReach       Int              @default(0)
+  avgViewTimeSec   Float            @default(0)
+  attentionRate    Float            @default(0)
+  completionRate   Float            @default(0)
+  avgAudience      Float            @default(0)
+  engagementScore  Float            @default(0)
+  performanceScore Float            @default(0)
+  grade            PerformanceGrade @default(WEAK)
+  updatedAt        DateTime         @updatedAt
+
+  @@map("campaign_metrics")
+}
+
+/// Rule-based AI insight text generated daily for each campaign.
+model CampaignInsight {
+  id              String           @id @default(uuid()) @db.Uuid
+  campaignId      String           @db.Uuid
+  campaign        Campaign         @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  date            DateTime         @db.Date
+  text            String
+  recommendations Json             @default("[]")
+  score           Float            @default(0)
+  grade           PerformanceGrade @default(WEAK)
+  createdAt       DateTime         @default(now())
+
+  @@unique([campaignId, date])
+  @@index([campaignId])
+  @@map("campaign_insights")
+}
+

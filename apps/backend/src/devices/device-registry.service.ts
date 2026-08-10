@@ -58,6 +58,7 @@ export class DeviceRegistryService implements OnModuleInit {
 
   async handleHeartbeat(data: any, deviceType: DeviceType) {
     if (!data?.deviceId) return;
+    const payload = data.payload || data;
 
     try {
       const now = new Date();
@@ -74,20 +75,20 @@ export class DeviceRegistryService implements OnModuleInit {
         const device = await this.prisma.device.create({
           data: {
             deviceId: data.deviceId,
-            name: data.friendlyName || data.hostname || data.deviceId,
+            name: payload.friendlyName || payload.hostname || data.deviceId,
             type: deviceType,
             siteId: data.siteId || null,
             status: DeviceStatus.UNPAIRED,
-            hostname: data.hostname,
-            ip: data.ip,
-            platform: data.platform,
-            version: data.version,
-            firmwareVersion: data.firmwareVersion,
+            hostname: payload.hostname,
+            ip: payload.ip,
+            platform: payload.platform,
+            version: payload.version,
+            firmwareVersion: payload.firmwareVersion,
             lastHeartbeat: now,
             lastSeen: now,
             mqttConnected: true,
             connectedAt: now,
-            uptime: data.uptime || 0,
+            uptime: payload.uptime || 0,
           },
         });
 
@@ -96,22 +97,22 @@ export class DeviceRegistryService implements OnModuleInit {
           await this.prisma.cameraMetadata.create({
             data: {
               deviceId: device.id,
-              fps: data.fps,
-              resolution: data.resolution,
-              streamUrl: data.streamUrl,
-              model: data.model,
-              cpuUsage: data.cpuUsage,
-              memoryUsage: data.memoryUsage,
-              zoneId: data.zoneId,
-              macAddress: data.macAddress,
+              fps: payload.fps,
+              resolution: payload.resolution,
+              streamUrl: payload.streamUrl,
+              model: payload.model,
+              cpuUsage: payload.cpuUsage,
+              memoryUsage: payload.memoryUsage,
+              zoneId: payload.zoneId,
+              macAddress: payload.macAddress,
             },
           });
         } else if (deviceType === DeviceType.DISPLAY) {
           await this.prisma.displayMetadata.create({
             data: {
               deviceId: device.id,
-              screenResolution: data.resolution,
-              kioskVersion: data.version,
+              screenResolution: payload.resolution,
+              kioskVersion: payload.version,
             },
           });
         }
@@ -120,7 +121,10 @@ export class DeviceRegistryService implements OnModuleInit {
       } else {
         // ── Subsequent heartbeat: update volatile fields ──────────────
         const isUnpaired = existing.status === DeviceStatus.UNPAIRED;
-        const newStatus = isUnpaired ? DeviceStatus.UNPAIRED : DeviceStatus.ONLINE;
+        let newStatus: DeviceStatus = isUnpaired ? DeviceStatus.UNPAIRED : DeviceStatus.ONLINE;
+        if (payload.status && Object.values(DeviceStatus).includes(payload.status as DeviceStatus)) {
+          newStatus = payload.status as DeviceStatus;
+        }
         const newlyConnected =
           existing.status === DeviceStatus.OFFLINE ||
           existing.status === DeviceStatus.UNKNOWN;
@@ -129,10 +133,10 @@ export class DeviceRegistryService implements OnModuleInit {
           where: { deviceId: data.deviceId },
           data: {
             status: newStatus,
-            ip: data.ip || existing.ip,
-            hostname: data.hostname || existing.hostname,
-            version: data.version || existing.version,
-            uptime: data.uptime ?? existing.uptime,
+            ip: payload.ip || existing.ip,
+            hostname: payload.hostname || existing.hostname,
+            version: payload.version || existing.version,
+            uptime: payload.uptime ?? existing.uptime,
             lastHeartbeat: now,
             lastSeen: now,
             mqttConnected: true,
@@ -146,19 +150,19 @@ export class DeviceRegistryService implements OnModuleInit {
             where: { deviceId: existing.id },
             create: {
               deviceId: existing.id,
-              fps: data.fps,
-              resolution: data.resolution,
-              streamUrl: data.streamUrl,
-              model: data.model,
-              cpuUsage: data.cpuUsage,
-              memoryUsage: data.memoryUsage,
-              zoneId: data.zoneId,
+              fps: payload.fps,
+              resolution: payload.resolution,
+              streamUrl: payload.streamUrl,
+              model: payload.model,
+              cpuUsage: payload.cpuUsage,
+              memoryUsage: payload.memoryUsage,
+              zoneId: payload.zoneId,
             },
             update: {
-              fps: data.fps ?? undefined,
-              cpuUsage: data.cpuUsage ?? undefined,
-              memoryUsage: data.memoryUsage ?? undefined,
-              streamUrl: data.streamUrl || undefined,
+              fps: payload.fps ?? undefined,
+              cpuUsage: payload.cpuUsage ?? undefined,
+              memoryUsage: payload.memoryUsage ?? undefined,
+              streamUrl: payload.streamUrl || undefined,
             },
           });
         } else if (deviceType === DeviceType.DISPLAY) {

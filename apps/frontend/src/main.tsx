@@ -17,6 +17,9 @@ import { CamerasPage } from './pages/cameras/CamerasPage';
 import { DisplaysPage } from './pages/displays/DisplaysPage';
 import { FleetPage } from './pages/fleet/FleetPage';
 import { CampaignsPage } from './pages/campaigns/CampaignsPage';
+import { CampaignPerformancePage } from './pages/campaign-analytics/CampaignPerformancePage';
+import { CampaignDetailPage } from './pages/campaign-analytics/CampaignDetailPage';
+import { CampaignComparisonPage } from './pages/campaign-analytics/CampaignComparisonPage';
 import { ReportsPage } from './pages/reports/ReportsPage';
 import { AlertsPage } from './pages/alerts/AlertsPage';
 import { MonitoringPage } from './pages/monitoring/MonitoringPage';
@@ -83,6 +86,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                 <Route path="displays" element={<DisplaysPage />} />
                 <Route path="fleet" element={<FleetPage />} />
                 <Route path="campaigns" element={<CampaignsPage />} />
+                <Route path="campaigns/performance" element={<CampaignPerformancePage />} />
+                <Route path="campaigns/compare" element={<CampaignComparisonPage />} />
+                <Route path="campaigns/:id/analytics" element={<CampaignDetailPage />} />
                 <Route path="reports" element={<ReportsPage />} />
                 <Route path="alerts" element={<AlertsPage />} />
                 <Route path="monitoring" element={<MonitoringPage />} />
