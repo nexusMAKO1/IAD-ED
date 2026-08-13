@@ -33,7 +33,7 @@ export class CreateUserDto {
     /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).+$/,
     {
       message:
-        'Password must contain at least one uppercase letter, one number, and one special character',
+        'Le mot de passe doit contenir au moins une lettre majuscule, un chiffre et un caractère spécial',
     },
   )
   password: string;

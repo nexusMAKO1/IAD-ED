@@ -91,7 +91,7 @@ export function SettingsPage() {
         <div className="md:col-span-1">
           <div className="glass-card p-2 space-y-0.5">
             {[
-              { id: 'general',       icon: Settings,    label: 'Dashboard' },
+              { id: 'general',       icon: Settings,    label: 'Tableau de bord' },
               { id: 'mqtt',          icon: Database,    label: 'Broker MQTT' },
               { id: 'camera',        icon: MonitorPlay, label: 'Caméras Edge' },
               { id: 'age',           icon: Activity,    label: 'Démographie' },
@@ -122,7 +122,7 @@ export function SettingsPage() {
             {activeTab === 'general' && (
               <Card className="glass">
                 <CardHeader>
-                  <CardTitle className="text-lg">Dashboard</CardTitle>
+                  <CardTitle className="text-lg">Tableau de bord</CardTitle>
                   <CardDescription>Paramètres généraux de l'interface utilisateur</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">

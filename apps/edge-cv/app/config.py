@@ -116,8 +116,8 @@ class AppSettings(BaseSettings):
         description="Enable TLS for the MQTT connection",
     )
     device_id: str = Field(
-        default="123e4567-e89b-12d3-a456-426614174000",
-        description="Logical device identifier used in MQTT message envelopes",
+        default="",
+        description="Identifiant de l'appareil. Doit être défini via la variable d'environnement DEVICE_ID pour s'enregistrer.",
     )
     site_id:Optional[ str] = Field(
         default=None,
@@ -126,6 +126,12 @@ class AppSettings(BaseSettings):
     zone_id:Optional[ str] = Field(
         default=None,
         description="Logical zone identifier used in MQTT message envelopes",
+    )
+    heartbeat_interval: int = Field(
+        default=30,
+        ge=5,
+        le=300,
+        description="Seconds between discovery/heartbeat MQTT publications",
     )
 
     # ------------------------------------------------------------------ #
@@ -167,35 +173,44 @@ settings = AppSettings()
 IDENTITY_FILE = str(Path(__file__).resolve().parent.parent / "data" / "identity.json")
 
 def _load_or_create_identity():
+    """Charge l'identité depuis identity.json ou la variable d'env DEVICE_ID.
+    Si aucun DEVICE_ID n'est configuré, le service démarre sans s'enregistrer.
+    """
     data_dir = os.path.dirname(IDENTITY_FILE)
     if not os.path.exists(data_dir):
         os.makedirs(data_dir, exist_ok=True)
-    
+
     if os.path.exists(IDENTITY_FILE):
         with open(IDENTITY_FILE, "r") as f:
             data = json.load(f)
             settings.device_id = data.get("deviceId", settings.device_id)
             settings.site_id = data.get("siteId")
             settings.zone_id = data.get("zoneId")
-    else:
-        # Generate new identity
-        new_device_id = f"camera-{uuid.uuid4().hex[:8]}"
+    elif settings.device_id:
+        # Un DEVICE_ID est fourni via variable d'environnement — persister
         data = {
-            "deviceId": new_device_id,
-            "siteId": None,
-            "zoneId": None,
+            "deviceId": settings.device_id,
+            "siteId": settings.site_id,
+            "zoneId": settings.zone_id,
             "hostname": socket.gethostname(),
             "version": settings.service_version,
-            "status": "UNPAIRED"
+            "status": "ONLINE" if settings.site_id else "UNPAIRED"
         }
         with open(IDENTITY_FILE, "w") as f:
             json.dump(data, f, indent=4)
-        
-        settings.device_id = new_device_id
-        settings.site_id = None
-        settings.zone_id = None
-        
-    settings.mqtt_client_id = f"edge-cv-{settings.device_id}"
+    else:
+        # Aucun DEVICE_ID configuré — le service démarre en mode standalone
+        # sans s'enregistrer ni envoyer de heartbeat MQTT
+        import logging
+        logging.getLogger("iad.edge-cv").warning(
+            "Aucun DEVICE_ID configuré. Le service Edge-CV démarre en mode standalone "
+            "(détection disponible via API REST uniquement, pas d'enregistrement MQTT)."
+        )
+
+    if settings.device_id:
+        settings.mqtt_client_id = f"edge-cv-{settings.device_id}"
+    else:
+        settings.mqtt_client_id = f"edge-cv-standalone-{socket.gethostname()[:8]}"
 
 _load_or_create_identity()
 

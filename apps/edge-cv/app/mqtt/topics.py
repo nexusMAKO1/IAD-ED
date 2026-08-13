@@ -30,8 +30,10 @@ class EdgeTopics:
     CAMERA_HEALTH = f"{_ROOT}/edge/camera-health"
     STATUS = f"{_ROOT}/edge/status"
     DISCOVERY = f"{_ROOT}/edge/discovery"
+    HEARTBEAT = f"{_ROOT}/edge/heartbeat"       # periodic keep-alive topic
 
 def config_topic(device_id: str) -> str:
+    """Config / pairing-ack topic pushed by the backend to this specific device."""
     return f"{_ROOT}/edge/{device_id}/config"
 
 
@@ -61,6 +63,7 @@ TOPIC_CROWD_DENSITY = EdgeTopics.CROWD_DENSITY
 TOPIC_PERFORMANCE = EdgeTopics.PERFORMANCE
 TOPIC_CAMERA_HEALTH = EdgeTopics.CAMERA_HEALTH
 TOPIC_STATUS = EdgeTopics.STATUS
+TOPIC_HEARTBEAT = EdgeTopics.HEARTBEAT
 TOPIC_SYSTEM_HEALTH = SystemTopics.HEALTH
 
 # All topics to subscribe on startup

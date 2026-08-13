@@ -100,7 +100,7 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Logged out successfully' })
   logout() {
     return {
-      message: 'Logged out successfully',
+      message: 'Déconnexion réussie',
     };
   }
 

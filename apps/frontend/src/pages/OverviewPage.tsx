@@ -202,7 +202,7 @@ export function OverviewPage() {
                 </CardTitle>
                 <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20">
                   <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-                  <span className="text-[10px] text-blue-400 font-semibold">Live</span>
+                  <span className="text-[10px] text-blue-400 font-semibold">En direct</span>
                 </div>
               </div>
             </CardHeader>

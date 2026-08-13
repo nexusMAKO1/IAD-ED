@@ -56,12 +56,12 @@ async def predict(
     if service_type not in settings.VALID_SERVICE_TYPES:
         raise HTTPException(422, detail={
             "error_code": "QUEUE_003",
-            "message": f"Invalid service_type. Must be one of: {settings.VALID_SERVICE_TYPES}"
+            "message": f"Type de service invalide. Doit être parmi : {settings.VALID_SERVICE_TYPES}"
         })
     if priority not in settings.VALID_PRIORITIES:
         raise HTTPException(422, detail={
             "error_code": "QUEUE_003",
-            "message": f"Invalid priority. Must be one of: {settings.VALID_PRIORITIES}"
+            "message": f"Priorité invalide. Doit être parmi : {settings.VALID_PRIORITIES}"
         })
     try:
         response = await predictor.predict_wait_time(

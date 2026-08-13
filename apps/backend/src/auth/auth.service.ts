@@ -37,35 +37,35 @@ export class AuthService {
         `Database error during user lookup for email: ${dto.email}`,
         error instanceof Error ? error.stack : error,
       );
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException('Email ou mot de passe invalide');
     }
 
     if (!user) {
       this.logger.warn(
         `Failed login attempt for non-existent email: ${dto.email}`,
       );
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException('Email ou mot de passe invalide');
     }
 
     if (!user.password) {
       this.logger.error(
         `User record missing password field for email: ${dto.email}`,
       );
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException('Email ou mot de passe invalide');
     }
 
     try {
       const passwordMatch = await bcrypt.compare(dto.password, user.password);
       if (!passwordMatch) {
         this.logger.warn(`Failed login attempt for user: ${dto.email}`);
-        throw new UnauthorizedException('Invalid email or password');
+        throw new UnauthorizedException('Email ou mot de passe invalide');
       }
     } catch (error) {
       this.logger.error(
         `Bcrypt compare error for user: ${dto.email}`,
         error instanceof Error ? error.stack : error,
       );
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException('Email ou mot de passe invalide');
     }
 
     return user;
@@ -95,7 +95,7 @@ export class AuthService {
         `Token generation failed for user: ${user.email}`,
         error instanceof Error ? error.stack : error,
       );
-      throw new UnauthorizedException('Authentication failed');
+      throw new UnauthorizedException("Échec de l'authentification");
     }
   }
 
@@ -115,7 +115,7 @@ export class AuthService {
 
       const user = await this.usersService.findById(payload.sub);
       if (!user) {
-        throw new UnauthorizedException('User no longer exists');
+        throw new UnauthorizedException("L'utilisateur n'existe plus");
       }
 
       // Generate new access and refresh tokens
@@ -127,8 +127,8 @@ export class AuthService {
       this.logger.warn(
         `Invalid or expired refresh token: ${exc instanceof Error ? exc.message : exc}`,
       );
-      throw new UnauthorizedException('Invalid or expired refresh token');
-      throw new UnauthorizedException('Invalid or expired refresh token');
+      throw new UnauthorizedException('Token expiré ou invalide');
+      throw new UnauthorizedException('Token expiré ou invalide');
     }
   }
 
@@ -147,7 +147,7 @@ export class AuthService {
       this.logger.warn(
         `Failed password change attempt (invalid old password) for user: ${user.email}`,
       );
-      throw new UnauthorizedException('Invalid current password');
+      throw new UnauthorizedException('Mot de passe actuel invalide');
     }
 
     // Hash new password and update
@@ -157,7 +157,7 @@ export class AuthService {
 
     return {
       success: true,
-      message: 'Password updated successfully',
+      message: 'Mot de passe mis à jour avec succès',
     };
   }
 

@@ -142,7 +142,7 @@ export class CampaignsService {
       where: { id },
     });
     if (!campaign) {
-      throw new NotFoundException(`Campaign #${id} not found`);
+      throw new NotFoundException(`Campagne #${id} introuvable`);
     }
     return campaign;
   }
@@ -154,7 +154,7 @@ export class CampaignsService {
         data: updateCampaignDto,
       });
     } catch (e) {
-      throw new NotFoundException(`Campaign #${id} not found`);
+      throw new NotFoundException(`Campagne #${id} introuvable`);
     }
   }
 
@@ -164,7 +164,7 @@ export class CampaignsService {
         where: { id },
       });
     } catch (e) {
-      throw new NotFoundException(`Campaign #${id} not found`);
+      throw new NotFoundException(`Campagne #${id} introuvable`);
     }
   }
 }

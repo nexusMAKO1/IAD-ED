@@ -22,7 +22,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   override handleRequest(err: any, user: any, info: any) {
     if (err || !user) {
       throw new UnauthorizedException(
-        info?.message ?? 'You must be logged in to access this resource',
+        info?.message ?? 'Vous devez être connecté pour accéder à cette ressource',
       );
     }
     return user;

@@ -107,7 +107,7 @@ export class CampaignAnalyticsService {
 
   async getCampaignPerformance(campaignId: string): Promise<CampaignMetricDto> {
     const campaign = await this.prisma.campaign.findUnique({ where: { id: campaignId } });
-    if (!campaign) throw new NotFoundException(`Campaign ${campaignId} not found`);
+    if (!campaign) throw new NotFoundException(`Campagne ${campaignId} introuvable`);
 
     let metric = await this.prisma.campaignMetric.findUnique({
       where: { campaignId },
@@ -126,7 +126,7 @@ export class CampaignAnalyticsService {
 
   async getCampaignDetail(campaignId: string): Promise<CampaignDetailResponseDto> {
     const campaign = await this.prisma.campaign.findUnique({ where: { id: campaignId } });
-    if (!campaign) throw new NotFoundException(`Campaign ${campaignId} not found`);
+    if (!campaign) throw new NotFoundException(`Campagne ${campaignId} introuvable`);
 
     const [metrics, timeline, viewEvents, latestInsight] = await Promise.all([
       this.getCampaignPerformance(campaignId),
@@ -305,7 +305,7 @@ export class CampaignAnalyticsService {
       this.getTimeline(campaignId),
     ]);
 
-    if (!campaign) throw new NotFoundException(`Campaign ${campaignId} not found`);
+    if (!campaign) throw new NotFoundException(`Campagne ${campaignId} introuvable`);
 
     const header = 'Date,Impressions,Reach,Avg View Time (s),Attention Rate (%),Completion Rate (%),Avg Audience,Performance Score,Grade\n';
     const rows = timeline.map(t =>

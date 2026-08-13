@@ -13,6 +13,6 @@ export class RefreshTokenDto {
   })
   @IsString()
   @IsNotEmpty()
-  @IsJWT({ message: 'refreshToken must be a valid JWT string' })
+  @IsJWT({ message: 'refreshToken doit être une chaîne JWT valide' })
   refreshToken: string;
 }

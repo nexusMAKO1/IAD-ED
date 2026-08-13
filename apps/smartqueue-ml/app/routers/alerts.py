@@ -29,7 +29,7 @@ async def acknowledge_alert(
     recent = anomaly_detector.get_recent_anomalies()
     found = any(a.alert_id == alert_id for a in recent)
     if not found:
-        raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found")
+        raise HTTPException(status_code=404, detail=f"Alerte {alert_id} introuvable")
 
     # Construct acknowledgment entirely server-side
     ack = AlertAcknowledgment(

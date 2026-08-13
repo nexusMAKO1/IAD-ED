@@ -39,7 +39,7 @@ export class CampaignsController {
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
-      throw new BadRequestException('No file uploaded');
+      throw new BadRequestException('Aucun fichier uploadé');
     }
     const result = await this.campaignsService.uploadMedia(file);
     return result;

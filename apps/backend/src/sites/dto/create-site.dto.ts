@@ -21,7 +21,7 @@ export class OperatingHoursDto {
   })
   @IsString()
   @IsNotEmpty()
-  @Matches(/^\d{2}:\d{2}$/, { message: 'open must be in HH:mm format' })
+  @Matches(/^\d{2}:\d{2}$/, { message: "L'heure d'ouverture doit être au format HH:mm" })
   open: string;
 
   @ApiProperty({
@@ -30,7 +30,7 @@ export class OperatingHoursDto {
   })
   @IsString()
   @IsNotEmpty()
-  @Matches(/^\d{2}:\d{2}$/, { message: 'close must be in HH:mm format' })
+  @Matches(/^\d{2}:\d{2}$/, { message: "L'heure de fermeture doit être au format HH:mm" })
   close: string;
 }
 

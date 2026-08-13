@@ -11,7 +11,7 @@ export class LoginDto {
     example: 'admin@expressdisplay.com',
     description: 'User email address',
   })
-  @IsEmail({}, { message: 'Please provide a valid email address' })
+  @IsEmail({}, { message: 'Veuillez fournir une adresse email valide' })
   @IsNotEmpty()
   email: string;
 
@@ -21,6 +21,6 @@ export class LoginDto {
   })
   @IsString()
   @IsNotEmpty()
-  @MinLength(8, { message: 'Password must be at least 8 characters long' })
+  @MinLength(8, { message: 'Le mot de passe doit contenir au moins 8 caractères' })
   password: string;
 }

@@ -26,7 +26,7 @@ export function CampaignsPage() {
     mutationFn: (id: string) => deleteCampaign(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
-      toast({ title: 'Campaign deleted' });
+      toast({ title: 'Campagne supprimée' });
     }
   });
 
@@ -188,7 +188,7 @@ function CampaignForm({ campaign, onClose }: { campaign: Campaign | null, onClos
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['campaigns'] });
-      toast({ title: campaign ? 'Campaign updated' : 'Campaign created' });
+      toast({ title: campaign ? 'Campagne mise à jour' : 'Campagne créée' });
       onClose();
     }
   });
@@ -211,9 +211,9 @@ function CampaignForm({ campaign, onClose }: { campaign: Campaign | null, onClos
         mediaUrl: res.url,
         mediaType: isImage ? 'image' : 'video'
       }));
-      toast({ title: 'Media uploaded successfully' });
+      toast({ title: 'Média téléchargé avec succès' });
     } catch (err) {
-      toast({ title: 'Upload failed', variant: 'destructive' });
+      toast({ title: 'Échec du téléchargement', variant: 'destructive' });
     } finally {
       setUploading(false);
     }

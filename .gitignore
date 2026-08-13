@@ -112,6 +112,7 @@ data/model_store/
 data/raw/
 data/processed/
 data/uploads/
+identity.json
 
 # ---------------------------------------------------------------------------
 # Docker

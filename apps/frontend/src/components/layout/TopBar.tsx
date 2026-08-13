@@ -64,7 +64,7 @@ export function TopBar({ sites, selectedSiteId, onSiteChange }: TopBarProps) {
 
   // Build breadcrumb from path
   const pathSegments = location.pathname.replace('/dashboard', '').split('/').filter(Boolean);
-  const currentPage = ROUTE_LABELS[pathSegments[0] ?? ''] ?? 'Dashboard';
+  const currentPage = ROUTE_LABELS[pathSegments[0] ?? ''] ?? 'Tableau de bord';
 
   const handleLogout = useCallback(async () => {
     try { await apiLogout(); } catch { /* best-effort */ }
@@ -96,7 +96,7 @@ export function TopBar({ sites, selectedSiteId, onSiteChange }: TopBarProps) {
       <div className="flex items-center gap-3 min-w-0">
         {/* Breadcrumb */}
         <nav className="hidden md:flex items-center gap-1 text-xs text-muted-foreground" aria-label="Breadcrumb">
-          <span>Dashboard</span>
+          <span>Tableau de bord</span>
           {pathSegments.length > 0 && (
             <>
               <ChevronRight className="h-3 w-3 opacity-40" />

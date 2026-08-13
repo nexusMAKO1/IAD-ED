@@ -74,7 +74,7 @@ export class DevicesService {
         displayMetadata: true,
       },
     });
-    if (!device) throw new NotFoundException(`Device '${id}' not found`);
+    if (!device) throw new NotFoundException(`Appareil '${id}' introuvable`);
 
     const now = new Date();
     const computed = PresenceService.computeStatus(
@@ -95,7 +95,7 @@ export class DevicesService {
   ) {
     // Validate site exists
     const site = await this.prisma.site.findUnique({ where: { id: siteId } });
-    if (!site) throw new NotFoundException(`Site '${siteId}' not found`);
+    if (!site) throw new NotFoundException(`Site '${siteId}' introuvable`);
 
     // Update optional zone for cameras
     if (extra.zoneId) {
@@ -160,7 +160,7 @@ export class DevicesService {
       deviceId: device.deviceId,
       action: 'restart',
     });
-    return { success: true, message: 'Restart command sent' };
+    return { success: true, message: 'Commande de redémarrage envoyée' };
   }
 
   async updateCameraSettings(id: string, settings: any) {
@@ -197,7 +197,7 @@ export class DevicesService {
 
   async remove(id: string) {
     const device = await this.prisma.device.findUnique({ where: { id } });
-    if (!device) throw new NotFoundException(`Device '${id}' not found`);
+    if (!device) throw new NotFoundException(`Appareil '${id}' introuvable`);
 
     // Cascade deletes camera/display metadata via FK
     await this.prisma.device.delete({ where: { id } });

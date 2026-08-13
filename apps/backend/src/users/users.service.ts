@@ -40,7 +40,7 @@ export class UsersService {
   async findById(id: string): Promise<User> {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) {
-      throw new NotFoundException(`User with id '${id}' not found`);
+      throw new NotFoundException(`Utilisateur '${id}' introuvable`);
     }
     return user;
   }
@@ -52,7 +52,7 @@ export class UsersService {
   async create(dto: CreateUserDto): Promise<User> {
     const existing = await this.findByEmail(dto.email);
     if (existing) {
-      throw new ConflictException(`Email '${dto.email}' is already registered`);
+      throw new ConflictException(`L'email '${dto.email}' est déjà utilisé`);
     }
 
     const hashedPassword = await bcrypt.hash(dto.password, SALT_ROUNDS);

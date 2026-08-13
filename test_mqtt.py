@@ -8,7 +8,7 @@ def on_connect(client, userdata, flags, rc):
     now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
     payload = {
         "timestamp": now_iso,
-        "deviceId": "camera-918ad4ed",
+        "deviceId": "123e4567-e89b-12d3-a456-426614174000",
         "siteId": "123e4567-e89b-12d3-a456-426614174000",
         "deviceType": "EDGE_CAMERA",
         "event": "person_detected",
@@ -37,7 +37,7 @@ def on_connect(client, userdata, flags, rc):
     
     demo_payload = {
         "timestamp": now_iso,
-        "deviceId": "camera-918ad4ed",
+        "deviceId": "123e4567-e89b-12d3-a456-426614174000",
         "siteId": "123e4567-e89b-12d3-a456-426614174000",
         "deviceType": "EDGE_CAMERA",
         "event": "demographics_update",

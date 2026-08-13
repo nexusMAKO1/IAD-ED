@@ -26,7 +26,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: JwtPayload): Promise<JwtPayload> {
     if (!payload.sub || !payload.email || !payload.role) {
-      throw new UnauthorizedException('Invalid token payload format');
+      throw new UnauthorizedException('Format du token invalide');
     }
     return {
       sub: payload.sub,

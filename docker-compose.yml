@@ -237,6 +237,7 @@ services:
       target: development
     container_name: iad_edge_cv
     restart: unless-stopped
+    profiles: ["camera"]
     environment:
       PYTHONPATH: /app
       LOG_LEVEL: ${CV_LOG_LEVEL:-INFO}
@@ -250,8 +251,17 @@ services:
       MQTT_USER: ${MQTT_USER}
       MQTT_PASSWORD: ${MQTT_PASSWORD}
       MAX_WORKERS: ${CV_MAX_WORKERS:-2}
-      DEVICE_ID: "123e4567-e89b-12d3-a456-426614174000"
-      SITE_ID: "123e4567-e89b-12d3-a456-426614174000"
+      # ── Device Identity (required for MQTT auto-pairing) ──────────────────
+      # DEVICE_ID must be stable across restarts. It is the primary key that
+      # the backend uses to prevent duplicate device records. Change this if
+      # you deploy multiple edge-cv containers.
+      DEVICE_ID: ${EDGE_CV_DEVICE_ID:-camera-edge-cv-001}
+      # Optional: set SITE_ID to pre-assign the camera to a site on first boot.
+      # If left empty the camera registers as UNPAIRED and must be assigned
+      # to a site manually from the Fleet / Cameras page.
+      SITE_ID: ${EDGE_CV_SITE_ID:-}
+      # Heartbeat interval in seconds (discovery loop cadence)
+      HEARTBEAT_INTERVAL: ${EDGE_CV_HEARTBEAT_INTERVAL:-30}
     ports:
       - "${CV_PORT:-8001}:8001"
     volumes:

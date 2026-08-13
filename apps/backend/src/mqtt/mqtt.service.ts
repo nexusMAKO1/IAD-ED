@@ -147,8 +147,18 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
     this._connected = true;
     this.logger.log('MQTT broker connected.');
 
-    // Subscribe to all Edge-CV topics
+    // Subscribe to all statically declared Edge-CV topics
     for (const topic of BACKEND_SUBSCRIPTIONS) {
+      this.subscribeRaw(topic, 1);
+    }
+
+    // Re-subscribe all dynamically registered validated handlers (handlers map)
+    for (const topic of this.handlers.keys()) {
+      this.subscribeRaw(topic, 1);
+    }
+
+    // Re-subscribe all dynamically registered unvalidated (raw) handlers
+    for (const topic of this.rawHandlers.keys()) {
       this.subscribeRaw(topic, 1);
     }
 

@@ -230,17 +230,34 @@ async def lifespan(app: FastAPI):  # noqa: ANN001
         from app.mqtt.topics import CommandTopics, config_topic
 
         def _handle_config_update(topic: str, payload: dict) -> None:
-            log.info("MQTT [%s]: received config update — %s", topic, payload)
-            site_id = payload.get("siteId")
-            zone_id = payload.get("zoneId")
-            
+            """
+            Handles config pushes from the backend — including pairing acks.
+
+            When the backend registers a new device it publishes the assigned
+            siteId back to smartvision/edge/{deviceId}/config.  We persist
+            that assignment in identity.json so it survives restarts.
+            """
+            log.info("[DEVICE] Pairing ack / config received on [%s]", topic)
+            site_id = payload.get("siteId") or (payload.get("payload") or {}).get("siteId")
+            zone_id = payload.get("zoneId") or (payload.get("payload") or {}).get("zoneId")
+
             from app.config import save_identity
-                
             save_identity(site_id, zone_id)
-            log.info("Updated identity configuration. New siteId: %s, zoneId: %s", site_id, zone_id)
+
+            if site_id:
+                log.info(
+                    "[DEVICE] Device paired — deviceId=%s siteId=%s zoneId=%s",
+                    settings.device_id,
+                    site_id,
+                    zone_id,
+                )
+            else:
+                log.info(
+                    "[DEVICE] Config update received — no siteId (device remains UNPAIRED)"
+                )
 
         def _handle_camera_command(topic: str, payload: dict) -> None:
-            log.info("MQTT [%s]: received camera command — %s", topic, payload.get("payload"))
+            log.info("[DEVICE] Camera command received on [%s] — %s", topic, payload.get("payload"))
             # Depending on action, we could toggle features
             action = payload.get("action")
             if action == "enable_detection":
@@ -253,18 +270,22 @@ async def lifespan(app: FastAPI):  # noqa: ANN001
                     settings.model_confidence = float(new_settings["confidence"])
 
         def _handle_model_update(topic: str, payload: dict) -> None:
-            log.info("MQTT [%s]: received model update — %s", topic, payload.get("payload"))
+            log.info("[DEVICE] Model update command received — %s", payload.get("payload"))
 
         def _handle_restart(topic: str, payload: dict) -> None:
-            log.warning("MQTT [%s]: restart command received — exiting process.", topic)
+            log.warning("[DEVICE] Restart command received — exiting process.")
             import os
             import signal
             os.kill(os.getpid(), signal.SIGTERM)
 
-        _mqtt_client.register_handler(config_topic(settings.device_id), _handle_config_update)
-        _mqtt_client.register_handler(CommandTopics.CAMERA, _handle_camera_command)
-        _mqtt_client.register_handler(CommandTopics.MODEL_UPDATE, _handle_model_update)
-        _mqtt_client.register_handler(CommandTopics.RESTART, _handle_restart)
+        # Device-specific config / pairing ack topic
+        if settings.device_id:
+            _mqtt_client.register_handler(config_topic(settings.device_id), _handle_config_update)
+            log.info("[DEVICE] Subscribed to pairing ack topic: %s", config_topic(settings.device_id))
+
+        _mqtt_client.register_handler(CommandTopics.CAMERA,       _handle_camera_command)
+        _mqtt_client.register_handler(CommandTopics.MODEL_UPDATE,  _handle_model_update)
+        _mqtt_client.register_handler(CommandTopics.RESTART,       _handle_restart)
 
         _mqtt_client.publish_health(
             service_id=_SERVICE_ID,
@@ -282,41 +303,104 @@ async def lifespan(app: FastAPI):  # noqa: ANN001
     # Background tasks
     # ------------------------------------------------------------------
     import asyncio
-    async def discovery_loop():
+
+    async def discovery_loop() -> None:
+        """
+        Publishes device identity to MQTT every heartbeat_interval seconds.
+
+        Publishes to TWO topics on each cycle:
+          1. smartvision/edge/discovery  — triggers DeviceRegistryService.handleHeartbeat()
+             which creates/updates the Device record in PostgreSQL.
+          2. smartvision/edge/heartbeat  — triggers the dedicated HEARTBEAT subscriber
+             in DeviceRegistryService (updates lastHeartbeat / status).
+
+        The loop runs indefinitely; it skips a cycle if MQTT is not connected.
+        """
+        from app.mqtt.topics import EdgeTopics
+
+        if not settings.device_id:
+            log.warning(
+                "[DEVICE] No DEVICE_ID configured — MQTT discovery loop disabled. "
+                "Set DEVICE_ID (or EDGE_CV_DEVICE_ID) in docker-compose.yml or .env "
+                "to enable automatic camera registration."
+            )
+            return
+
+        log.info(
+            "[DEVICE] Discovery loop started — deviceId=%s interval=%ds",
+            settings.device_id,
+            settings.heartbeat_interval,
+        )
+
         while True:
             if _mqtt_client.is_connected:
-                import psutil
-                cpu = psutil.cpu_percent(interval=None)
-                mem = psutil.virtual_memory().percent
-                payload = {
-                    "deviceId": settings.device_id,
-                    "siteId": settings.site_id,
-                    "zoneId": settings.zone_id,
-                    "deviceType": "EDGE_CAMERA",
-                    "status": _get_device_status(),
-                    "hostname": _SERVICE_ID,
-                    "platform": f"{platform.system()} {platform.release()}",
-                    "ip": socket.gethostbyname(socket.gethostname()),
-                    "resolution": "1920x1080",
-                    "fps": 30, # Could be dynamic if extracted from stream
-                    "version": settings.service_version,
-                    "model": getattr(settings, "model_name", "yolov8n"),
-                    "firmwareVersion": "1.0.0",
-                    "cpuUsage": cpu,
-                    "memoryUsage": mem,
-                    "streamUrl": f"http://{socket.gethostbyname(socket.gethostname())}:8001/snapshot",
-                    "uptime": int(time.monotonic() - _start_time),
-                    "timestamp": datetime.now(timezone.utc).isoformat()
-                }
                 try:
-                    from app.mqtt.topics import EdgeTopics
-                    envelope = _mqtt_client._envelope("discovery", payload)
-                    _mqtt_client._client.publish(EdgeTopics.DISCOVERY, json.dumps(envelope), qos=1)
-                except Exception as e:
-                    log.error("Failed to publish discovery heartbeat: %s", e)
-            await asyncio.sleep(10)
-            
+                    import psutil as _psutil
+                    cpu = _psutil.cpu_percent(interval=None)
+                    mem = _psutil.virtual_memory().percent
+
+                    # Build the inner payload (all device metadata)
+                    inner = {
+                        "deviceId":       settings.device_id,
+                        "siteId":         settings.site_id,
+                        "zoneId":         settings.zone_id,
+                        "deviceType":     "EDGE_CAMERA",
+                        "status":         _get_device_status(),
+                        "hostname":       _SERVICE_ID,
+                        "platform":       f"{platform.system()} {platform.release()}",
+                        "ip":             socket.gethostbyname(socket.gethostname()),
+                        "resolution":     "1920x1080",
+                        "fps":            30,
+                        "version":        settings.service_version,
+                        "firmwareVersion": "1.0.0",
+                        "model":          getattr(settings, "model_name", "yolov8n"),
+                        "cpuUsage":       cpu,
+                        "memoryUsage":    mem,
+                        "streamUrl":      (
+                            f"http://{socket.gethostbyname(socket.gethostname())}:8001/snapshot"
+                        ),
+                        "uptime":         int(time.monotonic() - _start_time),
+                        "timestamp":      datetime.now(timezone.utc).isoformat(),
+                    }
+
+                    envelope = _mqtt_client._envelope("discovery", inner)
+                    raw_msg  = json.dumps(envelope)
+
+                    # 1. Publish to DISCOVERY topic (creates/updates Device record)
+                    result_d = _mqtt_client._client.publish(
+                        EdgeTopics.DISCOVERY, raw_msg, qos=1
+                    )
+                    if result_d.rc == 0:
+                        log.info(
+                            "[DEVICE] Discovery published — deviceId=%s status=%s",
+                            settings.device_id,
+                            inner["status"],
+                        )
+                    else:
+                        log.warning(
+                            "[DEVICE] Discovery publish failed (rc=%d)", result_d.rc
+                        )
+
+                    # 2. Publish to HEARTBEAT topic (updates lastHeartbeat / status)
+                    result_h = _mqtt_client._client.publish(
+                        EdgeTopics.HEARTBEAT, raw_msg, qos=1
+                    )
+                    if result_h.rc != 0:
+                        log.debug(
+                            "[DEVICE] Heartbeat publish failed (rc=%d)", result_h.rc
+                        )
+
+                except Exception as exc:
+                    log.error("[DEVICE] Discovery loop error: %s", exc, exc_info=True)
+            else:
+                log.debug(
+                    "[DEVICE] MQTT not connected — skipping discovery heartbeat"
+                )
+
+            await asyncio.sleep(settings.heartbeat_interval)
+
     task = asyncio.create_task(discovery_loop())
+
 
     # ------------------------------------------------------------------
     # Yield — serve requests
@@ -606,7 +690,7 @@ async def metrics_json() -> Dict[str, Any]:
 async def snapshot():
     from fastapi.responses import Response
     if not _camera_manager.is_connected:
-        raise HTTPException(status_code=503, detail="Camera offline")
+        raise HTTPException(status_code=503, detail="Caméra hors ligne")
         
     try:
         source = int(settings.camera_source)
@@ -615,17 +699,17 @@ async def snapshot():
         
     cap = cv2.VideoCapture(source)
     if not cap.isOpened():
-        raise HTTPException(status_code=503, detail="Could not open camera")
+        raise HTTPException(status_code=503, detail="Impossible d\\'ouvrir la caméra")
         
     ret, frame = cap.read()
     cap.release()
     
     if not ret:
-        raise HTTPException(status_code=500, detail="Could not read frame from camera")
+        raise HTTPException(status_code=500, detail="Impossible de lire l\\'image de la caméra")
         
     success, encoded = cv2.imencode(".jpg", frame)
     if not success:
-        raise HTTPException(status_code=500, detail="Could not encode frame to JPEG")
+        raise HTTPException(status_code=500, detail="Impossible d\\'encoder l\\'image en JPEG")
         
     return Response(content=encoded.tobytes(), media_type="image/jpeg")
 
@@ -689,8 +773,8 @@ async def detect(
             detail={
                 "error": "model_not_loaded",
                 "message": (
-                    "The YOLO model failed to load at startup. "
-                    "Check the service logs and MODEL_PATH configuration."
+                    "Le modèle YOLO n'a pas pu être chargé au démarrage. "
+                    "Vérifiez les journaux du service et la configuration MODEL_PATH."
                 ),
             },
         )
@@ -701,7 +785,7 @@ async def detect(
     if file is None or file.filename is None:
         raise HTTPException(
             status_code=400,
-            detail={"error": "missing_file", "message": "No image file was provided."},
+            detail={"error": "missing_file", "message": "Aucun fichier image n'a été fourni."},
         )
 
     content_type = (file.content_type or "").lower()
@@ -712,7 +796,7 @@ async def detect(
             detail={
                 "error": "invalid_content_type",
                 "message": (
-                    f"Expected an image file but received content-type '{file.content_type}'."
+                    f"Fichier image attendu mais type de contenu '{file.content_type}' reçu."
                 ),
             },
         )
@@ -728,14 +812,14 @@ async def detect(
             status_code=400,
             detail={
                 "error": "file_read_error",
-                "message": "Could not read the uploaded file.",
+                "message": "Impossible de lire le fichier téléchargé.",
             },
         ) from exc
 
     if not contents:
         raise HTTPException(
             status_code=400,
-            detail={"error": "empty_file", "message": "The uploaded file is empty."},
+            detail={"error": "empty_file", "message": "Le fichier téléchargé est vide."},
         )
 
     # Decode bytes → NumPy array → BGR frame
@@ -749,8 +833,8 @@ async def detect(
             detail={
                 "error": "invalid_image",
                 "message": (
-                    "The uploaded file could not be decoded as an image. "
-                    "Ensure it is a valid JPEG, PNG, BMP, or TIFF file."
+                    "Le fichier téléchargé n'a pas pu être décodé en tant qu'image. "
+                    "Assurez-vous qu'il s'agit d'un fichier JPEG, PNG, BMP ou TIFF valide."
                 ),
             },
         )
@@ -770,7 +854,7 @@ async def detect(
             status_code=500,
             detail={
                 "error": "inference_error",
-                "message": "YOLO inference failed. Check the service logs for details.",
+                "message": "L'inférence YOLO a échoué. Consultez les journaux du service pour plus de détails.",
             },
         ) from exc
 

@@ -67,64 +67,103 @@ export class DeviceRegistryService implements OnModuleInit {
       });
 
       if (!existing) {
-        // ── First contact: create a new UNPAIRED device ──────────────
+        // ── First contact: create a new device ───────────────────────
         this.logger.log(
-          `[Registry] New ${deviceType} discovered: ${data.deviceId}`,
+          `[DEVICE] New ${deviceType} discovered: ${data.deviceId}`,
         );
+
+        // If siteId is present in payload AND valid, pair immediately
+        let resolvedSiteId: string | null = data.siteId || null;
+        if (resolvedSiteId) {
+          const site = await this.prisma.site.findUnique({
+            where: { id: resolvedSiteId },
+          });
+          if (!site) {
+            this.logger.warn(
+              `[DEVICE] siteId '${resolvedSiteId}' not found — registering as UNPAIRED`,
+            );
+            resolvedSiteId = null;
+          }
+        }
+
+        const initialStatus = resolvedSiteId
+          ? DeviceStatus.ONLINE
+          : DeviceStatus.UNPAIRED;
 
         const device = await this.prisma.device.create({
           data: {
-            deviceId: data.deviceId,
-            name: payload.friendlyName || payload.hostname || data.deviceId,
-            type: deviceType,
-            siteId: data.siteId || null,
-            status: DeviceStatus.UNPAIRED,
-            hostname: payload.hostname,
-            ip: payload.ip,
-            platform: payload.platform,
-            version: payload.version,
+            deviceId:       data.deviceId,
+            name:           payload.friendlyName || payload.hostname || data.deviceId,
+            type:           deviceType,
+            siteId:         resolvedSiteId,
+            status:         initialStatus,
+            hostname:       payload.hostname,
+            ip:             payload.ip,
+            platform:       payload.platform,
+            version:        payload.version,
             firmwareVersion: payload.firmwareVersion,
-            lastHeartbeat: now,
-            lastSeen: now,
-            mqttConnected: true,
-            connectedAt: now,
-            uptime: payload.uptime || 0,
+            lastHeartbeat:  now,
+            lastSeen:       now,
+            mqttConnected:  true,
+            connectedAt:    now,
+            uptime:         payload.uptime || 0,
           },
         });
+
+        this.logger.log(
+          `[DEVICE] Device created — id=${device.id} deviceId=${device.deviceId} status=${initialStatus} siteId=${resolvedSiteId ?? 'none'}`,
+        );
 
         // Create type-specific metadata
         if (deviceType === DeviceType.EDGE_CAMERA) {
           await this.prisma.cameraMetadata.create({
             data: {
-              deviceId: device.id,
-              fps: payload.fps,
-              resolution: payload.resolution,
-              streamUrl: payload.streamUrl,
-              model: payload.model,
-              cpuUsage: payload.cpuUsage,
-              memoryUsage: payload.memoryUsage,
-              zoneId: payload.zoneId,
-              macAddress: payload.macAddress,
+              deviceId:     device.id,
+              fps:          payload.fps,
+              resolution:   payload.resolution,
+              streamUrl:    payload.streamUrl,
+              model:        payload.model,
+              cpuUsage:     payload.cpuUsage,
+              memoryUsage:  payload.memoryUsage,
+              zoneId:       payload.zoneId,
+              macAddress:   payload.macAddress,
             },
           });
         } else if (deviceType === DeviceType.DISPLAY) {
           await this.prisma.displayMetadata.create({
             data: {
-              deviceId: device.id,
+              deviceId:         device.id,
               screenResolution: payload.resolution,
-              kioskVersion: payload.version,
+              kioskVersion:     payload.version,
             },
           });
         }
 
+        // Publish pairing acknowledgement back to the device
+        this.publishPairingAck(
+          data.deviceId,
+          deviceType,
+          resolvedSiteId,
+          initialStatus,
+        );
+
         this.emitDeviceEvent('device.created', device.id, deviceType, data.deviceId);
+
       } else {
         // ── Subsequent heartbeat: update volatile fields ──────────────
+        this.logger.debug(
+          `[DEVICE] Heartbeat received — deviceId=${data.deviceId} status=${existing.status}`,
+        );
+
         const isUnpaired = existing.status === DeviceStatus.UNPAIRED;
-        let newStatus: DeviceStatus = isUnpaired ? DeviceStatus.UNPAIRED : DeviceStatus.ONLINE;
+        let newStatus: DeviceStatus = isUnpaired
+          ? DeviceStatus.UNPAIRED
+          : DeviceStatus.ONLINE;
+
         if (payload.status && Object.values(DeviceStatus).includes(payload.status as DeviceStatus)) {
           newStatus = payload.status as DeviceStatus;
         }
+
         const newlyConnected =
           existing.status === DeviceStatus.OFFLINE ||
           existing.status === DeviceStatus.UNKNOWN;
@@ -132,59 +171,82 @@ export class DeviceRegistryService implements OnModuleInit {
         await this.prisma.device.update({
           where: { deviceId: data.deviceId },
           data: {
-            status: newStatus,
-            ip: payload.ip || existing.ip,
-            hostname: payload.hostname || existing.hostname,
-            version: payload.version || existing.version,
-            uptime: payload.uptime ?? existing.uptime,
+            status:       newStatus,
+            ip:           payload.ip || existing.ip,
+            hostname:     payload.hostname || existing.hostname,
+            version:      payload.version || existing.version,
+            uptime:       payload.uptime ?? existing.uptime,
             lastHeartbeat: now,
-            lastSeen: now,
+            lastSeen:     now,
             mqttConnected: true,
-            connectedAt: newlyConnected ? now : existing.connectedAt,
+            connectedAt:  newlyConnected ? now : existing.connectedAt,
           },
         });
+
+        if (newlyConnected) {
+          this.logger.log(
+            `[DEVICE] Device reconnected — deviceId=${data.deviceId} status=${newStatus}`,
+          );
+        }
 
         // Update type-specific volatile metadata
         if (deviceType === DeviceType.EDGE_CAMERA) {
           await this.prisma.cameraMetadata.upsert({
-            where: { deviceId: existing.id },
+            where:  { deviceId: existing.id },
             create: {
-              deviceId: existing.id,
-              fps: payload.fps,
-              resolution: payload.resolution,
-              streamUrl: payload.streamUrl,
-              model: payload.model,
-              cpuUsage: payload.cpuUsage,
+              deviceId:    existing.id,
+              fps:         payload.fps,
+              resolution:  payload.resolution,
+              streamUrl:   payload.streamUrl,
+              model:       payload.model,
+              cpuUsage:    payload.cpuUsage,
               memoryUsage: payload.memoryUsage,
-              zoneId: payload.zoneId,
+              zoneId:      payload.zoneId,
             },
             update: {
-              fps: payload.fps ?? undefined,
-              cpuUsage: payload.cpuUsage ?? undefined,
+              fps:         payload.fps         ?? undefined,
+              cpuUsage:    payload.cpuUsage    ?? undefined,
               memoryUsage: payload.memoryUsage ?? undefined,
-              streamUrl: payload.streamUrl || undefined,
+              streamUrl:   payload.streamUrl   || undefined,
             },
           });
         } else if (deviceType === DeviceType.DISPLAY) {
           await this.prisma.displayMetadata.upsert({
-            where: { deviceId: existing.id },
-            create: {
-              deviceId: existing.id,
-              screenResolution: data.resolution,
-              kioskVersion: data.version,
-            },
-            update: {
-              kioskVersion: data.version || undefined,
-            },
+            where:  { deviceId: existing.id },
+            create: { deviceId: existing.id, screenResolution: data.resolution, kioskVersion: data.version },
+            update: { kioskVersion: data.version || undefined },
           });
         }
       }
     } catch (err: any) {
       this.logger.error(
-        `[Registry] Error processing heartbeat for ${data.deviceId}: ${err.message}`,
+        `[DEVICE] Error processing heartbeat for ${data.deviceId}: ${err.message}`,
         err.stack,
       );
     }
+  }
+
+  /**
+   * Publish a pairing acknowledgement to the device's config topic so the
+   * camera knows it has been registered and can persist its siteId locally.
+   */
+  private publishPairingAck(
+    deviceId: string,
+    deviceType: DeviceType,
+    siteId: string | null,
+    status: DeviceStatus,
+  ): void {
+    const topic = MQTT_TOPICS.EDGE.CONFIG(deviceId);
+    this.mqtt.publish(topic, {
+      success:   true,
+      deviceId,
+      siteId,
+      status,
+      timestamp: new Date().toISOString(),
+    });
+    this.logger.log(
+      `[DEVICE] Pairing ack published — deviceId=${deviceId} topic=${topic} status=${status}`,
+    );
   }
 
   private emitDeviceEvent(
@@ -214,7 +276,7 @@ export class DeviceRegistryService implements OnModuleInit {
       where: { id: devicePrismaId },
       include: { cameraMetadata: true },
     });
-    if (!device) throw new Error('Device not found');
+    if (!device) throw new Error('Appareil introuvable');
 
     const newStatus =
       siteId === null ? DeviceStatus.UNPAIRED : DeviceStatus.ONLINE;
