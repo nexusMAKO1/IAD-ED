@@ -16,26 +16,29 @@ import { useMqtt } from '@/mqtt/useMqtt';
 import { MQTT_TOPICS } from '@/mqtt/mqtt.topics';
 import { cn } from '@/lib/utils';
 
+import { useOutletContext } from 'react-router-dom';
+
 const stagger: any = { hidden: {}, visible: { transition: { staggerChildren: 0.08 } } };
 const item: any = { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.22,1,0.36,1] } } };
 
 type TabType = 'UNPAIRED' | 'ONLINE' | 'OFFLINE';
 
 export function DisplaysPage() {
+  const { selectedSiteId } = useOutletContext<{ selectedSiteId: string }>();
   const [activeTab, setActiveTab] = useState<TabType>('UNPAIRED');
   const [pairingDevice, setPairingDevice] = useState<any | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: displays = [], isLoading, isError, refetch } = useQuery({
-    queryKey: ['displays'],
-    queryFn: () => getDevices({ type: 'DISPLAY' }),
+    queryKey: ['displays', selectedSiteId],
+    queryFn: () => getDevices({ type: 'DISPLAY', siteId: selectedSiteId, unassigned: true }),
     refetchInterval: 15_000,
   });
 
   useMqtt(MQTT_TOPICS.FRONTEND.DEVICE_STATUS, (topic, payload) => {
     if ((payload as any).deviceType === 'DISPLAY') {
-      queryClient.invalidateQueries({ queryKey: ['displays'] });
+      queryClient.invalidateQueries({ queryKey: ['displays', selectedSiteId] });
     }
   });
 
@@ -48,7 +51,7 @@ export function DisplaysPage() {
     mutationFn: (id: string) => unpairDevice(id),
     onSuccess: () => {
       toast({ title: 'Afficheur dissocié avec succès', variant: 'success' });
-      queryClient.invalidateQueries({ queryKey: ['displays'] });
+      queryClient.invalidateQueries({ queryKey: ['displays', selectedSiteId] });
     },
     onError: () => {
       toast({ title: 'Erreur lors de la dissociation', variant: 'destructive' });
@@ -59,7 +62,7 @@ export function DisplaysPage() {
     mutationFn: (id: string) => deleteDevice(id),
     onSuccess: () => {
       toast({ title: 'Afficheur supprimé', variant: 'success' });
-      queryClient.invalidateQueries({ queryKey: ['displays'] });
+      queryClient.invalidateQueries({ queryKey: ['displays', selectedSiteId] });
     },
     onError: () => {
       toast({ title: 'Erreur lors de la suppression', variant: 'destructive' });

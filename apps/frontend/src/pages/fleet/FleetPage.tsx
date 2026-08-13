@@ -20,36 +20,19 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { Device } from '@/types';
+import { useOutletContext } from 'react-router-dom';
 import { getErrorMessage } from '@/types';
 
 export function FleetPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { selectedSiteId, sites = [], isSitesLoading, sitesError, refetchSites } = useOutletContext<{ selectedSiteId: string; sites: any[]; isSitesLoading: boolean; sitesError: any; refetchSites: () => void }>();
 
-  const [selectedSiteId, setSelectedSiteId] = React.useState<string>('');
   const [isFormOpen, setIsFormOpen] = React.useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const [activeDevice, setActiveDevice] = React.useState<Device | null>(null);
 
-  // ─── Fetch Sites ───────────────────────────────────────────────────────────
-  const {
-    data: sites = [],
-    isLoading: isSitesLoading,
-    error: sitesError,
-    refetch: refetchSites,
-  } = useQuery({
-    queryKey: ['sites'],
-    queryFn: getSites,
-  });
-
-  // Set default site when list loaded
-  React.useEffect(() => {
-    if (sites.length > 0 && !selectedSiteId) {
-      setSelectedSiteId(sites[0].id);
-    }
-  }, [sites, selectedSiteId]);
-
-  const activeSite = sites.find((s) => s.id === selectedSiteId);
+  const activeSite = sites.find((s: any) => s.id === selectedSiteId);
 
   // ─── Fetch Devices for selected Site ───────────────────────────────────────
   const {
@@ -58,7 +41,7 @@ export function FleetPage() {
     refetch: refetchDevices,
   } = useQuery({
     queryKey: ['devices', selectedSiteId],
-    queryFn: () => getDevices(selectedSiteId),
+    queryFn: () => getDevices({ siteId: selectedSiteId, unassigned: true }),
     enabled: !!selectedSiteId,
   });
 
@@ -140,16 +123,6 @@ export function FleetPage() {
         icon={MonitorPlay}
         actions={
           <div className="flex items-center gap-2">
-            <Select value={selectedSiteId} onValueChange={setSelectedSiteId}>
-              <SelectTrigger id="site-select" className="w-[200px]">
-                <SelectValue placeholder="Choisir un site" />
-              </SelectTrigger>
-              <SelectContent>
-                {sites.map((site) => (
-                  <SelectItem key={site.id} value={site.id}>{site.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
             <Button variant="outline" size="icon" onClick={handleRefresh} title="Rafraîchir">
               <RefreshCw className="h-4 w-4" />
             </Button>

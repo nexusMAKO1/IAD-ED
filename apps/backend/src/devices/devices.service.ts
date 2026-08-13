@@ -37,10 +37,17 @@ export class DevicesService {
     unassigned?: boolean;
   }) {
     const where: any = {};
-    if (filters?.siteId) where.siteId = filters.siteId;
+    
+    if (filters?.siteId && filters?.unassigned) {
+      where.OR = [{ siteId: filters.siteId }, { siteId: null }];
+    } else if (filters?.siteId) {
+      where.siteId = filters.siteId;
+    } else if (filters?.unassigned) {
+      where.siteId = null;
+    }
+
     if (filters?.type) where.type = filters.type;
     if (filters?.status) where.status = filters.status;
-    if (filters?.unassigned) where.siteId = null;
 
     const now = new Date();
     const devices = await this.prisma.device.findMany({

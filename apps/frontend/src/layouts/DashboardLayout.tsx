@@ -32,7 +32,7 @@ export function DashboardLayout() {
   };
 
   // Fetch sites for the TopBar site selector
-  const { data: sites = [] } = useQuery({
+  const { data: sites = [], isLoading: isSitesLoading, error: sitesError, refetch: refetchSites } = useQuery({
     queryKey: ['sites'],
     queryFn: getSites,
     staleTime: 5 * 60 * 1000,
@@ -76,7 +76,7 @@ export function DashboardLayout() {
           aria-label="Page content"
         >
           <ErrorBoundary>
-            <Outlet context={{ selectedSiteId, sites }} />
+            <Outlet context={{ selectedSiteId, sites, isSitesLoading, sitesError, refetchSites }} />
           </ErrorBoundary>
         </motion.main>
       </div>

@@ -123,7 +123,7 @@ export function TopBar({ sites, selectedSiteId, onSiteChange }: TopBarProps) {
           >
             <Building2 className="h-3.5 w-3.5 text-blue-400 shrink-0" aria-hidden="true" />
             <span className="max-w-[120px] truncate">
-              {activeSite?.name ?? 'Sélectionner un site'}
+              {selectedSiteId === 'ALL' ? 'Tous les sites' : (activeSite?.name ?? 'Sélectionner un site')}
             </span>
             <ChevronDown className={cn('h-3 w-3 text-muted-foreground transition-transform', siteOpen && 'rotate-180')} aria-hidden="true" />
           </button>
@@ -143,6 +143,22 @@ export function TopBar({ sites, selectedSiteId, onSiteChange }: TopBarProps) {
                   border: '1px solid hsl(215 20% 22%)',
                 }}
               >
+                <li
+                  role="option"
+                  aria-selected={'ALL' === selectedSiteId}
+                  className={cn(
+                    'px-4 py-2.5 text-sm cursor-pointer transition-colors flex items-center gap-2',
+                    'ALL' === selectedSiteId
+                      ? 'bg-blue-500/12 text-blue-400'
+                      : 'text-foreground hover:bg-white/5',
+                  )}
+                  onClick={() => { onSiteChange('ALL'); setSiteOpen(false); }}
+                >
+                  {'ALL' === selectedSiteId && (
+                    <span className="w-1 h-1 rounded-full bg-blue-400" aria-hidden="true" />
+                  )}
+                  Tous les sites
+                </li>
                 {sites.map((site) => (
                   <li
                     key={site.id}

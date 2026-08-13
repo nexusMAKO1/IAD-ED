@@ -16,6 +16,7 @@ import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { StatusBadge } from '@/components/dashboard/StatusBadge';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useOutletContext } from 'react-router-dom';
 import {
   getDevices, unpairDevice, deleteDevice,
   assignSiteDevice, restartDevice, updateDevice,
@@ -525,6 +526,7 @@ function DashboardStats({ devices }: { devices: EdgeDevice[] }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export function CamerasPage() {
+  const { selectedSiteId, sites: _allSites } = useOutletContext<{ selectedSiteId: string; sites: any[] }>();
   const queryClient = useQueryClient();
   const [assignModalCamId, setAssignModalCamId] = useState<string | null>(null);
   const [renameModalCam, setRenameModalCam] = useState<EdgeDevice | null>(null);
@@ -534,8 +536,8 @@ export function CamerasPage() {
 
   // ─── API Queries ────────────────────────────────────────────────────────────
   const { data: devicesRaw = [], isLoading, isError, refetch } = useQuery({
-    queryKey: ['devices', 'EDGE_CAMERA'],
-    queryFn: () => getDevices({ type: 'EDGE_CAMERA' }),
+    queryKey: ['devices', 'EDGE_CAMERA', selectedSiteId],
+    queryFn: () => getDevices({ type: 'EDGE_CAMERA', siteId: selectedSiteId, unassigned: true }),
     refetchInterval: 15_000,
   });
 
@@ -545,7 +547,7 @@ export function CamerasPage() {
   });
 
   // ─── Mutations ──────────────────────────────────────────────────────────────
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['devices', 'EDGE_CAMERA'] });
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['devices', 'EDGE_CAMERA', selectedSiteId] });
 
   const assignMutation = useMutation({
     mutationFn: ({ id, siteId, zoneId }: { id: string; siteId: string; zoneId: string }) =>
@@ -582,7 +584,9 @@ export function CamerasPage() {
     const deviceId = raw?.deviceId ?? raw?.payload?.deviceId;
     if (!deviceId) return;
 
-    // Do not override status here, only update telemetry!
+    // Note: If we receive discovery for a device that is not in devicesRaw,
+    // it will be ignored since we only render devices mapped from devicesRaw.
+
     setLiveDevices(prev => ({
       ...prev,
       [deviceId]: {

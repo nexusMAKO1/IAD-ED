@@ -24,6 +24,7 @@ import {
   Post,
   Query,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -36,6 +37,8 @@ import { DeviceType, DeviceStatus, UserRole } from '@prisma/client';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { DevicesService } from './devices.service';
 
 @ApiTags('Devices')
@@ -58,7 +61,19 @@ export class DevicesController {
     @Query('type') type?: DeviceType,
     @Query('status') status?: DeviceStatus,
     @Query('unassigned') unassigned?: string,
+    @CurrentUser() user?: JwtPayload,
   ) {
+    if (siteId === 'ALL') {
+      siteId = undefined;
+    }
+
+    if (user && user.role !== UserRole.ADMIN) {
+      if (siteId && siteId !== user.siteId) {
+        throw new ForbiddenException("Vous n'êtes pas autorisé à accéder aux appareils de ce site.");
+      }
+      siteId = user.siteId ?? undefined;
+    }
+
     return this.devicesService.findAll({
       siteId,
       type,

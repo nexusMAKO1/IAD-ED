@@ -62,13 +62,13 @@ export function OverviewPage() {
 
   const { data: edgeDevices = [], isLoading: isLoadingCameras } = useQuery({
     queryKey: ['devices', selectedSiteId, 'EDGE_CAMERA'],
-    queryFn: () => getDevices({ siteId: selectedSiteId, type: 'EDGE_CAMERA' }),
+    queryFn: () => getDevices({ siteId: selectedSiteId, type: 'EDGE_CAMERA', unassigned: true }),
     enabled: !!selectedSiteId,
   });
 
   const { data: displayDevices = [], isLoading: isLoadingDisplays } = useQuery({
     queryKey: ['devices', selectedSiteId, 'DISPLAY'],
-    queryFn: () => getDevices({ siteId: selectedSiteId, type: 'DISPLAY' }),
+    queryFn: () => getDevices({ siteId: selectedSiteId, type: 'DISPLAY', unassigned: true }),
     enabled: !!selectedSiteId,
   });
 
