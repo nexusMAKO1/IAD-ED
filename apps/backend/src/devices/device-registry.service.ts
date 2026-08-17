@@ -15,6 +15,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MqttService } from '../mqtt/mqtt.service';
 import { MQTT_TOPICS } from '../mqtt/mqtt.topics';
 import { DeviceType, DeviceStatus } from '@prisma/client';
+import { PresenceService } from './presence.service';
 
 @Injectable()
 export class DeviceRegistryService implements OnModuleInit {
@@ -66,6 +67,8 @@ export class DeviceRegistryService implements OnModuleInit {
         where: { deviceId: data.deviceId },
       });
 
+      const isOfflineEvent = data.event === 'service_offline' || payload.status?.toUpperCase() === 'OFFLINE';
+
       if (!existing) {
         // ── First contact: create a new device ───────────────────────
         this.logger.log(
@@ -86,9 +89,13 @@ export class DeviceRegistryService implements OnModuleInit {
           }
         }
 
-        const initialStatus = resolvedSiteId
+        let initialStatus: DeviceStatus = resolvedSiteId
           ? DeviceStatus.ONLINE
           : DeviceStatus.UNPAIRED;
+
+        if (isOfflineEvent) {
+          initialStatus = DeviceStatus.OFFLINE;
+        }
 
         const device = await this.prisma.device.create({
           data: {
@@ -102,10 +109,10 @@ export class DeviceRegistryService implements OnModuleInit {
             platform:       payload.platform,
             version:        payload.version,
             firmwareVersion: payload.firmwareVersion,
-            lastHeartbeat:  now,
+            lastHeartbeat:  isOfflineEvent ? null : now,
             lastSeen:       now,
-            mqttConnected:  true,
-            connectedAt:    now,
+            mqttConnected:  !isOfflineEvent,
+            connectedAt:    isOfflineEvent ? null : now,
             uptime:         payload.uptime || 0,
           },
         });
@@ -160,30 +167,37 @@ export class DeviceRegistryService implements OnModuleInit {
           ? DeviceStatus.UNPAIRED
           : DeviceStatus.ONLINE;
 
-        if (payload.status && Object.values(DeviceStatus).includes(payload.status as DeviceStatus)) {
-          newStatus = payload.status as DeviceStatus;
+        if (isOfflineEvent) {
+          newStatus = DeviceStatus.OFFLINE;
+        } else if (payload.status && Object.values(DeviceStatus).includes(payload.status.toUpperCase() as DeviceStatus)) {
+          newStatus = payload.status.toUpperCase() as DeviceStatus;
         }
 
         const newlyConnected =
           existing.status === DeviceStatus.OFFLINE ||
           existing.status === DeviceStatus.UNKNOWN;
 
+        const updateData: any = {
+          status:       newStatus,
+          ip:           payload.ip || existing.ip,
+          hostname:     payload.hostname || existing.hostname,
+          version:      payload.version || existing.version,
+          uptime:       payload.uptime ?? existing.uptime,
+          lastSeen:     now,
+          mqttConnected: !isOfflineEvent,
+        };
+
+        if (!isOfflineEvent) {
+          updateData.lastHeartbeat = now;
+          updateData.connectedAt = newlyConnected ? now : existing.connectedAt;
+        }
+
         await this.prisma.device.update({
           where: { deviceId: data.deviceId },
-          data: {
-            status:       newStatus,
-            ip:           payload.ip || existing.ip,
-            hostname:     payload.hostname || existing.hostname,
-            version:      payload.version || existing.version,
-            uptime:       payload.uptime ?? existing.uptime,
-            lastHeartbeat: now,
-            lastSeen:     now,
-            mqttConnected: true,
-            connectedAt:  newlyConnected ? now : existing.connectedAt,
-          },
+          data: updateData,
         });
 
-        if (newlyConnected) {
+        if (newlyConnected && !isOfflineEvent) {
           this.logger.log(
             `[DEVICE] Device reconnected — deviceId=${data.deviceId} status=${newStatus}`,
           );
@@ -278,8 +292,17 @@ export class DeviceRegistryService implements OnModuleInit {
     });
     if (!device) throw new Error('Appareil introuvable');
 
-    const newStatus =
-      siteId === null ? DeviceStatus.UNPAIRED : DeviceStatus.ONLINE;
+    let newStatus = siteId === null ? DeviceStatus.UNPAIRED : device.status;
+
+    if (siteId !== null && device.status === DeviceStatus.UNPAIRED) {
+      const computed = PresenceService.computeStatus(
+        device.lastHeartbeat,
+        device.lastSeen,
+        new Date(),
+        DeviceStatus.ONLINE,
+      );
+      newStatus = computed ?? DeviceStatus.OFFLINE;
+    }
 
     const updated = await this.prisma.device.update({
       where: { id: devicePrismaId },
