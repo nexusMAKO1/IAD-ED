@@ -925,23 +925,54 @@ async def detect(
                 det_info["age_confidence"] = age_results[i]["confidence"]
             detections_list.append(det_info)
 
-    log.debug(
-        "Detect: %d person(s) | inference=%.1f ms | processing=%.1f ms",
+    log.info(
+        "[IAD] Detection: peopleCount=%d | inference=%.1f ms | processing=%.1f ms",
         person_count,
         result.inference_ms,
         processing_ms,
     )
 
-    # Optionally publish to MQTT (fire-and-forget; failure is silent)
-    if _mqtt_client.is_connected and person_count > 0:
+    # Publish detection event to MQTT using the proper BaseEvent envelope.
+    # Always publish (even when person_count == 0) so the backend can clear
+    # currentVisitors when the scene is empty.
+    if _mqtt_client.is_connected:
         cv_mqtt_published_counter.inc()
-        _mqtt_client.publish_audience_event(
-            {
-                "device_id": _SERVICE_ID,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-                "person_count": person_count,
-                "inference_ms": round(result.inference_ms, 2),
-            }
+        log.info(
+            "[IAD] Publishing audience event — topic=smartvision/edge/detections peopleCount=%d",
+            person_count,
+        )
+        # Build properly-typed detection items for the backend DTO
+        detection_items = []
+        for det in detections_list:
+            detection_items.append({
+                "track_id": det.get("track_id"),
+                "confidence": det.get("confidence", 1.0),
+                "age_group": det.get("age_group", "adult"),
+                "estimated_age": det.get("age"),
+            })
+        _mqtt_client.publish_detections(
+            person_count=person_count,
+            inference_msec=result.inference_ms,
+            processing_msec=processing_ms,
+            detections=detection_items,
+        )
+        # Also publish crowd density for the live density gauge
+        if person_count > 0:
+            if person_count >= 20:
+                density = "critical"
+            elif person_count >= 10:
+                density = "high"
+            elif person_count >= 5:
+                density = "medium"
+            else:
+                density = "low"
+            _mqtt_client.publish_crowd_density(count=person_count, density=density)
+        # Also publish tracking update for the live visitor counter
+        track_ids = [d.get("track_id") for d in detections_list if d.get("track_id") is not None]
+        _mqtt_client.publish_tracking(
+            active_count=person_count,
+            track_ids=track_ids,
+            fps=1000.0 / max(processing_ms, 1.0),
         )
 
     return {
@@ -1080,6 +1111,10 @@ def _cli_main() -> None:  # pragma: no cover
 
     log.info("Stream started — press 'q' to quit.")
 
+    # Throttle MQTT detection publishes: at most once per second
+    _last_detection_publish_time: float = 0.0
+    DETECTION_PUBLISH_INTERVAL_S: float = 1.0
+
     try:
         import time as _time
 
@@ -1108,6 +1143,8 @@ def _cli_main() -> None:  # pragma: no cover
                 log.debug("Tracker error (skipping frame): %s", trk_exc)
                 tracked_people = []
 
+            person_count_cli = len(tracked_people)
+
             # ── Age estimation (throttled: every N frames OR every 500 ms) ──
             now_ms = time.perf_counter() * 1000.0
             time_gate = (now_ms - _last_age_estimate_time) >= AGE_ESTIMATE_INTERVAL_MS
@@ -1132,24 +1169,10 @@ def _cli_main() -> None:  # pragma: no cover
                         prev = age_cache.get(person.track_id)
                         age_cache[person.track_id] = group_label
 
-                        # Publish to MQTT
-                        if _mqtt_client.is_connected:
-                            payload = {
-                                "timestamp": datetime.now(timezone.utc).isoformat(),
-                                "deviceId": settings.device_id,
-                                "siteId": settings.site_id,
-                                "event": "demographics",
-                                "payload": {
-                                    "age_group": group_label.lower().replace(" ", "_"),
-                                    "confidence": round(age_info.get("confidence", 1.0), 4)
-                                }
-                            }
-                            _mqtt_client._client.publish("smartvision/edge/demographics", json.dumps(payload), qos=1)
-
                         # Log only when the group changes for this track
                         if prev != group_label:
                             log.info(
-                                "Track %d  Age Group: %s",
+                                "[IAD] Track %d Age Group: %s",
                                 person.track_id,
                                 group_label,
                             )
@@ -1162,20 +1185,91 @@ def _cli_main() -> None:  # pragma: no cover
             for tid in stale_ids:
                 del age_cache[tid]
 
+            # ── MQTT: Publish detection event (throttled to 1/s) ─────────────
+            now_s = time.perf_counter()
+            if _mqtt_client.is_connected and (now_s - _last_detection_publish_time) >= DETECTION_PUBLISH_INTERVAL_S:
+                _last_detection_publish_time = now_s
+
+                # Build detection items with age group from cache
+                detection_items = []
+                for person in tracked_people:
+                    group_label = age_cache.get(person.track_id, "adult")
+                    # Normalise age group label to backend-expected values
+                    group_norm = group_label.lower().replace(" ", "_")
+                    # Map display labels → backend age_group enum values
+                    group_map = {
+                        "child": "child",
+                        "teen": "teen",
+                        "young": "young_adult",
+                        "young_adult": "young_adult",
+                        "adult": "adult",
+                        "senior": "senior",
+                        "unknown": "adult",
+                    }
+                    age_group = group_map.get(group_norm, "adult")
+                    detection_items.append({
+                        "track_id": person.track_id,
+                        "confidence": round(person.confidence, 4),
+                        "age_group": age_group,
+                    })
+
+                log.info(
+                    "[IAD] Detection: peopleCount=%d | fps=%.1f | siteId=%s",
+                    person_count_cli,
+                    current_fps,
+                    settings.site_id or "UNPAIRED",
+                )
+
+                if not settings.site_id:
+                    log.warning("[IAD] Device is UNPAIRED — detection events will be ignored by backend")
+                else:
+                    log.info(
+                        "[IAD] Publishing detection event — topic=smartvision/edge/detections"
+                    )
+                    ok = _mqtt_client.publish_detections(
+                        person_count=person_count_cli,
+                        inference_msec=result.inference_ms,
+                        processing_msec=avg_latency,
+                        detections=detection_items,
+                    )
+                    if ok:
+                        log.info("[IAD] Detection event published successfully")
+                    else:
+                        log.warning("[IAD] Detection event publish failed")
+
+                    # Publish crowd density for the live gauge
+                    if person_count_cli >= 20:
+                        density = "critical"
+                    elif person_count_cli >= 10:
+                        density = "high"
+                    elif person_count_cli >= 5:
+                        density = "medium"
+                    else:
+                        density = "low"
+                    _mqtt_client.publish_crowd_density(count=person_count_cli, density=density)
+
+                    # Publish tracking for the live visitor counter
+                    track_ids = [p.track_id for p in tracked_people]
+                    _mqtt_client.publish_tracking(
+                        active_count=person_count_cli,
+                        track_ids=track_ids,
+                        fps=current_fps,
+                    )
+
             if perf_logger:
                 perf_logger.log(
                     fps=current_fps,
                     latency_ms=avg_latency,
-                    person_count=len(tracked_people),
+                    person_count=person_count_cli,
                 )
 
             if args.headless:
                 if frame_count % 30 == 0:
                     log.info(
-                        "FPS: %.1f | Latency: %.1f ms | Persons: %d",
+                        "[IAD] FPS: %.1f | Latency: %.1f ms | Persons: %d",
                         current_fps,
                         avg_latency,
-                        len(tracked_people),
+                        person_count_cli,
                     )
                 continue
 

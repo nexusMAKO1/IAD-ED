@@ -35,7 +35,9 @@ export class AudienceEventsService implements OnModuleInit {
       const dto = plainToInstance(DetectionsPayloadDto, payload);
       const errors = await validate(dto);
       if (errors.length > 0) {
-        this.logger.warn(`Invalid detection payload structure`);
+        this.logger.warn(
+          `[IAD MQTT] Rejected detection event — invalid payload structure (deviceId=${event.deviceId})`,
+        );
         return;
       }
 
@@ -43,7 +45,9 @@ export class AudienceEventsService implements OnModuleInit {
       const deviceId = event.deviceId;
 
       if (!siteId) {
-        this.logger.debug(`Ignoring detection event from unpaired device ${deviceId}`);
+        this.logger.warn(
+          `[IAD MQTT] Rejected detection event — device is UNPAIRED (deviceId=${deviceId})`,
+        );
         return;
       }
       // Using new Date() instead of event.timestamp string as Prisma expects Date
@@ -80,6 +84,10 @@ export class AudienceEventsService implements OnModuleInit {
       const densityScore = 0.0;
       const avgDwellTime = 0.0;
 
+      this.logger.log(
+        `[IAD MQTT] Received detection event — deviceId=${deviceId} siteId=${siteId} peopleCount=${peopleCount} young=${youngCount} adult=${adultCount} senior=${seniorCount}`,
+      );
+
       await this.prisma.audienceEvent.create({
         data: {
           site: { connect: { id: siteId } },
@@ -95,6 +103,10 @@ export class AudienceEventsService implements OnModuleInit {
           avgDwellTime,
         },
       });
+
+      this.logger.log(
+        `[IAD DB] AudienceEvent created — siteId=${siteId} deviceId=${deviceId} peopleCount=${peopleCount}`,
+      );
 
       // Update Prometheus metrics
       this.iadMetrics.peopleDetectedTotal.inc(
@@ -122,7 +134,7 @@ export class AudienceEventsService implements OnModuleInit {
         `Ingested audience event for site ${siteId} (${peopleCount} people)`,
       );
     } catch (err: any) {
-      this.logger.error(`Error processing audience event: ${err.message}`);
+      this.logger.error(`[IAD MQTT] Error processing audience event: ${err.message}`, err.stack);
     }
   }
 
@@ -140,24 +152,75 @@ export class AudienceEventsService implements OnModuleInit {
          LIMIT 1`,
 
       this.prisma.$queryRaw<
-        { totalPeople: bigint; eventCount: bigint }[]
+        {
+          totalPeople: bigint;
+          eventCount: bigint;
+          totalYoung: bigint;
+          totalAdult: bigint;
+          totalSenior: bigint;
+          totalMale: bigint;
+          totalFemale: bigint;
+        }[]
       >`SELECT COALESCE(SUM("peopleCount"), 0) AS "totalPeople",
-                COUNT(*) AS "eventCount"
+                COUNT(*) AS "eventCount",
+                COALESCE(SUM("youngCount"), 0) AS "totalYoung",
+                COALESCE(SUM("adultCount"), 0) AS "totalAdult",
+                COALESCE(SUM("seniorCount"), 0) AS "totalSenior",
+                COALESCE(SUM("maleCount"), 0) AS "totalMale",
+                COALESCE(SUM("femaleCount"), 0) AS "totalFemale"
          FROM audience_events
          WHERE "siteId" = ${siteId}::uuid
            AND timestamp >= NOW() - INTERVAL '24 hours'`,
     ]);
 
     const latest = latestRows[0] ?? null;
-    const agg = aggRows[0] ?? { totalPeople: 0n, eventCount: 0n };
+    const agg = aggRows[0] ?? {
+      totalPeople: 0n,
+      eventCount: 0n,
+      totalYoung: 0n,
+      totalAdult: 0n,
+      totalSenior: 0n,
+      totalMale: 0n,
+      totalFemale: 0n,
+    };
+
+    const currentVisitors = latest?.peopleCount ?? 0;
+    const rawDensity = latest?.densityScore ?? 0;
+
+    // Derive a crowd density label from the most recent densityScore or peopleCount
+    let crowdDensity: 'low' | 'medium' | 'high' | 'critical' = 'low';
+    if (currentVisitors >= 20 || rawDensity >= 0.8) crowdDensity = 'critical';
+    else if (currentVisitors >= 10 || rawDensity >= 0.6) crowdDensity = 'high';
+    else if (currentVisitors >= 5 || rawDensity >= 0.3) crowdDensity = 'medium';
+
+    const totalMale = Number(agg.totalMale);
+    const totalFemale = Number(agg.totalFemale);
+    const genderTotal = totalMale + totalFemale;
+    const malePercent = genderTotal > 0 ? Math.round((totalMale / genderTotal) * 100) : 50;
+    const femalePercent = 100 - malePercent;
+
+    // Split youngCount into childrenCount (30%) and part of adultsCount
+    const totalYoung = Number(agg.totalYoung);
+    const childrenCount = Math.floor(totalYoung * 0.3);
+    const adultsCount = Number(agg.totalAdult) + (totalYoung - childrenCount);
+    const seniorsCount = Number(agg.totalSenior);
 
     return {
-      currentVisitors: latest?.peopleCount ?? 0,
+      currentVisitors,
       dailyVisitors: Number(agg.totalPeople),
       avgWaitTime: 0,
       activeCampaigns: 0,
-      densityScore: latest?.densityScore ?? 0,
+      densityScore: rawDensity,
       eventCount: Number(agg.eventCount),
+      // IAD fields expected by the frontend AudienceStats interface
+      crowdDensity,
+      malePercent,
+      femalePercent,
+      childrenCount,
+      adultsCount,
+      seniorsCount,
+      attentionRate: 0,
+      avgQueueLength: 0,
     };
   }
 
