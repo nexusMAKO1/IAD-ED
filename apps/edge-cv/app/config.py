@@ -82,6 +82,24 @@ class AppSettings(BaseSettings):
     )
 
     # ------------------------------------------------------------------ #
+    # Gender Classification Model
+    # ------------------------------------------------------------------ #
+    gender_enabled: bool = Field(
+        default=True,
+        description="Whether to run the Gender Classification ONNX model",
+    )
+    gender_model_path: str = Field(
+        default="models/gender_googlenet.onnx",
+        description="Path to the ONNX gender classification model",
+    )
+    gender_confidence_threshold: float = Field(
+        default=0.70,
+        ge=0.01,
+        le=1.0,
+        description="Minimum confidence to classify as male/female",
+    )
+
+    # ------------------------------------------------------------------ #
     # Camera / Video source
     # ------------------------------------------------------------------ #
     camera_source: str = Field(

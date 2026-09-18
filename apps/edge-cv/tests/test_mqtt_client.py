@@ -435,3 +435,73 @@ class TestQoSLevels:
         c.publish_demographics(person_count=2, demographics=[])
         call_args = mock_paho.publish.call_args
         assert call_args[1]["qos"] == 1
+
+
+# ---------------------------------------------------------------------------
+# Tests — Gender field in detection payloads
+# ---------------------------------------------------------------------------
+
+
+class TestGenderFieldInDetections:
+    """
+    Verify that publish_detections() always serialises a 'gender' key in
+    each detection item.
+
+    The new T-011 integration allows gender to be 'male', 'female', or 'unknown'.
+    These tests verify the payload structure.
+    """
+
+    def _published_payload(self, mock_paho) -> dict:
+        """Extract and deserialise the JSON payload sent to paho publish."""
+        raw = mock_paho.publish.call_args[0][1]
+        return json.loads(raw)
+
+    def test_detection_item_has_gender_key(self):
+        """Each detection item must include a 'gender' key."""
+        c, mock_paho = make_client_with_mocks()
+        detection_items = [
+            {"track_id": 1, "confidence": 0.9, "age_group": "adult", "gender": "unknown"},
+        ]
+        c.publish_detections(1, 10.0, 15.0, detection_items)
+        payload = self._published_payload(mock_paho)
+        detections = payload["payload"]["detections"]
+        assert len(detections) == 1
+        assert "gender" in detections[0], "gender key must be present in each detection item"
+
+    def test_detection_gender_is_unknown_when_no_model(self):
+        """Without a gender model the value must be 'unknown' (not absent, not None)."""
+        c, mock_paho = make_client_with_mocks()
+        detection_items = [
+            {"track_id": 1, "confidence": 0.85, "age_group": "senior", "gender": "unknown"},
+            {"track_id": 2, "confidence": 0.70, "age_group": "child",  "gender": "unknown"},
+        ]
+        c.publish_detections(2, 12.0, 18.0, detection_items)
+        payload = self._published_payload(mock_paho)
+        for det in payload["payload"]["detections"]:
+            assert det["gender"] == "unknown", (
+                f"Expected 'unknown' gender (no model), got {det['gender']!r}"
+            )
+
+    def test_multiple_persons_all_have_gender(self):
+        """Gender field must be present for every person in a multi-person event."""
+        c, mock_paho = make_client_with_mocks()
+        detection_items = [
+            {"track_id": i, "confidence": 0.8, "age_group": "adult", "gender": "unknown"}
+            for i in range(5)
+        ]
+        c.publish_detections(5, 11.0, 16.0, detection_items)
+        payload = self._published_payload(mock_paho)
+        detections = payload["payload"]["detections"]
+        assert len(detections) == 5
+        for det in detections:
+            assert "gender" in det
+            assert det["gender"] == "unknown"
+
+    def test_empty_detection_list_publishes_no_detections(self):
+        """Zero-person events must still serialise cleanly with an empty list."""
+        c, mock_paho = make_client_with_mocks()
+        c.publish_detections(0, 10.0, 15.0, [])
+        payload = self._published_payload(mock_paho)
+        assert payload["payload"]["detections"] == []
+        assert payload["payload"]["personCount"] == 0
+

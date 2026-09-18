@@ -62,6 +62,7 @@ from app.detector import DetectionResult, PersonDetector
 from app.services.camera_manager import CameraManager
 from app.services.mqtt_client import MQTTClient
 from app.demographics.age_estimation import AgeEstimator
+from app.demographics.gender_estimation import GenderEstimator
 from app.tracking.bytetrack import ByteTracker
 
 # ---------------------------------------------------------------------------
@@ -82,6 +83,7 @@ log = logging.getLogger("iad.edge-cv")
 _detector: Optional[PersonDetector] = None
 _model_loaded: bool = False
 _age_estimator: Optional[AgeEstimator] = None
+_gender_estimator: Optional[GenderEstimator] = None
 _tracker: Optional[ByteTracker] = None
 _camera_manager: CameraManager = CameraManager(source=settings.camera_source)
 def _get_device_status() -> str:
@@ -202,10 +204,19 @@ async def lifespan(app: FastAPI):  # noqa: ANN001
         cv_camera_status_gauge.set(1 if _camera_manager.is_connected else 0)
 
     # ------------------------------------------------------------------
-    # 2.5. Age estimator
+    # 2.5. Age & Gender estimators
     # ------------------------------------------------------------------
     log.info("Initializing Age Estimation module...")
     _age_estimator = AgeEstimator()
+    
+    if settings.gender_enabled:
+        log.info("Initializing Gender Estimation module...")
+        _gender_estimator = GenderEstimator(
+            model_path=settings.gender_model_path,
+            confidence_threshold=settings.gender_confidence_threshold,
+        )
+    else:
+        _gender_estimator = None
 
     # ------------------------------------------------------------------
     # 2.6. Multi-Object Tracker (ByteTrack)
@@ -906,6 +917,16 @@ async def detect(
         except Exception as exc:
             log.warning("Age estimation failed: %s", exc)
             age_results = []
+            
+        # Estimate gender for each detected person
+        try:
+            if _gender_estimator is not None:
+                gender_results = _gender_estimator.estimate(frame, raw_detections)
+            else:
+                gender_results = []
+        except Exception as exc:
+            log.warning("Gender estimation failed: %s", exc)
+            gender_results = []
 
         for i, p in enumerate(tracked_people):
             det_info = {
@@ -920,9 +941,14 @@ async def detect(
             }
             # Merge age estimation results if available
             if i < len(age_results):
-                det_info["age"] = age_results[i]["age"]
-                det_info["age_group"] = age_results[i]["age_group"]
-                det_info["age_confidence"] = age_results[i]["confidence"]
+                det_info["age"] = age_results[i].get("age")
+                det_info["age_group"] = age_results[i].get("age_group")
+                det_info["age_confidence"] = age_results[i].get("confidence")
+            # Merge gender estimation results if available
+            if i < len(gender_results):
+                det_info["gender"] = gender_results[i].get("gender")
+                det_info["gender_confidence"] = gender_results[i].get("gender_confidence")
+            
             detections_list.append(det_info)
 
     log.info(
@@ -941,15 +967,20 @@ async def detect(
             "[IAD] Publishing audience event — topic=smartvision/edge/detections peopleCount=%d",
             person_count,
         )
-        # Build properly-typed detection items for the backend DTO
+        # Build properly-typed detection items for the backend DTO.
+        # NOTE: age_group and gender now support model results or gracefully fallback to unknown/adult.
         detection_items = []
         for det in detections_list:
-            detection_items.append({
+            item = {
                 "track_id": det.get("track_id"),
                 "confidence": det.get("confidence", 1.0),
                 "age_group": det.get("age_group", "adult"),
                 "estimated_age": det.get("age"),
-            })
+                "gender": det.get("gender", "unknown"),
+            }
+            if "gender_confidence" in det:
+                item["gender_confidence"] = det["gender_confidence"]
+            detection_items.append(item)
         _mqtt_client.publish_detections(
             person_count=person_count,
             inference_msec=result.inference_ms,
@@ -1014,6 +1045,7 @@ def _cli_main() -> None:  # pragma: no cover
         from app.video_stream import VideoStream
         from app.tracking.bytetrack import ByteTracker as _ByteTracker
         from app.demographics.age_estimation import AgeEstimator as _AgeEstimator
+        from app.demographics.gender_estimation import GenderEstimator as _GenderEstimator
     except ImportError:
         from utils import (  # type: ignore[no-redef]
             FPSCounter,
@@ -1026,6 +1058,7 @@ def _cli_main() -> None:  # pragma: no cover
         from video_stream import VideoStream  # type: ignore[no-redef]
         from tracking.bytetrack import ByteTracker as _ByteTracker  # type: ignore[no-redef]
         from demographics.age_estimation import AgeEstimator as _AgeEstimator  # type: ignore[no-redef]
+        from demographics.gender_estimation import GenderEstimator as _GenderEstimator  # type: ignore[no-redef]
 
     parser = argparse.ArgumentParser(
         description="IAD Edge-CV — Real-Time Person Detection (CLI)"
@@ -1078,11 +1111,19 @@ def _cli_main() -> None:  # pragma: no cover
     AGE_ESTIMATE_EVERY_N: int = 10        # frame-count gate
     AGE_ESTIMATE_INTERVAL_MS: float = 500.0  # wall-clock gate (milliseconds)
 
-    # Instantiate a CLI-scoped ByteTracker and AgeEstimator.
+    # Instantiate a CLI-scoped ByteTracker and Estimators.
     # These are separate instances from the FastAPI lifespan objects so the
     # CLI mode is entirely self-contained and does not touch the REST state.
     cli_tracker = _ByteTracker()
     cli_age_estimator = _AgeEstimator()   # no ONNX model → runs heuristic fallback
+    
+    if settings.gender_enabled:
+        cli_gender_estimator = _GenderEstimator(
+            model_path=settings.gender_model_path,
+            confidence_threshold=settings.gender_confidence_threshold,
+        )
+    else:
+        cli_gender_estimator = None
 
     # Connect MQTT for publishing events from CLI mode
     global _mqtt_client
@@ -1094,6 +1135,8 @@ def _cli_main() -> None:  # pragma: no cover
     # track_id → age group display string (e.g. "Adult", "Unknown").
     # Populated lazily; reused across frames to avoid redundant inference.
     age_cache: Dict[int, str] = {}
+    gender_cache: Dict[int, str] = {}
+    gender_conf_cache: Dict[int, float] = {}
     _last_age_estimate_time: float = 0.0   # time.perf_counter() timestamp
 
     fps_counter = FPSCounter(window=30)
@@ -1169,13 +1212,24 @@ def _cli_main() -> None:  # pragma: no cover
                         prev = age_cache.get(person.track_id)
                         age_cache[person.track_id] = group_label
 
-                        # Log only when the group changes for this track
                         if prev != group_label:
                             log.info(
                                 "[IAD] Track %d Age Group: %s",
                                 person.track_id,
                                 group_label,
                             )
+                
+                if cli_gender_estimator is not None:
+                    try:
+                        gender_results = cli_gender_estimator.estimate(frame, age_dets)
+                    except Exception as gender_exc:
+                        log.debug("Gender estimation error: %s", gender_exc)
+                        gender_results = []
+                        
+                    for person, gender_info in zip(tracked_people, gender_results):
+                        gender_cache[person.track_id] = gender_info.get("gender", "unknown")
+                        if "gender_confidence" in gender_info:
+                            gender_conf_cache[person.track_id] = gender_info["gender_confidence"]
 
                 _last_age_estimate_time = now_ms
 
@@ -1184,6 +1238,10 @@ def _cli_main() -> None:  # pragma: no cover
             stale_ids = [tid for tid in age_cache if tid not in active_ids]
             for tid in stale_ids:
                 del age_cache[tid]
+                if tid in gender_cache:
+                    del gender_cache[tid]
+                if tid in gender_conf_cache:
+                    del gender_conf_cache[tid]
 
             # ── MQTT: Publish detection event (throttled to 1/s) ─────────────
             now_s = time.perf_counter()
@@ -1207,11 +1265,15 @@ def _cli_main() -> None:  # pragma: no cover
                         "unknown": "adult",
                     }
                     age_group = group_map.get(group_norm, "adult")
-                    detection_items.append({
+                    item = {
                         "track_id": person.track_id,
                         "confidence": round(person.confidence, 4),
                         "age_group": age_group,
-                    })
+                        "gender": gender_cache.get(person.track_id, "unknown"),
+                    }
+                    if person.track_id in gender_conf_cache:
+                        item["gender_confidence"] = gender_conf_cache[person.track_id]
+                    detection_items.append(item)
 
                 log.info(
                     "[IAD] Detection: peopleCount=%d | fps=%.1f | siteId=%s",

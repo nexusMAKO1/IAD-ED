@@ -237,9 +237,12 @@ export class AudienceEventsService implements OnModuleInit {
         youngCount: number;
         adultCount: number;
         seniorCount: number;
+        maleCount: number;
+        femaleCount: number;
       }[]
     >`SELECT id, "siteId", "deviceId", timestamp, "peopleCount",
-              "densityScore", "youngCount", "adultCount", "seniorCount"
+              "densityScore", "youngCount", "adultCount", "seniorCount",
+              "maleCount", "femaleCount"
        FROM audience_events
        WHERE "siteId" = ${siteId}::uuid
        ORDER BY timestamp DESC
@@ -257,13 +260,22 @@ export class AudienceEventsService implements OnModuleInit {
         dominantAge = 'adult';
       }
 
+      // Derive dominant gender from stored per-event counts.
+      // Both counts are zero when Edge-CV has no gender model loaded (current state).
+      let gender = 'unknown';
+      if (row.maleCount > 0 || row.femaleCount > 0) {
+        if (row.maleCount > row.femaleCount) gender = 'male';
+        else if (row.femaleCount > row.maleCount) gender = 'female';
+        // equal and non-zero → 'unknown' (genuinely ambiguous)
+      }
+
       return {
         id: row.id,
         timestamp: row.timestamp,
         siteId: row.siteId,
         deviceId: row.deviceId,
         ageGroup: dominantAge,
-        gender: 'unknown',
+        gender,
         confidence: 1.0,
         count: row.peopleCount
       };

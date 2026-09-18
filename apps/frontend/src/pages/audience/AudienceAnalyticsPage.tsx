@@ -57,25 +57,39 @@ export function AudienceAnalyticsPage() {
 
   useEffect(() => {
     if (!selectedSiteId) return;
-    const unsubscribe = mqttClient.subscribe(MQTT_TOPICS.EDGE.DEMOGRAPHICS, (_topic, envelope) => {
+    // Subscribe to DETECTIONS (the topic actually published by Edge-CV).
+    // DEMOGRAPHICS is defined but never published — subscribing to it produces
+    // an empty feed, which is why all rows showed 'Unknown'.
+    const unsubscribe = mqttClient.subscribe(MQTT_TOPICS.EDGE.DETECTIONS, (_topic, envelope) => {
+      if (envelope.siteId && envelope.siteId !== selectedSiteId) return;
       const payload = envelope.payload as Record<string, unknown>;
       if (!payload) return;
-      const evt: AudienceEvent = {
-        id: `live-${Date.now()}`,
-        deviceId: (payload['deviceId'] as string) || 'mqtt-live',
-        timestamp: envelope.timestamp,
-        ageGroup: (payload['ageGroup'] as string) || (payload['age_group'] as string) || 'unknown',
-        gender: (payload['gender'] as string) || 'unknown',
-        emotion: payload['emotion'] as string | undefined,
-        dwellTime: payload['dwellTime'] as number | undefined,
-        siteId: envelope.siteId,
-        confidence: (payload['confidence'] as number) || 1.0,
-        count: (payload['count'] as number) || 1,
-      };
-      setLiveEvents(prev => [evt, ...prev].slice(0, 50));
+
+      const detections = (payload['detections'] as Record<string, unknown>[] | undefined) ?? [];
+      const baseDeviceId = (envelope.deviceId as string) || 'mqtt-live';
+      const baseTs = envelope.timestamp as string;
+
+      // Emit one row per detected person so the table shows individual entries.
+      // If no detections array, fall back to one aggregate row.
+      if (detections.length > 0) {
+        const newRows: AudienceEvent[] = detections.map((det, i) => ({
+          id: `live-${Date.now()}-${i}`,
+          deviceId: baseDeviceId,
+          timestamp: baseTs,
+          ageGroup: (det['age_group'] as string) || (det['ageGroup'] as string) || 'unknown',
+          gender: (det['gender'] as string) || 'unknown',
+          siteId: envelope.siteId,
+          confidence: (det['confidence'] as number) || 1.0,
+          count: 1,
+        }));
+        setLiveEvents(prev => [...newRows, ...prev].slice(0, 50));
+      } else {
+        // Zero-person detection event — skip (nothing to display per-person)
+      }
     });
     return () => { unsubscribe(); };
   }, [selectedSiteId]);
+
 
   const allEvents: AudienceEvent[] = [...liveEvents, ...(histEvents || [])];
 
