@@ -64,9 +64,9 @@ export function LiveAnalyticsPage() {
         <div className="h-16 w-16 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-4">
           <Zap className="h-8 w-8 text-blue-400" />
         </div>
-        <h3 className="text-lg font-semibold mb-2">Select a Site</h3>
+        <h3 className="text-lg font-semibold mb-2">Sélectionnez un site</h3>
         <p className="text-sm text-muted-foreground max-w-xs">
-          Please select a site from the top navigation to view live analytics.
+          Veuillez sélectionner un site dans la navigation pour afficher l'analytique en direct.
         </p>
       </div>
     );
@@ -83,21 +83,21 @@ export function LiveAnalyticsPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <Zap className="h-6 w-6 text-primary" aria-hidden="true" />
-            Live Analytics
+            Analytique en direct
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Real-time stream from edge AI inference
+            Flux temps réel de l'inférence Edge AI
           </p>
         </div>
         <div className="flex items-center gap-4">
           <div className="glass-card px-3 py-1.5 text-xs">
-            FPS: <span className="font-bold text-primary">{live.fps.toFixed(1)}</span>
+            FPS : <span className="font-bold text-primary">{live.fps.toFixed(1)}</span>
           </div>
           <div className="glass-card px-3 py-1.5 text-xs">
-            CPU: <span className="font-bold text-amber-400">{live.cpuPercent.toFixed(0)}%</span>
+            CPU : <span className="font-bold text-amber-400">{live.cpuPercent.toFixed(0)}%</span>
           </div>
           <div className="glass-card px-3 py-1.5 text-xs">
-            Latency: <span className="font-bold text-emerald-400">{live.latencyMs.toFixed(0)}ms</span>
+            Latence : <span className="font-bold text-emerald-400">{live.latencyMs.toFixed(0)} ms</span>
           </div>
           <LiveBadge />
         </div>
@@ -115,7 +115,7 @@ export function LiveAnalyticsPage() {
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                  Visitors / Minute
+                  Visiteurs / Minute
                 </CardTitle>
                 <LiveBadge showLabel={false} />
               </div>
@@ -137,7 +137,7 @@ export function LiveAnalyticsPage() {
           <Card className="glass">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                Live Crowd Density
+                Densité de foule en direct
               </CardTitle>
             </CardHeader>
             <CardContent className="flex items-center justify-center">
@@ -156,7 +156,7 @@ export function LiveAnalyticsPage() {
           <Card className="glass">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                Visitors Today — Hourly
+                Visiteurs du jour — par heure
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -176,7 +176,7 @@ export function LiveAnalyticsPage() {
           <Card className="glass">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                Visitor & Queue Evolution
+                Évolution visiteurs & file d'attente
               </CardTitle>
             </CardHeader>
             <CardContent>

@@ -45,12 +45,12 @@ function formatUptime(seconds: number): string {
 }
 
 function timeAgo(isoDate: string | null): string {
-  if (!isoDate) return 'Never';
+  if (!isoDate) return 'Jamais';
   const diff = Math.floor((Date.now() - new Date(isoDate).getTime()) / 1000);
-  if (diff < 5) return 'Just now';
-  if (diff < 60) return `${diff}s ago`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 5) return 'À l\'instant';
+  if (diff < 60) return `${diff}s`;
+  if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`;
+  return `il y a ${Math.floor(diff / 3600)}h`;
 }
 
 function statusColor(status: string) {
@@ -90,11 +90,11 @@ function CameraActionsMenu({
   const [open, setOpen] = useState(false);
 
   const actions = [
-    { icon: Edit3,      label: 'Rename',           action: onRename,  show: true },
-    { icon: MapPin,     label: 'Assign Site',       action: onAssign,  show: true },
-    { icon: RotateCcw,  label: 'Restart Service',   action: onRestart, show: true },
-    { icon: WifiOff,    label: 'Unassign',          action: onUnpair,  show: !!onUnpair },
-    { icon: Trash2,     label: 'Delete Camera',     action: onDelete,  show: true, danger: true },
+    { icon: Edit3,      label: 'Renommer',           action: onRename,  show: true },
+    { icon: MapPin,     label: 'Assigner un site',    action: onAssign,  show: true },
+    { icon: RotateCcw,  label: 'Redémarrer',          action: onRestart, show: true },
+    { icon: WifiOff,    label: 'Désassigner',         action: onUnpair,  show: !!onUnpair },
+    { icon: Trash2,     label: 'Supprimer',           action: onDelete,  show: true, danger: true },
   ];
 
   return (
@@ -158,9 +158,9 @@ function AssignSiteModal({
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2">
             <MapPin className="h-5 w-5 text-blue-400" />
-            Assign Camera to Site
+            Assigner la caméra à un site
           </h3>
-          <p className="text-sm text-muted-foreground mt-1">Link this camera to a site and zone for analytics tracking.</p>
+          <p className="text-sm text-muted-foreground mt-1">Liez cette caméra à un site et une zone pour le suivi analytique.</p>
         </div>
 
         <div className="space-y-3">
@@ -170,29 +170,29 @@ function AssignSiteModal({
               className="w-full bg-muted/50 border border-border rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none appearance-none"
               value={siteId} onChange={e => setSiteId(e.target.value)}
             >
-              <option value="" disabled>Select a site...</option>
+              <option value="" disabled>Sélectionnez un site…</option>
               {sites.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Zone (e.g. Entrance, Checkout)</label>
+            <label className="text-xs font-medium text-muted-foreground">Zone (ex : Entrée, Caisse)</label>
             <input
               type="text"
               className="w-full bg-muted/50 border border-border rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none"
               value={zone} onChange={e => setZone(e.target.value)}
-              placeholder="Zone name..."
+              placeholder="Nom de la zone…"
             />
           </div>
         </div>
 
         <div className="flex justify-end gap-3 pt-1">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" onClick={onClose}>Annuler</Button>
           <Button
             onClick={() => onConfirm(siteId, zone)}
             disabled={!siteId || !zone || isPending}
             className="bg-blue-600 hover:bg-blue-500 text-white"
           >
-            {isPending ? 'Assigning...' : 'Assign Camera'}
+            {isPending ? 'Assignation…' : 'Assigner la caméra'}
           </Button>
         </div>
       </motion.div>
@@ -222,7 +222,7 @@ function RenameModal({
       >
         <h3 className="text-lg font-semibold flex items-center gap-2">
           <Edit3 className="h-5 w-5 text-blue-400" />
-          Rename Camera
+          Renommer la caméra
         </h3>
         <input
           type="text"
@@ -233,9 +233,9 @@ function RenameModal({
           onKeyDown={e => e.key === 'Enter' && name.trim() && onConfirm(name.trim())}
         />
         <div className="flex justify-end gap-3">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" onClick={onClose}>Annuler</Button>
           <Button onClick={() => onConfirm(name.trim())} disabled={!name.trim() || isPending}>
-            {isPending ? 'Saving...' : 'Save'}
+            {isPending ? 'Enregistrement…' : 'Enregistrer'}
           </Button>
         </div>
       </motion.div>
@@ -287,12 +287,12 @@ function UnpairedCameraCard({ cam, onAssign, onDelete, onRename, sites }: {
 
         <div className="flex items-center gap-1.5 text-[11px] text-amber-400/80">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-          <span>Discovered — awaiting site assignment</span>
+          <span>Découverte — en attente d'assignation</span>
         </div>
 
         <Button className="w-full mt-1 bg-blue-600 hover:bg-blue-500 text-white" onClick={onAssign}>
           <MapPin className="h-3.5 w-3.5 mr-1.5" />
-          Assign to Site
+          Assigner à un site
         </Button>
       </div>
     </motion.div>
@@ -325,7 +325,7 @@ function OnlineCameraCard({ cam, sites, onAssign, onRename, onRestart, onDelete,
         ) : (
           <div className="flex flex-col items-center gap-2 text-white/20">
             <Video className="h-10 w-10" />
-            <span className="text-[11px]">No Live Stream</span>
+            <span className="text-[11px]">Flux indisponible</span>
           </div>
         )}
         {/* LIVE badge */}
@@ -342,7 +342,7 @@ function OnlineCameraCard({ cam, sites, onAssign, onRename, onRestart, onDelete,
         {/* MQTT indicator */}
         <div className={`absolute bottom-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] ${cam.mqttConnected ? 'bg-black/50 border-emerald-500/30 text-emerald-400' : 'bg-black/50 border-red-500/30 text-red-400'}`}>
           <Radio className="h-2.5 w-2.5" />
-          {cam.mqttConnected ? 'MQTT' : 'No MQTT'}
+          {cam.mqttConnected ? 'MQTT' : 'Pas MQTT'}
         </div>
       </div>
 
@@ -352,7 +352,7 @@ function OnlineCameraCard({ cam, sites, onAssign, onRename, onRestart, onDelete,
           <div className="min-w-0">
             <h3 className="font-semibold text-foreground truncate">{cam.friendlyName || cam.hostname || 'Camera'}</h3>
             <p className="text-[11px] text-muted-foreground">
-              {cam.site?.name ? `📍 ${cam.site.name}` : 'No site'}{cam.zoneId ? ` · ${cam.zoneId}` : ''}
+              {cam.site?.name ? `📍 ${cam.site.name}` : 'Aucun site'}{cam.zoneId ? ` · ${cam.zoneId}` : ''}
             </p>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
@@ -382,15 +382,15 @@ function OnlineCameraCard({ cam, sites, onAssign, onRename, onRestart, onDelete,
             <span className="font-mono">{cam.ip || '—'}</span>
           </div>
           <div className="bg-muted/20 px-2.5 py-2 rounded-lg">
-            <span className="text-muted-foreground block">Model</span>
+            <span className="text-muted-foreground block">Modèle</span>
             <span>{cam.model || '—'}</span>
           </div>
           <div className="bg-muted/20 px-2.5 py-2 rounded-lg">
-            <span className="text-muted-foreground block">Last Heartbeat</span>
+            <span className="text-muted-foreground block">Dernier signal</span>
             <span>{timeAgo(cam.lastHeartbeat)}</span>
           </div>
           <div className="bg-muted/20 px-2.5 py-2 rounded-lg">
-            <span className="text-muted-foreground block">Connected Since</span>
+            <span className="text-muted-foreground block">Connecté depuis</span>
             <span>{timeAgo(cam.connectedAt)}</span>
           </div>
         </div>
@@ -403,14 +403,14 @@ function OnlineCameraCard({ cam, sites, onAssign, onRename, onRestart, onDelete,
             onClick={() => snapshotUrl && window.open(snapshotUrl, '_blank')}
             disabled={!snapshotUrl}
           >
-            <Maximize className="h-3 w-3" /> Stream
+            <Maximize className="h-3 w-3" /> Flux
           </Button>
           <Button
             variant="outline" size="sm"
             className="flex-1 text-[11px] h-7 gap-1 hover:border-amber-500/40 hover:text-amber-400"
             onClick={onRestart}
           >
-            <RotateCcw className="h-3 w-3" /> Restart
+            <RotateCcw className="h-3 w-3" /> Redémarrer
           </Button>
         </div>
       </div>
@@ -432,7 +432,7 @@ function OfflineCameraCard({ cam, sites, onAssign, onRename, onDelete }: {
         <div className="flex items-start justify-between">
           <div className="min-w-0">
             <h3 className="font-semibold text-foreground truncate">{cam.friendlyName || cam.hostname || 'Camera'}</h3>
-            <p className="text-[11px] text-muted-foreground">{cam.site?.name || 'No site assigned'}</p>
+            <p className="text-[11px] text-muted-foreground">{cam.site?.name || 'Aucun site assigné'}</p>
           </div>
           <div className="flex items-center gap-1.5">
             <StatusBadge status="OFFLINE" size="sm" />
@@ -453,18 +453,18 @@ function OfflineCameraCard({ cam, sites, onAssign, onRename, onDelete }: {
             {cam.version || '—'}
           </div>
           <div className="bg-muted/20 px-2.5 py-2 rounded-lg">
-            <span className="text-muted-foreground block">Last Heartbeat</span>
+            <span className="text-muted-foreground block">Dernier signal</span>
             <span>{timeAgo(cam.lastHeartbeat)}</span>
           </div>
           <div className="bg-muted/20 px-2.5 py-2 rounded-lg">
-            <span className="text-muted-foreground block">Disconnected Since</span>
+            <span className="text-muted-foreground block">Déconnecté depuis</span>
             <span>{timeAgo(cam.disconnectedAt)}</span>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5 text-[11px] text-slate-400/80 bg-muted/20 px-2.5 py-2 rounded-lg">
           <Clock className="h-3.5 w-3.5 shrink-0" />
-          <span>Last seen: {timeAgo(cam.lastSeen)}</span>
+          <span>Dernière activité : {timeAgo(cam.lastSeen)}</span>
         </div>
 
         <div className="flex gap-2">
@@ -495,13 +495,13 @@ function DashboardStats({ devices }: { devices: EdgeDevice[] }) {
   const mqttActive = devices.filter(d => d.mqttConnected).length;
 
   const stats = [
-    { label: 'Total Cameras', value: total,          icon: Camera,       color: 'text-blue-400',    bg: 'bg-blue-500/10',    border: 'border-blue-500/20' },
-    { label: 'Online',        value: online,          icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
-    { label: 'Offline',       value: offline,         icon: XCircle,      color: 'text-slate-400',   bg: 'bg-slate-500/10',   border: 'border-slate-500/20' },
-    { label: 'Unassigned',    value: unpaired,        icon: AlertTriangle,color: 'text-amber-400',   bg: 'bg-amber-500/10',   border: 'border-amber-500/20' },
-    { label: 'Avg FPS',       value: avgFps.toFixed(0), icon: Gauge,      color: 'text-purple-400',  bg: 'bg-purple-500/10',  border: 'border-purple-500/20' },
-    { label: 'Avg CPU',       value: `${avgCpu.toFixed(0)}%`, icon: Cpu, color: 'text-orange-400',  bg: 'bg-orange-500/10',  border: 'border-orange-500/20' },
-    { label: 'Avg RAM',       value: `${avgRam.toFixed(0)}%`, icon: MemoryStick, color: 'text-pink-400', bg: 'bg-pink-500/10', border: 'border-pink-500/20' },
+    { label: 'Caméras totales', value: total,             icon: Camera,       color: 'text-blue-400',    bg: 'bg-blue-500/10',    border: 'border-blue-500/20' },
+    { label: 'En ligne',         value: online,            icon: CheckCircle2, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20' },
+    { label: 'Hors ligne',       value: offline,           icon: XCircle,      color: 'text-slate-400',   bg: 'bg-slate-500/10',   border: 'border-slate-500/20' },
+    { label: 'Non assignées',    value: unpaired,          icon: AlertTriangle,color: 'text-amber-400',   bg: 'bg-amber-500/10',   border: 'border-amber-500/20' },
+    { label: 'FPS moy.',         value: avgFps.toFixed(0), icon: Gauge,        color: 'text-purple-400',  bg: 'bg-purple-500/10',  border: 'border-purple-500/20' },
+    { label: 'CPU moy.',         value: `${avgCpu.toFixed(0)}%`, icon: Cpu,   color: 'text-orange-400',  bg: 'bg-orange-500/10',  border: 'border-orange-500/20' },
+    { label: 'RAM moy.',         value: `${avgRam.toFixed(0)}%`, icon: MemoryStick, color: 'text-pink-400', bg: 'bg-pink-500/10', border: 'border-pink-500/20' },
     { label: 'MQTT Active',   value: mqttActive,      icon: Radio,        color: 'text-cyan-400',    bg: 'bg-cyan-500/10',    border: 'border-cyan-500/20' },
   ];
 
@@ -664,20 +664,20 @@ export function CamerasPage() {
   return (
     <div className="p-6 md:p-8 max-w-screen-xl mx-auto space-y-8">
       <PageHeader
-        title="Camera Management"
-        description="Real-time IoT edge camera discovery, monitoring, and control"
+        title="Gestion des caméras"
+        description="Découverte, surveillance et contrôle des caméras Edge-CV en temps réel"
         icon={Camera}
         actions={
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" className="gap-2 hover:border-blue-500/40 hover:text-blue-400" onClick={() => refetch()}>
-              <RefreshCw className="h-3.5 w-3.5" /> Refresh
+              <RefreshCw className="h-3.5 w-3.5" /> Actualiser
             </Button>
           </div>
         }
       />
 
       {isError ? (
-        <ErrorState title="Unable to load cameras." onRetry={() => refetch()} />
+        <ErrorState title="Impossible de charger les caméras." onRetry={() => refetch()} />
       ) : isLoading ? (
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
           {[...Array(8)].map((_, i) => <SkeletonCard key={i} lines={2} />)}
@@ -694,7 +694,7 @@ export function CamerasPage() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search by name, device ID, or IP..."
+                placeholder="Rechercher par nom, identifiant ou IP…"
                 className="w-full bg-muted/40 border border-border rounded-xl pl-9 pr-4 py-2 text-sm focus:border-blue-500 outline-none placeholder:text-muted-foreground/60"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
@@ -705,24 +705,24 @@ export function CamerasPage() {
               value={filterStatus}
               onChange={e => setFilterStatus(e.target.value)}
             >
-              <option value="ALL">All Statuses</option>
-              <option value="ONLINE">Online</option>
-              <option value="OFFLINE">Offline</option>
-              <option value="UNPAIRED">Unassigned</option>
-              <option value="ERROR">Error</option>
+              <option value="ALL">Tous les états</option>
+              <option value="ONLINE">En ligne</option>
+              <option value="OFFLINE">Hors ligne</option>
+              <option value="UNPAIRED">Non assignée</option>
+              <option value="ERROR">Erreur</option>
             </select>
             <select
               className="bg-muted/40 border border-border rounded-xl px-3 py-2 text-sm focus:border-blue-500 outline-none appearance-none cursor-pointer"
               value={filterSiteId}
               onChange={e => setFilterSiteId(e.target.value)}
             >
-              <option value="ALL">All Sites</option>
+              <option value="ALL">Tous les sites</option>
               {sites.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
             {(searchQuery || filterStatus !== 'ALL' || filterSiteId !== 'ALL') && (
               <Button variant="ghost" size="sm" className="text-muted-foreground gap-1"
                 onClick={() => { setSearchQuery(''); setFilterStatus('ALL'); setFilterSiteId('ALL'); }}>
-                <XCircle className="h-3.5 w-3.5" /> Clear
+                <XCircle className="h-3.5 w-3.5" /> Effacer
               </Button>
             )}
           </motion.div>
@@ -733,10 +733,10 @@ export function CamerasPage() {
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4 text-amber-400" />
-                  <h2 className="text-base font-semibold">Unassigned Cameras</h2>
+                  <h2 className="text-base font-semibold">Caméras non assignées</h2>
                   <span className="bg-amber-500/20 text-amber-400 text-xs font-bold px-2 py-0.5 rounded-full">{unpaired.length}</span>
                 </div>
-                <span className="text-xs text-muted-foreground">Discovered automatically — assign to a site to start analytics</span>
+                <span className="text-xs text-muted-foreground">Découvertes automatiquement — assignez-les à un site pour démarrer l'analytique</span>
               </div>
               <motion.div variants={stagger} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {unpaired.map(cam => (
@@ -756,12 +756,12 @@ export function CamerasPage() {
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <h2 className="text-base font-semibold">Online Cameras</h2>
+                <h2 className="text-base font-semibold">Caméras en ligne</h2>
                 <span className="bg-emerald-500/20 text-emerald-400 text-xs font-bold px-2 py-0.5 rounded-full">{online.length}</span>
               </div>
             </div>
             {online.length === 0 ? (
-              <EmptyState icon={Camera} title="No cameras online" description="Online cameras appear here with live telemetry." />
+              <EmptyState icon={Camera} title="Aucune caméra en ligne" description="Les caméras actives apparaissent ici avec leur télémétrie en temps réel." />
             ) : (
               <motion.div variants={stagger} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                 {online.map(cam => (
@@ -784,7 +784,7 @@ export function CamerasPage() {
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-slate-500" />
-                  <h2 className="text-base font-semibold text-muted-foreground">Offline Cameras</h2>
+                  <h2 className="text-base font-semibold text-muted-foreground">Caméras hors ligne</h2>
                   <span className="bg-slate-500/20 text-slate-400 text-xs font-bold px-2 py-0.5 rounded-full">{offline.length}</span>
                 </div>
               </div>
@@ -805,8 +805,8 @@ export function CamerasPage() {
           {devices.length === 0 && (
             <EmptyState
               icon={Camera}
-              title="No cameras discovered yet"
-              description="Start Edge-CV with python3 apps/edge-cv/app/main.py — the camera will appear here automatically."
+              title="Aucune caméra découverte"
+              description="Lancez Edge-CV avec python3 apps/edge-cv/app/main.py — la caméra apparaîtra ici automatiquement."
             />
           )}
 

@@ -273,18 +273,18 @@ function CampaignForm({ campaign, onClose }: { campaign: Campaign | null, onClos
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-1">Target Age</label>
+          <label className="block text-sm font-medium mb-1">Tranche d'âge cible</label>
           <select 
             className="w-full bg-background border rounded px-3 py-2"
             value={formData.targetAge}
             onChange={e => setFormData(prev => ({ ...prev, targetAge: e.target.value }))}
           >
-            <option value="all">All Ages</option>
-            <option value="child">Child (0-12)</option>
-            <option value="teen">Teen (13-17)</option>
-            <option value="young_adult">Young Adult (18-25)</option>
-            <option value="adult">Adult (26-40)</option>
-            <option value="middle_aged">Middle Aged (41-60)</option>
+            <option value="all">Tous les âges</option>
+            <option value="child">Enfant (0-12)</option>
+            <option value="teen">Adolescent (13-17)</option>
+            <option value="young_adult">Jeune adulte (18-25)</option>
+            <option value="adult">Adulte (26-40)</option>
+            <option value="middle_aged">Adulte senior (41-60)</option>
             <option value="senior">Senior (61+)</option>
           </select>
         </div>
@@ -297,19 +297,19 @@ function CampaignForm({ campaign, onClose }: { campaign: Campaign | null, onClos
               onChange={e => setFormData(prev => ({ ...prev, enabled: e.target.checked }))}
               className="rounded"
             />
-            <span className="text-sm font-medium">Campaign is Enabled</span>
+            <span className="text-sm font-medium">Campagne activée</span>
           </label>
         </div>
       </div>
 
       <div className="mt-6 flex gap-3 justify-end">
-        <button onClick={onClose} className="px-4 py-2 border rounded text-sm hover:bg-muted">Cancel</button>
+        <button onClick={onClose} className="px-4 py-2 border rounded text-sm hover:bg-muted">Annuler</button>
         <button 
           onClick={() => saveMutation.mutate(formData)}
           disabled={!formData.name || !formData.mediaUrl}
           className="px-4 py-2 bg-primary text-primary-foreground rounded text-sm hover:bg-primary/90 disabled:opacity-50"
         >
-          Save Campaign
+          Enregistrer la campagne
         </button>
       </div>
     </div>

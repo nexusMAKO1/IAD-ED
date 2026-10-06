@@ -220,7 +220,7 @@ export const CampaignDetailPage = () => {
                     contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
                     itemStyle={{ color: '#fff' }}
                   />
-                  <Area type="monotone" dataKey="attentionRate" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorAttention)" name="Attention (%)" />
+                  <Area type="monotone" dataKey="attentionRate" stroke="#8b5cf6" strokeWidth={3} fillOpacity={1} fill="url(#colorAttention)" name="Taux attention (%)" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -284,7 +284,7 @@ export const CampaignDetailPage = () => {
                     contentStyle={{ backgroundColor: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px' }}
                   />
                   <Area type="monotone" dataKey="impressions" stroke="#3b82f6" fillOpacity={1} fill="url(#colorImpressions)" name="Impressions" />
-                  <Area type="monotone" dataKey="reach" stroke="#10b981" fillOpacity={1} fill="url(#colorReach)" name="Reach" />
+                  <Area type="monotone" dataKey="reach" stroke="#10b981" fillOpacity={1} fill="url(#colorReach)" name="Portée" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>

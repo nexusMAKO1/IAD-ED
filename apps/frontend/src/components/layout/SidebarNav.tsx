@@ -5,6 +5,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard, BarChart3, Users, Building2, Camera, Cpu, FileText,
   AlertTriangle, Activity, Settings, User, MonitorPlay, Wifi, ChevronLeft,
@@ -13,34 +14,35 @@ import {
 import { cn } from '@/lib/utils';
 import { useMqttConnectionStatus } from '@/mqtt/useMqtt';
 
-const NAV_ITEMS = [
-  { to: '/dashboard',            end: true,  icon: LayoutDashboard, label: 'Tableau de bord',    group: 'Vue d\'ensemble' },
-  { to: '/dashboard/analytics',  end: false, icon: BarChart3,       label: 'Analytique Live',    group: 'Vue d\'ensemble' },
-  { to: '/dashboard/audience',   end: false, icon: Users,           label: 'Audience',           group: 'Analytique' },
-  { to: '/dashboard/heatmap',    end: false, icon: Map,             label: 'Carte de chaleur',   group: 'Analytique' },
-  { to: '/dashboard/sites',      end: false, icon: Building2,       label: 'Sites',              group: 'Infrastructure' },
-  { to: '/dashboard/cameras',    end: false, icon: Camera,          label: 'Caméras',            group: 'Infrastructure' },
-  { to: '/dashboard/displays',   end: false, icon: MonitorPlay,     label: 'Afficheurs',         group: 'Infrastructure' },
-  { to: '/dashboard/fleet',      end: false, icon: Cpu,             label: 'Appareils',          group: 'Infrastructure' },
-  { to: '/dashboard/campaigns',  end: true,  icon: Megaphone,       label: 'Campagnes',          group: 'Opérations' },
-  { to: '/dashboard/campaigns/performance', end: false, icon: BarChart3, label: 'Performance',   group: 'Opérations' },
-  { to: '/dashboard/reports',    end: false, icon: FileText,        label: 'Rapports',           group: 'Opérations' },
-  { to: '/dashboard/alerts',     end: false, icon: AlertTriangle,   label: 'Alertes',            group: 'Opérations' },
-  { to: '/dashboard/monitoring', end: false, icon: Activity,        label: 'Supervision',        group: 'Système' },
-  { to: '/dashboard/settings',   end: false, icon: Settings,        label: 'Paramètres',         group: 'Système' },
-  { to: '/dashboard/profile',    end: false, icon: User,            label: 'Profil',             group: 'Système' },
-] as const;
-
-const GROUPS = ['Vue d\'ensemble', 'Analytique', 'Infrastructure', 'Opérations', 'Système'] as const;
-
 interface SidebarNavProps {
   collapsed: boolean;
   onToggle: () => void;
 }
 
 export function SidebarNav({ collapsed, onToggle }: SidebarNavProps) {
+  const { t } = useTranslation();
   const mqttStatus = useMqttConnectionStatus();
   const isConnected = mqttStatus === 'connected';
+
+  const NAV_ITEMS = [
+    { to: '/dashboard',            end: true,  icon: LayoutDashboard, label: t('nav.dashboard'),    group: t('groups.overview') },
+    { to: '/dashboard/analytics',  end: false, icon: BarChart3,       label: t('nav.liveAnalytics'),group: t('groups.overview') },
+    { to: '/dashboard/audience',   end: false, icon: Users,           label: t('nav.audience'),     group: t('groups.analytics') },
+    { to: '/dashboard/heatmap',    end: false, icon: Map,             label: t('nav.heatmap'),      group: t('groups.analytics') },
+    { to: '/dashboard/sites',      end: false, icon: Building2,       label: t('nav.sites'),        group: t('groups.infrastructure') },
+    { to: '/dashboard/cameras',    end: false, icon: Camera,          label: t('nav.cameras'),      group: t('groups.infrastructure') },
+    { to: '/dashboard/displays',   end: false, icon: MonitorPlay,     label: t('nav.displays'),     group: t('groups.infrastructure') },
+    { to: '/dashboard/fleet',      end: false, icon: Cpu,             label: t('nav.devices'),      group: t('groups.infrastructure') },
+    { to: '/dashboard/campaigns',  end: true,  icon: Megaphone,       label: t('nav.campaigns'),    group: t('groups.operations') },
+    { to: '/dashboard/campaigns/performance', end: false, icon: BarChart3, label: t('nav.performance'), group: t('groups.operations') },
+    { to: '/dashboard/reports',    end: false, icon: FileText,        label: t('nav.reports'),      group: t('groups.operations') },
+    { to: '/dashboard/alerts',     end: false, icon: AlertTriangle,   label: t('nav.alerts'),       group: t('groups.operations') },
+    { to: '/dashboard/monitoring', end: false, icon: Activity,        label: t('nav.monitoring'),   group: t('groups.system') },
+    { to: '/dashboard/settings',   end: false, icon: Settings,        label: t('nav.settings'),     group: t('groups.system') },
+    { to: '/dashboard/profile',    end: false, icon: User,            label: t('nav.profile'),      group: t('groups.system') },
+  ];
+
+  const GROUPS = [t('groups.overview'), t('groups.analytics'), t('groups.infrastructure'), t('groups.operations'), t('groups.system')];
 
   return (
     <motion.aside
@@ -172,7 +174,7 @@ export function SidebarNav({ collapsed, onToggle }: SidebarNavProps) {
                 aria-hidden="true"
               />
               <span className="text-[10px] text-muted-foreground truncate font-medium">
-                {isConnected ? 'MQTT connecté' : mqttStatus === 'connecting' ? 'Connexion…' : 'MQTT hors ligne'}
+                {isConnected ? t('mqtt.connected') : mqttStatus === 'connecting' ? t('mqtt.connecting') : t('mqtt.offline')}
               </span>
             </motion.div>
           )}
@@ -180,7 +182,7 @@ export function SidebarNav({ collapsed, onToggle }: SidebarNavProps) {
 
         <button
           onClick={onToggle}
-          aria-label={collapsed ? 'Développer la barre latérale' : 'Réduire la barre latérale'}
+          aria-label={collapsed ? t('actions.expandSidebar') : t('actions.collapseSidebar')}
           className={cn(
             'flex items-center justify-center w-6 h-6 rounded-lg hover:bg-white/8 transition-colors text-muted-foreground hover:text-foreground',
             collapsed && 'mx-auto',

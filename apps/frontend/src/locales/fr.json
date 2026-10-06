@@ -1,0 +1,35 @@
+{
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "liveAnalytics": "Analytique en direct",
+    "audience": "Audience",
+    "heatmap": "Carte de chaleur",
+    "sites": "Sites",
+    "cameras": "Caméras",
+    "displays": "Afficheurs",
+    "devices": "Appareils",
+    "campaigns": "Campagnes",
+    "performance": "Performance",
+    "reports": "Rapports",
+    "alerts": "Alertes",
+    "monitoring": "Supervision",
+    "settings": "Paramètres",
+    "profile": "Profil"
+  },
+  "groups": {
+    "overview": "Vue d'ensemble",
+    "analytics": "Analytique",
+    "infrastructure": "Infrastructure",
+    "operations": "Opérations",
+    "system": "Système"
+  },
+  "mqtt": {
+    "connected": "MQTT connecté",
+    "connecting": "Connexion…",
+    "offline": "MQTT hors ligne"
+  },
+  "actions": {
+    "expandSidebar": "Développer la barre latérale",
+    "collapseSidebar": "Réduire la barre latérale"
+  }
+}

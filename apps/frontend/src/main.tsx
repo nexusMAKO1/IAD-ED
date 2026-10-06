@@ -31,6 +31,7 @@ import { Toaster } from './components/ui/toaster';
 import { AuthProvider, useAuth } from './store/AuthContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
+import './i18n';
 
 // ---------------------------------------------------------------------------
 // MQTT Initialisation
@@ -49,7 +50,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   
   if (isLoading) {
-    return <div className="flex h-screen w-full items-center justify-center">Loading session...</div>;
+    return <div className="flex h-screen w-full items-center justify-center">Chargement de la session…</div>;
   }
   
   if (!isAuthenticated) {
