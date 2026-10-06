@@ -6,12 +6,12 @@
 - Unclassified: 24 file(s) not represented in the graph (top: (none) 11, .css 4, .map 2)
 
 ## Summary
-- 3034 nodes · 5930 edges · 193 communities (128 shown, 65 thin omitted)
+- 3033 nodes · 5930 edges · 192 communities (128 shown, 64 thin omitted)
 - Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 218 edges (avg confidence: 0.89)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `ff3a4dff`
+- Built from commit: `bc883e15`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -210,7 +210,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (193 total, 65 thin omitted)
+## Communities (192 total, 64 thin omitted)
 
 ### Community 0 - "campaign-analytics.dto.ts"
 Cohesion: 0.05
@@ -726,18 +726,18 @@ Nodes (3): Diagrammes de Séquences (Mermaid), Découverte et Appairage d'un App
 
 ## Knowledge Gaps
 - **688 isolated node(s):** `entrypoint.sh script`, `$schema`, `collection`, `sourceRoot`, `deleteOutDir` (+683 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1411 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **65 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 1410 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **64 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `Détail par Tâche` connect `Détail par Tâche` to `_cli_main`, `Audit Technique — Sprint 0 (Rayen)`?**
-  _High betweenness centrality (0.350) - this node is a cross-community bridge._
+  _High betweenness centrality (0.351) - this node is a cross-community bridge._
 - **Why does `T-006 — Schéma PostgreSQL + TimescaleDB` connect `Détail par Tâche` to `index.ts`?**
-  _High betweenness centrality (0.344) - this node is a cross-community bridge._
+  _High betweenness centrality (0.348) - this node is a cross-community bridge._
 - **Why does `T-003 — POC Détection de Personnes YOLOv8n` connect `_cli_main` to `Détail par Tâche`?**
-  _High betweenness centrality (0.343) - this node is a cross-community bridge._
+  _High betweenness centrality (0.344) - this node is a cross-community bridge._
 - **Are the 10 inferred relationships involving `OnnxInferenceSession` (e.g. with `Detection` and `DetectionResult`) actually correct?**
   _`OnnxInferenceSession` has 10 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `entrypoint.sh script`, `$schema`, `collection` to the rest of the system?**

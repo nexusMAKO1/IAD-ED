@@ -1972,11 +1972,5 @@
     "seen": 1791313611.690947,
     "ast_hash": "ffe2b1cda2b6cbffb38c00c18e647c7c",
     "semantic_hash": ""
-  },
-  "infrastructure/docker/postgres/init.sql": {
-    "mtime": 1782413545.3485582,
-    "seen": 1791314082.963198,
-    "ast_hash": "d99bd5b885cfd63b411d74f672e67cf0",
-    "semantic_hash": ""
   }
 }
