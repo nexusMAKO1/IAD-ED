@@ -109,7 +109,7 @@ export function CampaignsPage() {
                 transition={{ delay: index * 0.04 }}
                 className="hover:bg-white/3 transition-colors"
                 draggable
-                onDragStart={(e) => handleDragStart(e, c.id, c.playlistOrder)}
+                onDragStart={(e: any) => handleDragStart(e, c.id, c.playlistOrder)}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => handleDrop(e, index)}
               >

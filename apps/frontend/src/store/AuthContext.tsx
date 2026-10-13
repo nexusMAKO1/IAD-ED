@@ -11,6 +11,7 @@ interface AuthContextType {
   isLoading: boolean;
   setTokens: (access: string, refresh: string) => void;
   logout: () => void;
+  checkAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -86,6 +87,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     mqttClient.disconnect();
   }, []);
 
+  const checkAuth = useCallback(async () => {
+    try {
+      const profile = await getProfile();
+      setUser(profile);
+    } catch (err) {
+      console.warn('Failed to refresh user profile:', err);
+    }
+  }, []);
+
   const value = {
     accessToken,
     refreshToken,
@@ -94,6 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
     setTokens,
     logout: handleLogout,
+    checkAuth,
   };
 
   return (

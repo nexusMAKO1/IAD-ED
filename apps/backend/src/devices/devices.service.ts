@@ -17,6 +17,7 @@ import { MqttService } from '../mqtt/mqtt.service';
 import { MQTT_TOPICS } from '../mqtt/mqtt.topics';
 import { PresenceService } from './presence.service';
 import { DeviceRegistryService } from './device-registry.service';
+import { CreateDeviceDto } from './dto/create-device.dto';
 
 @Injectable()
 export class DevicesService {
@@ -28,7 +29,68 @@ export class DevicesService {
     private readonly registry: DeviceRegistryService,
   ) {}
 
+  // ─── Create ────────────────────────────────────────────────────────────────
+
+  async create(dto: CreateDeviceDto) {
+    if (dto.siteId) {
+      const site = await this.prisma.site.findUnique({ where: { id: dto.siteId } });
+      if (!site) throw new NotFoundException(`Site '${dto.siteId}' introuvable`);
+    }
+
+    const deviceId =
+      dto.serialNumber ||
+      dto.mqttClientId ||
+      `dev-${Math.random().toString(16).slice(2, 10)}`;
+
+    const created = await this.prisma.device.create({
+      data: {
+        deviceId,
+        name: dto.name,
+        type: dto.type,
+        ip: dto.ipAddress ?? null,
+        siteId: dto.siteId ?? null,
+        firmwareVersion: dto.firmwareVersion ?? null,
+        mqttClientId: dto.mqttClientId ?? null,
+        status: dto.siteId ? DeviceStatus.ONLINE : DeviceStatus.UNPAIRED,
+      },
+      include: {
+        site: { select: { id: true, name: true } },
+        cameraMetadata: true,
+        displayMetadata: true,
+      },
+    });
+
+    this.logger.log(`Device created: ${created.name} (${created.deviceId})`);
+    return created;
+  }
+
   // ─── Read ──────────────────────────────────────────────────────────────────
+
+  async findBySite(siteId: string) {
+    const site = await this.prisma.site.findUnique({ where: { id: siteId } });
+    if (!site) throw new NotFoundException(`Site '${siteId}' introuvable`);
+
+    const now = new Date();
+    const devices = await this.prisma.device.findMany({
+      where: { siteId },
+      include: {
+        site: { select: { id: true, name: true } },
+        cameraMetadata: true,
+        displayMetadata: true,
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    return devices.map((d) => {
+      const computed = PresenceService.computeStatus(
+        d.lastHeartbeat,
+        d.lastSeen,
+        now,
+        d.status,
+      );
+      return { ...d, status: computed ?? d.status };
+    });
+  }
 
   async findAll(filters?: {
     siteId?: string;
@@ -126,6 +188,9 @@ export class DevicesService {
   // ─── Update ────────────────────────────────────────────────────────────────
 
   async update(id: string, dto: any) {
+    if (!dto || Object.keys(dto).length === 0) {
+      throw new BadRequestException('Au moins un champ doit être fourni pour la mise à jour');
+    }
     const existing = await this.findOne(id);
 
     const updated = await this.prisma.device.update({

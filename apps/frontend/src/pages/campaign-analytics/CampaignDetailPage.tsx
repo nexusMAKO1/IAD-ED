@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
-  BarChart, Bar, AreaChart, Area
+  BarChart, Bar, AreaChart, Area, Cell
 } from 'recharts';
 import {
   ArrowLeft, Download, Activity, Users, Eye, Target, Clock,
@@ -18,7 +18,7 @@ import { campaignAnalyticsApi } from '@/api/campaignAnalytics';
 import { PerformanceGrade } from '@/types';
 
 const GradeBadge = ({ grade }: { grade: PerformanceGrade }) => {
-  const colors = {
+  const colors: Record<string, string> = {
     EXCELLENT: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
     VERY_GOOD: 'bg-teal-500/10 text-teal-500 border-teal-500/20',
     GOOD: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
@@ -26,7 +26,7 @@ const GradeBadge = ({ grade }: { grade: PerformanceGrade }) => {
     WEAK: 'bg-rose-500/10 text-rose-500 border-rose-500/20',
   };
 
-  const labels = {
+  const labels: Record<string, string> = {
     EXCELLENT: 'Excellent',
     VERY_GOOD: 'Très bon',
     GOOD: 'Bon',
@@ -35,8 +35,8 @@ const GradeBadge = ({ grade }: { grade: PerformanceGrade }) => {
   };
 
   return (
-    <span className={`px-3 py-1 text-sm font-semibold rounded-full border ${colors[grade]}`}>
-      {labels[grade]}
+    <span className={`px-3 py-1 text-sm font-semibold rounded-full border ${colors[grade] || colors.WEAK}`}>
+      {labels[grade] || grade}
     </span>
   );
 };
@@ -115,7 +115,7 @@ export const CampaignDetailPage = () => {
                     <div className="pt-2">
                       <h4 className="text-sm font-medium mb-2 text-white/80">Recommandations d'optimisation :</h4>
                       <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground">
-                        {data.latestInsight.recommendations.map((rec, i) => (
+                        {data.latestInsight.recommendations.map((rec: any, i: number) => (
                           <li key={i} className="flex items-start gap-2">
                             <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                             <span>{rec}</span>
@@ -247,7 +247,7 @@ export const CampaignDetailPage = () => {
                   />
                   <Bar dataKey="value" radius={[0, 4, 4, 0]} name="Vues" barSize={32}>
                     {audienceData.map((entry, index) => (
-                      <cell key={`cell-${index}`} fill={entry.fill} />
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
                     ))}
                   </Bar>
                 </BarChart>

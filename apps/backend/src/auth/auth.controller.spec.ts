@@ -15,6 +15,9 @@ describe('AuthController', () => {
   const mockAuthService = {
     login: jest.fn(),
     refresh: jest.fn(),
+    getProfile: jest.fn(),
+    updateProfile: jest.fn(),
+    changePassword: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -75,29 +78,34 @@ describe('AuthController', () => {
   });
 
   describe('getProfile', () => {
-    it('should format profile info from the current user decorator', () => {
+    it('should invoke authService.getProfile with current user id', async () => {
       const mockPayload = {
         sub: 'user-uuid-1',
         email: 'agent@expressdisplay.com',
         role: UserRole.AGENT,
         siteId: 'site-uuid-1',
       };
-
-      const result = controller.getProfile(mockPayload);
-
-      expect(result).toEqual({
+      const expectedProfile = {
         id: 'user-uuid-1',
+        name: 'Agent User',
         email: 'agent@expressdisplay.com',
         role: UserRole.AGENT,
         siteId: 'site-uuid-1',
-      });
+        createdAt: new Date(),
+      };
+      mockAuthService.getProfile.mockResolvedValue(expectedProfile);
+
+      const result = await controller.getProfile(mockPayload);
+
+      expect(service.getProfile).toHaveBeenCalledWith('user-uuid-1');
+      expect(result).toEqual(expectedProfile);
     });
   });
 
   describe('logout', () => {
     it('should return logout success message', () => {
       expect(controller.logout()).toEqual({
-        message: 'Logged out successfully',
+        message: 'Déconnexion réussie',
       });
     });
   });

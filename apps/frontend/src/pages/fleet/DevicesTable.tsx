@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Edit2, Trash2, Monitor, HelpCircle, HardDrive, Cpu, AlertTriangle } from 'lucide-react';
+import { Edit2, Trash2, Monitor, HelpCircle, HardDrive, Cpu, AlertTriangle, Camera } from 'lucide-react';
 import type { Device, DeviceType, DeviceStatus } from '@/types';
 
 interface DevicesTableProps {
@@ -19,15 +19,17 @@ interface DevicesTableProps {
 }
 
 function getTypeBadgeVariant(type: DeviceType) {
-  switch (type) {
+  switch (type as string) {
     case 'TOTEM':
       return 'totem';
+    case 'DISPLAY':
     case 'WAITING_ROOM_SCREEN':
     case 'SCREEN':
       return 'screen';
     case 'TICKET_KIOSK':
     case 'KIOSK':
       return 'kiosk';
+    case 'EDGE_CAMERA':
     case 'CAMERA':
       return 'camera';
     default:
@@ -36,9 +38,13 @@ function getTypeBadgeVariant(type: DeviceType) {
 }
 
 function getTypeLabel(type: DeviceType) {
-  switch (type) {
+  switch (type as string) {
     case 'TOTEM':
       return 'Totem';
+    case 'DISPLAY':
+      return 'Afficheur (Display)';
+    case 'EDGE_CAMERA':
+      return 'Caméra Edge-CV';
     case 'WAITING_ROOM_SCREEN':
       return 'Écran Salle Attente';
     case 'TICKET_KIOSK':
@@ -55,15 +61,19 @@ function getTypeLabel(type: DeviceType) {
 }
 
 function getTypeIcon(type: DeviceType) {
-  switch (type) {
+  switch (type as string) {
     case 'TOTEM':
       return <Cpu className="h-3.5 w-3.5 mr-1 shrink-0" />;
+    case 'DISPLAY':
     case 'WAITING_ROOM_SCREEN':
     case 'SCREEN':
       return <Monitor className="h-3.5 w-3.5 mr-1 shrink-0" />;
     case 'TICKET_KIOSK':
     case 'KIOSK':
       return <HardDrive className="h-3.5 w-3.5 mr-1 shrink-0" />;
+    case 'EDGE_CAMERA':
+    case 'CAMERA':
+      return <Camera className="h-3.5 w-3.5 mr-1 shrink-0" />;
     default:
       return <HelpCircle className="h-3.5 w-3.5 mr-1 shrink-0" />;
   }
@@ -148,7 +158,7 @@ export function DevicesTable({ devices, onEdit, onDelete, isLoading }: DevicesTa
 
             {/* IP Address */}
             <TableCell className="font-mono text-xs text-muted-foreground">
-              {device.ipAddress || '—'}
+              {device.ip || device.ipAddress || '—'}
             </TableCell>
 
             {/* Status */}

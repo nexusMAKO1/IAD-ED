@@ -103,7 +103,10 @@ def client(mock_paho):
 @pytest.fixture(autouse=True)
 def reset_command_schemas():
     """Ensure _COMMAND_SCHEMAS is rebuilt for each test."""
-    import apps.edge_cv.app.services.mqtt_client as mod  # type: ignore
+    try:
+        import app.services.mqtt_client as mod  # type: ignore
+    except ImportError:
+        import apps.edge_cv.app.services.mqtt_client as mod  # type: ignore
 
     mod._COMMAND_SCHEMAS = {}  # type: ignore[attr-defined]
     yield
@@ -323,7 +326,10 @@ class TestSubscribeAndHandlers:
         from app.services.mqtt_client import MQTTClient, _build_command_schemas
 
         c = MQTTClient(host="localhost", port=1883)
-        import apps.edge_cv.app.services.mqtt_client as mod  # type: ignore
+        try:
+            import app.services.mqtt_client as mod  # type: ignore
+        except ImportError:
+            import apps.edge_cv.app.services.mqtt_client as mod  # type: ignore
 
         mod._COMMAND_SCHEMAS = _build_command_schemas()  # type: ignore[attr-defined]
         handler = Mock()
@@ -346,7 +352,10 @@ class TestSubscribeAndHandlers:
 
 class TestConnectionFailure:
     def test_connect_returns_false_when_paho_unavailable(self, monkeypatch):
-        import apps.edge_cv.app.services.mqtt_client as mod  # type: ignore
+        try:
+            import app.services.mqtt_client as mod  # type: ignore
+        except ImportError:
+            import apps.edge_cv.app.services.mqtt_client as mod  # type: ignore
 
         monkeypatch.setattr(mod, "_PAHO_AVAILABLE", False)
         from app.services.mqtt_client import MQTTClient

@@ -8,7 +8,7 @@ import { Wifi, WifiOff, Loader2 } from 'lucide-react';
 import { useMqttConnectionStatus } from '@/mqtt/useMqtt';
 import { cn } from '@/lib/utils';
 
-export function LiveBadge() {
+export function LiveBadge({ showLabel = true }: { showLabel?: boolean } = {}) {
   const status = useMqttConnectionStatus();
 
   const config = {
@@ -74,7 +74,7 @@ export function LiveBadge() {
           className={cn('h-3 w-3', status === 'connecting' && 'animate-spin')}
           aria-hidden="true"
         />
-        {cfg.label}
+        {showLabel && cfg.label}
       </motion.div>
     </AnimatePresence>
   );

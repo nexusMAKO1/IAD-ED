@@ -21,7 +21,7 @@ import { campaignAnalyticsApi } from '@/api/campaignAnalytics';
 import { PerformanceGrade } from '@/types';
 
 const GradeBadge = ({ grade }: { grade: PerformanceGrade }) => {
-  const colors = {
+  const colors: Record<string, string> = {
     EXCELLENT: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
     VERY_GOOD: 'bg-teal-500/10 text-teal-500 border-teal-500/20',
     GOOD: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
@@ -29,7 +29,7 @@ const GradeBadge = ({ grade }: { grade: PerformanceGrade }) => {
     WEAK: 'bg-rose-500/10 text-rose-500 border-rose-500/20',
   };
 
-  const labels = {
+  const labels: Record<string, string> = {
     EXCELLENT: 'Excellent',
     VERY_GOOD: 'Très bon',
     GOOD: 'Bon',
@@ -38,8 +38,8 @@ const GradeBadge = ({ grade }: { grade: PerformanceGrade }) => {
   };
 
   return (
-    <span className={`px-2 py-1 text-xs font-medium rounded-md border ${colors[grade]}`}>
-      {labels[grade]}
+    <span className={`px-2 py-1 text-xs font-medium rounded-md border ${colors[grade] || colors.WEAK}`}>
+      {labels[grade] || grade}
     </span>
   );
 };
@@ -131,7 +131,7 @@ export const CampaignPerformancePage = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {data?.leaderboard.map((item, idx) => (
+                  {data?.leaderboard.map((item: any, idx: number) => (
                     <motion.tr 
                       key={item.campaignId}
                       initial={{ opacity: 0, x: -20 }}

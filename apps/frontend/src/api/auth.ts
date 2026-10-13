@@ -16,9 +16,11 @@ export interface AuthTokens {
 
 export interface UserProfile {
   id: string;
+  name?: string | null;
   email: string;
   role: string;
-  siteId?: string;
+  siteId?: string | null;
+  createdAt?: string;
 }
 
 export const login = async (data: LoginDto): Promise<AuthTokens> => {

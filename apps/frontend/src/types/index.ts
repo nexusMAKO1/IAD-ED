@@ -12,9 +12,11 @@ export type DeviceType =
   | 'WAITING_ROOM_SCREEN'
   | 'TICKET_KIOSK';
 
-export type DeviceStatus = 'ONLINE' | 'OFFLINE' | 'DEGRADED' | 'WARNING' | 'UNKNOWN';
+export type DeviceStatus = 'ONLINE' | 'OFFLINE' | 'DEGRADED' | 'WARNING' | 'UNKNOWN' | 'ERROR' | 'UNPAIRED';
 
 export type UserRole = 'ADMIN' | 'MANAGER' | 'AGENT';
+
+export type PerformanceGrade = 'EXCELLENT' | 'VERY_GOOD' | 'GOOD' | 'AVERAGE' | 'WEAK';
 
 // ─── Domain Models ─────────────────────────────────────────────────────────────
 
@@ -36,7 +38,10 @@ export interface Device {
   siteId: string | null;
   status: DeviceStatus;
   hostname: string | null;
+  friendlyName?: string | null;
+  zoneId?: string | null;
   ip: string | null;
+  ipAddress?: string | null;
   platform: string | null;
   version: string | null;
   firmwareVersion: string | null;
@@ -50,6 +55,14 @@ export interface Device {
   createdAt: string;
   updatedAt: string;
   
+  // Quick-access camera stats
+  fps?: number | null;
+  resolution?: string | null;
+  model?: string | null;
+  cpuUsage?: number | null;
+  memoryUsage?: number | null;
+  streamUrl?: string | null;
+
   // Relations
   site?: any;
   cameraMetadata?: CameraMetadata | null;
@@ -93,13 +106,16 @@ export interface CreateDevicePayload {
   name: string;
   type: DeviceType;
   ip?: string;
-  siteId: string;
+  ipAddress?: string;
+  siteId?: string | null;
+  serialNumber?: string;
 }
 
 export interface UpdateDevicePayload {
   name?: string;
   type?: DeviceType;
   ip?: string;
+  ipAddress?: string;
   status?: DeviceStatus;
   serialNumber?: string;
   firmwareVersion?: string;
@@ -233,6 +249,8 @@ export interface AlertItem {
 
 // ─── SmartVision IAD — Monitoring ─────────────────────────────────────────────
 
+export type ServiceStatus = 'ONLINE' | 'OFFLINE' | 'DEGRADED' | 'WARNING' | 'UNKNOWN';
+
 export interface MonitoringService {
   name: string;
   status: ServiceStatus;
@@ -308,4 +326,106 @@ export interface AppSettings {
     mqtt: boolean;
     websocket: boolean;
   };
+}
+
+// ─── Campaign Performance Analytics DTOs ─────────────────────────────────────
+
+export interface AudienceBreakdownDto {
+  child: number;
+  youngAdult: number;
+  adult: number;
+  senior: number;
+}
+
+export interface ViewTimeStatsDto {
+  avg: number;
+  median: number;
+  min: number;
+  max: number;
+}
+
+export interface PeakHourDto {
+  hour: number;
+  label: string;
+  impressions: number;
+}
+
+export interface CampaignMetricDto {
+  campaignId: string;
+  campaignName: string;
+  status: string;
+  priority: string;
+  totalImpressions: number;
+  totalReach: number;
+  avgViewTimeSec: number;
+  attentionRate: number;
+  completionRate: number;
+  avgAudience: number;
+  engagementScore: number;
+  performanceScore: number;
+  grade: PerformanceGrade;
+  gradeLabel: string;
+  updatedAt: string;
+}
+
+export interface CampaignDailyStatDto {
+  date: string;
+  impressions: number;
+  reach: number;
+  avgViewTimeSec: number;
+  attentionRate: number;
+  completionRate: number;
+  avgAudience: number;
+  engagementScore: number;
+  performanceScore: number;
+  grade: PerformanceGrade;
+}
+
+export interface CampaignInsightDto {
+  campaignId: string;
+  date: string;
+  text: string;
+  recommendations: string[];
+  score: number;
+  grade: PerformanceGrade;
+}
+
+export interface CampaignDetailResponseDto {
+  campaign: Record<string, unknown>;
+  metrics: CampaignMetricDto;
+  viewTimeStats: ViewTimeStatsDto;
+  audienceBreakdown: AudienceBreakdownDto;
+  peakHours: PeakHourDto[];
+  timeline: CampaignDailyStatDto[];
+  latestInsight?: CampaignInsightDto;
+}
+
+export interface CampaignLeaderboardItemDto extends CampaignMetricDto {
+  rank: number;
+}
+
+export interface CampaignOverviewDto {
+  totalCampaigns: number;
+  activeCampaigns: number;
+  totalImpressions: number;
+  totalReach: number;
+  avgViewTimeSec: number;
+  avgAttentionRate: number;
+  avgPerformanceScore: number;
+  bestCampaign?: CampaignMetricDto;
+  worstCampaign?: CampaignMetricDto;
+  leaderboard: CampaignLeaderboardItemDto[];
+}
+
+export interface CampaignComparisonItemDto {
+  campaignId: string;
+  campaignName: string;
+  impressions: number;
+  reach: number;
+  avgViewTimeSec: number;
+  attentionRate: number;
+  completionRate: number;
+  performanceScore: number;
+  engagementScore: number;
+  grade: PerformanceGrade;
 }

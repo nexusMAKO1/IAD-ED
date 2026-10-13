@@ -40,6 +40,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { DevicesService } from './devices.service';
+import { CreateDeviceDto } from './dto/create-device.dto';
 
 @ApiTags('Devices')
 @Controller('devices')
@@ -80,6 +81,16 @@ export class DevicesController {
       status,
       unassigned: unassigned === 'true',
     });
+  }
+
+  // ─── Create ───────────────────────────────────────────────────────────────
+
+  @Post()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.MANAGER)
+  @ApiOperation({ summary: 'Create a new device' })
+  create(@Body() createDeviceDto: CreateDeviceDto) {
+    return this.devicesService.create(createDeviceDto);
   }
 
   // ─── Get one ──────────────────────────────────────────────────────────────

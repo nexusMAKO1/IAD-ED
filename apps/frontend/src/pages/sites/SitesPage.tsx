@@ -24,12 +24,11 @@ import type { Site } from '@/types';
 import { getErrorMessage } from '@/types';
 
 const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.07 } } };
-const item = { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.22,1,0.36,1] } } };
+const item = { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] as const } } };
 
 export function SitesPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [deviceStatusMap, setDeviceStatusMap] = useState<Record<string, 'ONLINE'|'OFFLINE'|'DEGRADED'>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -62,11 +61,11 @@ export function SitesPage() {
       const deviceId = env.deviceId;
       const status = (payload?.['status'] as string)?.toUpperCase();
       if (deviceId && (status === 'ONLINE' || status === 'OFFLINE' || status === 'DEGRADED')) {
-        setDeviceStatusMap(prev => ({ ...prev, [deviceId]: status as any }));
+        queryClient.invalidateQueries({ queryKey: ['devices'] });
       }
     });
     return unsub;
-  }, []);
+  }, [queryClient]);
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteSite(id),

@@ -51,7 +51,7 @@ export function DeviceFormDialog({
       if (device) {
         setName(device.name);
         setType(device.type);
-        setIpAddress(device.ipAddress || '');
+        setIpAddress(device.ip || device.ipAddress || '');
         setStatus(device.status);
       } else {
         setName('');
@@ -74,6 +74,7 @@ export function DeviceFormDialog({
         return updateDevice(device.id, {
           name: variables.name,
           type: variables.type,
+          ip: variables.ipAddress || undefined,
           ipAddress: variables.ipAddress || undefined,
           status: variables.status,
         });
@@ -81,6 +82,7 @@ export function DeviceFormDialog({
         return createDevice({
           name: variables.name,
           type: variables.type,
+          ip: variables.ipAddress || undefined,
           ipAddress: variables.ipAddress || undefined,
           siteId,
         });

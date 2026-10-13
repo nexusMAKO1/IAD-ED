@@ -11,6 +11,8 @@ import { DevicesService } from '../devices/devices.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { DeviceType, DeviceStatus } from '@prisma/client';
 
+import { CampaignScorer } from './campaign-scorer';
+
 interface DecisionState {
   currentCampaignId: string | null;
   lastSwitchTime: number;
@@ -112,7 +114,7 @@ export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
 
       if (now - state.lastSwitchTime < this.CAMPAIGN_COOLDOWN_MS) return;
 
-      const dominant = this.getDominantAge(state.ageWindow);
+      const dominant = CampaignScorer.calculateDominantAge(state.ageWindow);
       if (!dominant) return;
 
       this.logger.log(`[BACKEND] Detected dominant age group on camera ${deviceId}: ${dominant}`);
@@ -122,15 +124,6 @@ export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  private getDominantAge(window: { ts: number; ageGroup: string }[]): string | null {
-    if (window.length === 0) return null;
-    const counts: Record<string, number> = {};
-    for (const { ageGroup } of window) {
-      counts[ageGroup] = (counts[ageGroup] ?? 0) + 1;
-    }
-    return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
-  }
-
   private async evaluateCampaigns(deviceId: string, siteId: string, dominantAgeGroup: string, state: DecisionState) {
     const activeCampaigns = await this.campaignsService.findActive();
     if (activeCampaigns.length === 0) {
@@ -138,34 +131,12 @@ export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    let bestCampaign: any = null;
-    let highestScore = -Infinity;
-
-    for (const campaign of activeCampaigns) {
-      let score = 0;
-
-      if (campaign.priority === 'high') score += 10;
-      else if (campaign.priority === 'standard') score += 5;
-
-      const targetAge: string | null = campaign.targetAge ?? null;
-      if (targetAge) {
-        if (targetAge === dominantAgeGroup) {
-          score += 20;
-        } else if (targetAge !== 'all') {
-          score -= 10;
-        }
-      }
-
-      const targetAudience = campaign.targetAudience as Record<string, any> | null;
-      if (targetAudience?.age_group === dominantAgeGroup) {
-        score += 15;
-      }
-
-      if (score > highestScore) {
-        highestScore = score;
-        bestCampaign = campaign;
-      }
-    }
+    const { campaign: bestCampaign, score: highestScore } =
+      CampaignScorer.selectBestCampaign(
+        activeCampaigns,
+        dominantAgeGroup,
+        state.currentCampaignId,
+      );
 
     if (!bestCampaign) return;
     if (bestCampaign.id === state.currentCampaignId) return;

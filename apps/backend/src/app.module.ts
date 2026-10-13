@@ -23,6 +23,8 @@ import { CampaignsModule } from './campaigns/campaigns.module';
 import { MetricsModule } from './common/metrics/metrics.module';
 import { SettingsModule } from './settings/settings.module';
 import { CampaignAnalyticsModule } from './campaign-analytics/campaign-analytics.module';
+import { StorageModule } from './common/storage/storage.module';
+import { AlertsModule } from './alerts/alerts.module';
 
 @Module({
   imports: [
@@ -71,6 +73,12 @@ import { CampaignAnalyticsModule } from './campaign-analytics/campaign-analytics
 
     // Custom IAD Metrics
     MetricsModule,
+
+    // Media Storage (MinIO)
+    StorageModule,
+
+    // Alerts Center & SmartQueue Proxy
+    AlertsModule,
   ],
   controllers: [],
   providers: [
