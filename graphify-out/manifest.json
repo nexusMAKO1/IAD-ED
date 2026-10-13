@@ -2050,5 +2050,1103 @@
     "seen": 1791322335.220928,
     "ast_hash": "975e60ca9cf5e2e491989f3f090edf1d",
     "semantic_hash": ""
+  },
+  ".agents/skills.json": {
+    "mtime": 1791932047.1133049,
+    "seen": 1791932104.4988868,
+    "ast_hash": "2ae9d1495b80132609f9d9100b95946e",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/index.json": {
+    "mtime": 1791931099.0600681,
+    "seen": 1791932104.4988852,
+    "ast_hash": "708ef9877d6dd0b6431872ed15bdd514",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/scripts/pr-analyzer.py": {
+    "mtime": 1791931328.959462,
+    "seen": 1791932104.498888,
+    "ast_hash": "262bed804a034a69775865768eb754fc",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/scripts/test_pr_analyzer.py": {
+    "mtime": 1791931328.959784,
+    "seen": 1791932104.498888,
+    "ast_hash": "61e44d459d5956fdfbe8786c17cb16ce",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/agentic/DESIGN.md": {
+    "mtime": 1791930483.505802,
+    "seen": 1791932104.499049,
+    "ast_hash": "6b76f09ea5a81bb29c38fdbfc30d1961",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/agentic/SKILL.md": {
+    "mtime": 1791930483.5060573,
+    "seen": 1791932104.49905,
+    "ast_hash": "394d72504dc74876ed7d3869e3f2da87",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/ant/DESIGN.md": {
+    "mtime": 1791930483.5064516,
+    "seen": 1791932104.49905,
+    "ast_hash": "7765367e57d337030a5b4daf95d7dd1f",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/ant/SKILL.md": {
+    "mtime": 1791930483.506868,
+    "seen": 1791932104.49905,
+    "ast_hash": "bbbe78e213df3eb84561af5e5bca7c40",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/artistic/DESIGN.md": {
+    "mtime": 1791930483.5075037,
+    "seen": 1791932104.499051,
+    "ast_hash": "030eafd543c6b4f2cc66ecc30603a5c7",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/artistic/SKILL.md": {
+    "mtime": 1791930483.5077457,
+    "seen": 1791932104.499051,
+    "ast_hash": "0ca9ffd5355b447971a24883ef382716",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/basic/DESIGN.md": {
+    "mtime": 1791930483.5081291,
+    "seen": 1791932104.499052,
+    "ast_hash": "56280ad4eda6041dd4ef67ec68b52b98",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/basic/SKILL.md": {
+    "mtime": 1791930483.5083747,
+    "seen": 1791932104.499052,
+    "ast_hash": "6070781bbcb3f9bbf4e41b8d0d706497",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/bento/DESIGN.md": {
+    "mtime": 1791930483.5088103,
+    "seen": 1791932104.499053,
+    "ast_hash": "c74781d4c6e7944034b264175051fe06",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/bento/SKILL.md": {
+    "mtime": 1791930483.5090947,
+    "seen": 1791932104.499053,
+    "ast_hash": "7b1a6465dc7061b65f127b2da06cc599",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/bold/DESIGN.md": {
+    "mtime": 1791930483.5095313,
+    "seen": 1791932104.4990542,
+    "ast_hash": "05f75dffa3f01ece302259cf48e2bdd7",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/bold/SKILL.md": {
+    "mtime": 1791930483.509756,
+    "seen": 1791932104.4990542,
+    "ast_hash": "f36d299042bb67079e22ddce8dec0802",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/brutalism/DESIGN.md": {
+    "mtime": 1791930483.5101242,
+    "seen": 1791932104.4990551,
+    "ast_hash": "2ba18f1deeef731ed2b5e6381039c243",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/brutalism/SKILL.md": {
+    "mtime": 1791930483.5103447,
+    "seen": 1791932104.4990551,
+    "ast_hash": "cf05fca37e410de9fb13c5b55956305d",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/cafe/DESIGN.md": {
+    "mtime": 1791930483.5107307,
+    "seen": 1791932104.4990551,
+    "ast_hash": "daec718123cd558836e058364a5c5817",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/cafe/SKILL.md": {
+    "mtime": 1791930483.510955,
+    "seen": 1791932104.499056,
+    "ast_hash": "f9bcd6670692263fa56721ea92af6597",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/claude/DESIGN.md": {
+    "mtime": 1791930483.5113108,
+    "seen": 1791932104.499056,
+    "ast_hash": "1b170abcf32c7f8de098b8cba328ea17",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/claude/SKILL.md": {
+    "mtime": 1791930483.5115676,
+    "seen": 1791932104.4990568,
+    "ast_hash": "307af26bc0bf46173e5bf9dfbb03e043",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/claymorphism/DESIGN.md": {
+    "mtime": 1791930483.5118945,
+    "seen": 1791932104.4990568,
+    "ast_hash": "7f3f79ed8b6a06e6ec9803a49327eb6b",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/claymorphism/SKILL.md": {
+    "mtime": 1791930483.5121484,
+    "seen": 1791932104.499058,
+    "ast_hash": "9b64584e3576f7cf94903f613331f503",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/clean/DESIGN.md": {
+    "mtime": 1791930483.5124526,
+    "seen": 1791932104.499058,
+    "ast_hash": "e44bdae4ef66e57a3afd8012630ec62b",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/clean/SKILL.md": {
+    "mtime": 1791930483.5126774,
+    "seen": 1791932104.499059,
+    "ast_hash": "c0adbc757313c05b1cf64745c21450e6",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/codex/DESIGN.md": {
+    "mtime": 1791930483.5129795,
+    "seen": 1791932104.499059,
+    "ast_hash": "e8727b69de789a57ba772ed8374c8760",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/codex/SKILL.md": {
+    "mtime": 1791930483.513225,
+    "seen": 1791932104.49906,
+    "ast_hash": "b90c88c5ea2e30361e8b7fea95a39454",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/colorful/DESIGN.md": {
+    "mtime": 1791930483.513526,
+    "seen": 1791932104.49906,
+    "ast_hash": "549950b66c60732586a1b9817e483d9a",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/colorful/SKILL.md": {
+    "mtime": 1791930483.5137312,
+    "seen": 1791932104.49906,
+    "ast_hash": "3c9d7e057b4bfdf0b604a0961189c024",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/contemporary/DESIGN.md": {
+    "mtime": 1791930483.5140295,
+    "seen": 1791932104.499061,
+    "ast_hash": "50c02f2d9292fae962ae988a7f872f6c",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/contemporary/SKILL.md": {
+    "mtime": 1791930483.5142577,
+    "seen": 1791932104.499061,
+    "ast_hash": "7dfc42ed28aa11effb190fbff80f885c",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/corporate/DESIGN.md": {
+    "mtime": 1791930483.5145612,
+    "seen": 1791932104.499062,
+    "ast_hash": "540c243b13757cf5bb000a077fd938df",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/corporate/SKILL.md": {
+    "mtime": 1791930483.514763,
+    "seen": 1791932104.499062,
+    "ast_hash": "d401f94b9a2cf0c73bf447a45f8f868a",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/cosmic/DESIGN.md": {
+    "mtime": 1791930483.5150607,
+    "seen": 1791932104.499062,
+    "ast_hash": "b8c1083dafb053a33b35b7f7fb1afc79",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/cosmic/SKILL.md": {
+    "mtime": 1791930483.5152805,
+    "seen": 1791932104.499063,
+    "ast_hash": "83c38d846fd414da22dfd69ad97abff0",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/creative/DESIGN.md": {
+    "mtime": 1791930483.5155802,
+    "seen": 1791932104.499063,
+    "ast_hash": "e64df61d5f77e84c69ce376ad1791e3c",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/creative/SKILL.md": {
+    "mtime": 1791930483.5157874,
+    "seen": 1791932104.499064,
+    "ast_hash": "ed78918b7a5789b34ab181ba88eb190b",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/dithered/DESIGN.md": {
+    "mtime": 1791930483.5160816,
+    "seen": 1791932104.499064,
+    "ast_hash": "2bdd2d977abd5c82ed76f410baaa2278",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/dithered/SKILL.md": {
+    "mtime": 1791930483.5163026,
+    "seen": 1791932104.4990652,
+    "ast_hash": "07ec4fe21580d0594ca397996c9d94ba",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/doodle/DESIGN.md": {
+    "mtime": 1791930483.516584,
+    "seen": 1791932104.4990652,
+    "ast_hash": "a7a555ef87539590b88975be8690faef",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/doodle/SKILL.md": {
+    "mtime": 1791930483.516807,
+    "seen": 1791932104.499066,
+    "ast_hash": "88bf654adf902c821360e080917fa023",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/dramatic/DESIGN.md": {
+    "mtime": 1791930483.5171113,
+    "seen": 1791932104.499066,
+    "ast_hash": "20f5e6316ce47c53a7c599a99573087b",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/dramatic/SKILL.md": {
+    "mtime": 1791930483.5173478,
+    "seen": 1791932104.4990668,
+    "ast_hash": "a24337aa9df56fee26af8c23c6026866",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/editorial/DESIGN.md": {
+    "mtime": 1791930483.5176406,
+    "seen": 1791932104.4990668,
+    "ast_hash": "85e73fd0a8bcbef25371808ac3af6432",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/editorial/SKILL.md": {
+    "mtime": 1791930483.5178328,
+    "seen": 1791932104.499068,
+    "ast_hash": "9d470c088f589357f555d068c2b2f9f0",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/enterprise/DESIGN.md": {
+    "mtime": 1791930483.518136,
+    "seen": 1791932104.499068,
+    "ast_hash": "97516dda328229dda4f0d5e2dba8db6c",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/enterprise/SKILL.md": {
+    "mtime": 1791930483.5183928,
+    "seen": 1791932104.499068,
+    "ast_hash": "a7916fb00cd2463cf90efe9b767263e5",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/expressive/DESIGN.md": {
+    "mtime": 1791930483.5187173,
+    "seen": 1791932104.499069,
+    "ast_hash": "4835fa68c4d5fe7f24f8cc41d941ffd4",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/expressive/SKILL.md": {
+    "mtime": 1791930483.5189211,
+    "seen": 1791932104.499069,
+    "ast_hash": "53a776d045296acf02793f754d3044c0",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/fantasy/DESIGN.md": {
+    "mtime": 1791930483.5192132,
+    "seen": 1791932104.49907,
+    "ast_hash": "e748c5c6c3538a49686c83e656e51f06",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/fantasy/SKILL.md": {
+    "mtime": 1791930483.5194213,
+    "seen": 1791932104.49907,
+    "ast_hash": "a696e1a0a471593b2de6f3aae05a90bb",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/fiction/DESIGN.md": {
+    "mtime": 1791930483.5197563,
+    "seen": 1791932104.499071,
+    "ast_hash": "7aed212b828627c539c50b5b601cbc03",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/fiction/SKILL.md": {
+    "mtime": 1791930483.519947,
+    "seen": 1791932104.499071,
+    "ast_hash": "502ddbc47a7ef11b9c95e62ecd9baae4",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/flat/DESIGN.md": {
+    "mtime": 1791930483.520293,
+    "seen": 1791932104.499072,
+    "ast_hash": "7274c065912710c5eb4eba6c49f64202",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/flat/SKILL.md": {
+    "mtime": 1791930483.5205257,
+    "seen": 1791932104.499072,
+    "ast_hash": "29f2528301a80a26ab60163a9e7d7c61",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/friendly/DESIGN.md": {
+    "mtime": 1791930483.5208035,
+    "seen": 1791932104.499073,
+    "ast_hash": "343a12e2d0e1194beee6c1175aeb972a",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/friendly/SKILL.md": {
+    "mtime": 1791930483.5209982,
+    "seen": 1791932104.499073,
+    "ast_hash": "8331de89844dfd0df604c8a6f946aeb1",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/futuristic/DESIGN.md": {
+    "mtime": 1791930483.5213246,
+    "seen": 1791932104.499073,
+    "ast_hash": "8a7a7403dd1a68093c4500e3c98262f3",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/futuristic/SKILL.md": {
+    "mtime": 1791930483.521542,
+    "seen": 1791932104.499074,
+    "ast_hash": "deb58870b68978c38dd21aaf7a2d62a0",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/geometric/DESIGN.md": {
+    "mtime": 1791930483.5218298,
+    "seen": 1791932104.499074,
+    "ast_hash": "f4766bb0db10740ba0b1be1f96299e12",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/geometric/SKILL.md": {
+    "mtime": 1791930483.522021,
+    "seen": 1791932104.4990752,
+    "ast_hash": "860ffa9931a431fdda98905189c77a97",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/glassmorphism/DESIGN.md": {
+    "mtime": 1791930483.522347,
+    "seen": 1791932104.4990752,
+    "ast_hash": "074603c7ca0dfb0e9b06f4ee1090c99a",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/glassmorphism/SKILL.md": {
+    "mtime": 1791930483.5225594,
+    "seen": 1791932104.4990761,
+    "ast_hash": "daf6b7338863aa74d6aae86eb689fb6e",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/gradient/DESIGN.md": {
+    "mtime": 1791930483.5228584,
+    "seen": 1791932104.4990761,
+    "ast_hash": "e7b265681123645d9976e0542151d279",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/gradient/SKILL.md": {
+    "mtime": 1791930483.5231583,
+    "seen": 1791932104.4990761,
+    "ast_hash": "2e50eb41cde2ea790b73f7125e4e0f6d",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/immersive/DESIGN.md": {
+    "mtime": 1791930483.5234926,
+    "seen": 1791932104.499077,
+    "ast_hash": "e4c85430151fb67f4714385871ed0e4e",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/immersive/SKILL.md": {
+    "mtime": 1791930483.5237136,
+    "seen": 1791932104.499077,
+    "ast_hash": "be9f3d9dcd0d151dfca281a7d2ff4591",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/impeccable/DESIGN.md": {
+    "mtime": 1791930483.5240018,
+    "seen": 1791932104.4990778,
+    "ast_hash": "b7db7f0377014da5f267b3bb2ba4eadd",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/impeccable/SKILL.md": {
+    "mtime": 1791930483.5242307,
+    "seen": 1791932104.4990778,
+    "ast_hash": "4a19f361b2a3c623cb965d126e3ad38a",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/levels/DESIGN.md": {
+    "mtime": 1791930483.5253649,
+    "seen": 1791932104.499079,
+    "ast_hash": "1389220ed4b436757a916d2bf5a56a76",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/levels/SKILL.md": {
+    "mtime": 1791930483.525562,
+    "seen": 1791932104.499079,
+    "ast_hash": "fb0996b91e1a5709e70df0f435ad1387",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/lingo/DESIGN.md": {
+    "mtime": 1791930483.525942,
+    "seen": 1791932104.499079,
+    "ast_hash": "2a571704ea4d36ddb82acb62d0017bca",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/lingo/SKILL.md": {
+    "mtime": 1791930483.5261343,
+    "seen": 1791932104.49908,
+    "ast_hash": "9cf132beeedb907c9965b3e0499194b7",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/material/DESIGN.md": {
+    "mtime": 1791930483.5264733,
+    "seen": 1791932104.49908,
+    "ast_hash": "7c67c0ce6ac01de1469c1b0e863ca8b2",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/material/SKILL.md": {
+    "mtime": 1791930483.5266778,
+    "seen": 1791932104.499081,
+    "ast_hash": "3dba6bde14317fbbfafaf2c5c162b081",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/matrix/DESIGN.md": {
+    "mtime": 1791930483.5271404,
+    "seen": 1791932104.499081,
+    "ast_hash": "995b12dede83c3b0fcb299b9784b53ab",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/matrix/SKILL.md": {
+    "mtime": 1791930483.527339,
+    "seen": 1791932104.499082,
+    "ast_hash": "8ba5c5f7fadd0f168595fcc9c3defaaf",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/minimal/DESIGN.md": {
+    "mtime": 1791930483.527666,
+    "seen": 1791932104.499082,
+    "ast_hash": "7a4c0568e40a74e03fee5d879ead457f",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/minimal/SKILL.md": {
+    "mtime": 1791930483.5278811,
+    "seen": 1791932104.499083,
+    "ast_hash": "41938daa2e11d21c47603cd5a1892840",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/modern/DESIGN.md": {
+    "mtime": 1791930483.5281763,
+    "seen": 1791932104.499083,
+    "ast_hash": "f36a1f47c21fe5e0cbb0422a40558079",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/modern/SKILL.md": {
+    "mtime": 1791930483.5283782,
+    "seen": 1791932104.499084,
+    "ast_hash": "d198d4f77e85e537ad7f7034101e18fa",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/mono/DESIGN.md": {
+    "mtime": 1791930483.528717,
+    "seen": 1791932104.499084,
+    "ast_hash": "8855204fc3f9af51edf0880e91ba8391",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/mono/SKILL.md": {
+    "mtime": 1791930483.5289488,
+    "seen": 1791932104.499084,
+    "ast_hash": "445ac7b2e1da0e91ee3d378b769f17e3",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/neobrutalism/DESIGN.md": {
+    "mtime": 1791930483.529324,
+    "seen": 1791932104.499085,
+    "ast_hash": "9dcb2b9fa3f23c76068c6025999e0142",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/neobrutalism/SKILL.md": {
+    "mtime": 1791930483.5295453,
+    "seen": 1791932104.499085,
+    "ast_hash": "0602bd36465ffde85f5bae0a9cdcee6f",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/neon/DESIGN.md": {
+    "mtime": 1791930483.5299635,
+    "seen": 1791932104.4990861,
+    "ast_hash": "581b696e7687d6b2dcb3963c4250ea01",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/neon/SKILL.md": {
+    "mtime": 1791930483.530209,
+    "seen": 1791932104.4990861,
+    "ast_hash": "8d88ca31d6e5bd441594e3cea1a56015",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/neumorphism/DESIGN.md": {
+    "mtime": 1791930483.530514,
+    "seen": 1791932104.499087,
+    "ast_hash": "00671acc7425efc419a88fdfc15b10a7",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/neumorphism/SKILL.md": {
+    "mtime": 1791930483.5307024,
+    "seen": 1791932104.499087,
+    "ast_hash": "b9feb2a1b3ded5fdd703a66175add5af",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/pacman/DESIGN.md": {
+    "mtime": 1791930483.5311165,
+    "seen": 1791932104.4990878,
+    "ast_hash": "2b5654b43e9ad27aa87b5b4b0dec7136",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/pacman/SKILL.md": {
+    "mtime": 1791930483.5313077,
+    "seen": 1791932104.4990878,
+    "ast_hash": "3fcbf3ae1a854fd7db430031111c65c6",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/paper/DESIGN.md": {
+    "mtime": 1791930483.5315905,
+    "seen": 1791932104.499089,
+    "ast_hash": "5a859b09f183830d5be05353daa7d428",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/paper/SKILL.md": {
+    "mtime": 1791930483.5317726,
+    "seen": 1791932104.499089,
+    "ast_hash": "3ffee047a933c0bcc7977f7fd22567f6",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/perspective/DESIGN.md": {
+    "mtime": 1791930483.5321105,
+    "seen": 1791932104.49909,
+    "ast_hash": "92ae24f9fb69f8a493bf501410f8bd48",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/perspective/SKILL.md": {
+    "mtime": 1791930483.532303,
+    "seen": 1791932104.49909,
+    "ast_hash": "e2be31eeb4cc4046643977b99c78fe8d",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/power/DESIGN.md": {
+    "mtime": 1791930483.5325928,
+    "seen": 1791932104.49909,
+    "ast_hash": "a95dd149ed5fbe5ddc2fbd7aae9bcc73",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/power/SKILL.md": {
+    "mtime": 1791930483.5327768,
+    "seen": 1791932104.499091,
+    "ast_hash": "ac1711e0cdfed15aef11355f3208d7cb",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/premium/DESIGN.md": {
+    "mtime": 1791930483.533102,
+    "seen": 1791932104.499091,
+    "ast_hash": "0f62ec6b0555e402cb9dfec0a421a729",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/premium/SKILL.md": {
+    "mtime": 1791930483.5332909,
+    "seen": 1791932104.4990919,
+    "ast_hash": "baba838d97f51c42df182ed241df1ec7",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/professional/DESIGN.md": {
+    "mtime": 1791930483.5335855,
+    "seen": 1791932104.4990919,
+    "ast_hash": "8957b60267875ab20659ec9070d42e60",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/professional/SKILL.md": {
+    "mtime": 1791930483.5337868,
+    "seen": 1791932104.499093,
+    "ast_hash": "fe8269420eec83112e877f7faf8a04cf",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/pulse/DESIGN.md": {
+    "mtime": 1791930483.5341198,
+    "seen": 1791932104.499093,
+    "ast_hash": "18b529a9a9a6f45d3deb7250cc941ba5",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/pulse/SKILL.md": {
+    "mtime": 1791930483.5343363,
+    "seen": 1791932104.499094,
+    "ast_hash": "b462fd64c4ab938f692710447ee5a965",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/refined/DESIGN.md": {
+    "mtime": 1791930483.534638,
+    "seen": 1791932104.499094,
+    "ast_hash": "d2ee4da421b7889cc7c67b3bf37069e6",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/refined/SKILL.md": {
+    "mtime": 1791930483.5348315,
+    "seen": 1791932104.499094,
+    "ast_hash": "b2d05a2a5b07b6405f537753f85e7f2f",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/retro/DESIGN.md": {
+    "mtime": 1791930483.5351608,
+    "seen": 1791932104.499095,
+    "ast_hash": "26bd98a7c66a37a8dc241710fb9e4b94",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/retro/SKILL.md": {
+    "mtime": 1791930483.5353632,
+    "seen": 1791932104.499095,
+    "ast_hash": "13e8e18c3ceb451e5bae26d90fa7c5df",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/riso/DESIGN.md": {
+    "mtime": 1791930483.5356636,
+    "seen": 1791932104.4990962,
+    "ast_hash": "3d8fa88903def4ddd960f9190ccbae23",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/riso/SKILL.md": {
+    "mtime": 1791930483.535857,
+    "seen": 1791932104.4990962,
+    "ast_hash": "cf533fec251fdaff970ebf4498b0e19b",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/roku/DESIGN.md": {
+    "mtime": 1791930483.53618,
+    "seen": 1791932104.499097,
+    "ast_hash": "8ac6b9935b9624b5474ec3b06c5133d5",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/roku/SKILL.md": {
+    "mtime": 1791930483.5363994,
+    "seen": 1791932104.499097,
+    "ast_hash": "39b59ebd271d2dbc0d824de809a1e977",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/sega/DESIGN.md": {
+    "mtime": 1791930483.5366683,
+    "seen": 1791932104.499098,
+    "ast_hash": "bfea4fa9a1e77a35ac9e98e3d9673022",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/sega/SKILL.md": {
+    "mtime": 1791930483.536857,
+    "seen": 1791932104.499098,
+    "ast_hash": "47c5cdab12781f0993b8c2f383b6a880",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/shadcn/DESIGN.md": {
+    "mtime": 1791930483.5371811,
+    "seen": 1791932104.499098,
+    "ast_hash": "d77f8b72513dcbea266fe9652998a0b6",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/shadcn/SKILL.md": {
+    "mtime": 1791930483.5373738,
+    "seen": 1791932104.4990988,
+    "ast_hash": "a59a65bfe84738635e09424f6397ecb7",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/sketch/DESIGN.md": {
+    "mtime": 1791930483.537744,
+    "seen": 1791932104.4990988,
+    "ast_hash": "aed3489b95fa804ef864245f504127b1",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/sketch/SKILL.md": {
+    "mtime": 1791930483.5379403,
+    "seen": 1791932104.4991,
+    "ast_hash": "2c40d0578c0b7559ee5b0203fb7e6834",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/skeumorphism/DESIGN.md": {
+    "mtime": 1791930483.5382733,
+    "seen": 1791932104.4991,
+    "ast_hash": "15ae26c1c9d84324ca1f780179ebd127",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/skeumorphism/SKILL.md": {
+    "mtime": 1791930483.5384595,
+    "seen": 1791932104.499101,
+    "ast_hash": "d125931284085961559a6985a093d6a6",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/sleek/DESIGN.md": {
+    "mtime": 1791930483.5387495,
+    "seen": 1791932104.499101,
+    "ast_hash": "9567e2ea6ba56cbae77d30f4133484e6",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/sleek/SKILL.md": {
+    "mtime": 1791930483.538984,
+    "seen": 1791932104.499101,
+    "ast_hash": "165cdd72ba66a46a374a0766734b6dc9",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/spacious/DESIGN.md": {
+    "mtime": 1791930483.5393188,
+    "seen": 1791932104.4991019,
+    "ast_hash": "06d30bb415ea8b7bed771a8ef5120871",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/spacious/SKILL.md": {
+    "mtime": 1791930483.5395262,
+    "seen": 1791932104.4991019,
+    "ast_hash": "70b660058d83e27c4919f00e8e96c6c8",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/square/DESIGN.md": {
+    "mtime": 1791930483.5398264,
+    "seen": 1791932104.499103,
+    "ast_hash": "0d9bbf2f4d86ca6e92090a35bd3c8d1d",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/square/SKILL.md": {
+    "mtime": 1791930483.5400445,
+    "seen": 1791932104.499103,
+    "ast_hash": "6475b7e6788badc27fded3c7bbf258ca",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/stitch/DESIGN.md": {
+    "mtime": 1791930483.5404692,
+    "seen": 1791932104.499104,
+    "ast_hash": "1bf9fd4adf232a364c752bb67852c9bd",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/stitch/SKILL.md": {
+    "mtime": 1791930483.5406973,
+    "seen": 1791932104.499104,
+    "ast_hash": "8db10849ecf98c3b3ac2cbb657c49fd7",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/storytelling/DESIGN.md": {
+    "mtime": 1791930483.5410814,
+    "seen": 1791932104.499104,
+    "ast_hash": "5d81857649da0269a602f0f1c9eaf813",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/storytelling/SKILL.md": {
+    "mtime": 1791930483.5413065,
+    "seen": 1791932104.499105,
+    "ast_hash": "f89a824495ed4e929a1dcf8008cdb259",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/terracotta/DESIGN.md": {
+    "mtime": 1791930483.541778,
+    "seen": 1791932104.499105,
+    "ast_hash": "3240229ba60033b5890300b582eb3129",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/terracotta/SKILL.md": {
+    "mtime": 1791930483.5419998,
+    "seen": 1791932104.499106,
+    "ast_hash": "59aa17a466114565e4319c4e6fb0e087",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/tetris/DESIGN.md": {
+    "mtime": 1791930483.5423,
+    "seen": 1791932104.499106,
+    "ast_hash": "e155d07d77c5f8ff46d5ab2ca51b7572",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/tetris/SKILL.md": {
+    "mtime": 1791930483.5425184,
+    "seen": 1791932104.4991071,
+    "ast_hash": "99285dab894c04af6e2d095af215d889",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/vibrant/DESIGN.md": {
+    "mtime": 1791930483.5428226,
+    "seen": 1791932104.4991071,
+    "ast_hash": "bf9319dd4c986b6548938b7417441bdb",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/vibrant/SKILL.md": {
+    "mtime": 1791930483.5429935,
+    "seen": 1791932104.499108,
+    "ast_hash": "22de6b9050120e44cd23bd64eff2beb5",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/vintage/DESIGN.md": {
+    "mtime": 1791930483.5432553,
+    "seen": 1791932104.499108,
+    "ast_hash": "fbbb4854c605c585b64e6c1d6dd1c359",
+    "semantic_hash": ""
+  },
+  ".agents/frontend/skills/vintage/SKILL.md": {
+    "mtime": 1791930483.543429,
+    "seen": 1791932104.499108,
+    "ast_hash": "5092c704096dc75dfe5fe953c5ffc3c8",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/.hive/PROTOCOL.md": {
+    "mtime": 1791931328.9435954,
+    "seen": 1791932104.49911,
+    "ast_hash": "eca5d5c1d9d3e99c9480be7d49131aef",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/.hive/memory.md": {
+    "mtime": 1791931328.94388,
+    "seen": 1791932104.49911,
+    "ast_hash": "4b6f12780418298442d5c5548d1dfa68",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/.hive/tasks.md": {
+    "mtime": 1791931328.9441383,
+    "seen": 1791932104.49911,
+    "ast_hash": "9620af79bbbaafbe93b5dc8b9696415d",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/CONTRIBUTING.md": {
+    "mtime": 1791931328.9447076,
+    "seen": 1791932104.499111,
+    "ast_hash": "bc0a6caf96540e865057c94a3475effc",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/README.md": {
+    "mtime": 1791931328.945282,
+    "seen": 1791932104.499111,
+    "ast_hash": "1fde997960cf242a60c604362d33463a",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/SKILL.md": {
+    "mtime": 1791931328.9459236,
+    "seen": 1791932104.499112,
+    "ast_hash": "7ce51b7b9503adb9c95d2f508683160b",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/assets/pr-review-template.md": {
+    "mtime": 1791931328.94638,
+    "seen": 1791932104.499112,
+    "ast_hash": "2a0d0061be945fbf13951be2669b3401",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/assets/review-checklist.md": {
+    "mtime": 1791931328.946602,
+    "seen": 1791932104.4991128,
+    "ast_hash": "6e3e097742b1e755d4ddc83c48c2d2d4",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/index.en.html": {
+    "mtime": 1791931328.9469442,
+    "seen": 1791932104.4991128,
+    "ast_hash": "1ac2d190846714d9d2ae34b14f7933ed",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/index.html": {
+    "mtime": 1791931328.9473066,
+    "seen": 1791932104.499114,
+    "ast_hash": "c65583013f0fd44ae5f7e95ca35b919b",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/angular.md": {
+    "mtime": 1791931328.947883,
+    "seen": 1791932104.499114,
+    "ast_hash": "66a70f8928ee19ff3313b3de9ba6b5a4",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/architecture-review-guide.md": {
+    "mtime": 1791931328.948143,
+    "seen": 1791932104.499115,
+    "ast_hash": "5ad184884783e471bf090106f852cb1e",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/c.md": {
+    "mtime": 1791931328.9485016,
+    "seen": 1791932104.499115,
+    "ast_hash": "2aa23489e39dcaf7c3ec50f9f6eaec51",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/code-quality-universal.md": {
+    "mtime": 1791931328.9487598,
+    "seen": 1791932104.499116,
+    "ast_hash": "851cbad3c44569ff0c2d502d2e8cb09c",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/code-review-best-practices.md": {
+    "mtime": 1791931328.9490163,
+    "seen": 1791932104.499116,
+    "ast_hash": "1532dece6d290d423577f7de043ae8f9",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/common-bugs-checklist.md": {
+    "mtime": 1791931328.949261,
+    "seen": 1791932104.4991171,
+    "ast_hash": "8ce5bfa94abaa5aaa2d66499e0890dff",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/cpp.md": {
+    "mtime": 1791931328.9497132,
+    "seen": 1791932104.4991171,
+    "ast_hash": "a5e193543fd736fad35b5508657c6ded",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/cross-cutting/async-concurrency-patterns.md": {
+    "mtime": 1791931328.950091,
+    "seen": 1791932104.499118,
+    "ast_hash": "1ea9155b3ee7c353caeae8477ca950ee",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/cross-cutting/error-handling-principles.md": {
+    "mtime": 1791931328.9503608,
+    "seen": 1791932104.499118,
+    "ast_hash": "9d90a58a9119e117b6d38745c6895684",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/cross-cutting/n-plus-one-queries.md": {
+    "mtime": 1791931328.9506972,
+    "seen": 1791932104.499119,
+    "ast_hash": "b5d29e2c7367c4ab000343fd20d976a1",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/cross-cutting/sql-injection-prevention.md": {
+    "mtime": 1791931328.9509425,
+    "seen": 1791932104.499119,
+    "ast_hash": "dc0e92cbe707c34eb8248c5b8660a032",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/cross-cutting/xss-prevention.md": {
+    "mtime": 1791931328.9513807,
+    "seen": 1791932104.499119,
+    "ast_hash": "45f2000d9886d62d1ccdd6f8c9ffa338",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/csharp.md": {
+    "mtime": 1791931328.9516315,
+    "seen": 1791932104.4991202,
+    "ast_hash": "8d609bfdbd0f4e77a952d44c748086e6",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/css-less-sass.md": {
+    "mtime": 1791931328.9519072,
+    "seen": 1791932104.4991202,
+    "ast_hash": "f70e39b1501669641ab98f1bac9eaf29",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/dart.md": {
+    "mtime": 1791931328.9522705,
+    "seen": 1791932104.499121,
+    "ast_hash": "632c648403829c93bcbfc6abfd725b97",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/django.md": {
+    "mtime": 1791931328.95264,
+    "seen": 1791932104.499121,
+    "ast_hash": "0cd80e7612a57bf2a1f479fd5f7bc731",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/fastapi.md": {
+    "mtime": 1791931328.9530451,
+    "seen": 1791932104.499122,
+    "ast_hash": "5386b4ecab3e44014afcca5a6ddedb7b",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/go.md": {
+    "mtime": 1791931328.9534297,
+    "seen": 1791932104.499122,
+    "ast_hash": "55a39e750ffc239e8407ac0825d19138",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/java.md": {
+    "mtime": 1791931328.9536924,
+    "seen": 1791932104.4991229,
+    "ast_hash": "f32b84e16b15b820b608a69bb03f2cd3",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/java8.md": {
+    "mtime": 1791931328.954039,
+    "seen": 1791932104.4991229,
+    "ast_hash": "c09b3fbcfed53f48281d953aa0463164",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/kotlin.md": {
+    "mtime": 1791931328.9544284,
+    "seen": 1791932104.499124,
+    "ast_hash": "725caa61e0071a43ed7c4420ba391ff5",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/nestjs.md": {
+    "mtime": 1791931328.9547307,
+    "seen": 1791932104.499124,
+    "ast_hash": "c6ffd02d463b8ad7a6dcb8040adba605",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/performance-review-guide.md": {
+    "mtime": 1791931328.955197,
+    "seen": 1791932104.499124,
+    "ast_hash": "fced5cb36f73115fd3c1e954802c89d2",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/php.md": {
+    "mtime": 1791931328.955492,
+    "seen": 1791932104.499125,
+    "ast_hash": "9244cdcc4ec2318e6d1cc995cae170c1",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/python.md": {
+    "mtime": 1791931328.9558256,
+    "seen": 1791932104.499125,
+    "ast_hash": "88d844b1a4d16292977c819c6430eab2",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/qt.md": {
+    "mtime": 1791931328.95615,
+    "seen": 1791932104.499126,
+    "ast_hash": "27925994b77dcd506e0ea1b19358776f",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/react.md": {
+    "mtime": 1791931328.9564695,
+    "seen": 1791932104.499126,
+    "ast_hash": "8ec811c2c5d4aeaa8b7b290f04254b0e",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/ruby.md": {
+    "mtime": 1791931328.956875,
+    "seen": 1791932104.4991271,
+    "ast_hash": "e28578e7deaef99344c970a287619100",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/rust.md": {
+    "mtime": 1791931328.9571867,
+    "seen": 1791932104.4991271,
+    "ast_hash": "a7332a7b1c2534613ae1d44421cc5ca5",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/security-review-guide.md": {
+    "mtime": 1791931328.957432,
+    "seen": 1791932104.499128,
+    "ast_hash": "8e6f332502a2e7b916eed2186e3de3e7",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/svelte.md": {
+    "mtime": 1791931328.9577785,
+    "seen": 1791932104.499128,
+    "ast_hash": "80f70be55011ee22e710200d905c5889",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/swift.md": {
+    "mtime": 1791931328.9582367,
+    "seen": 1791932104.499129,
+    "ast_hash": "22e1a41d022214716ab86103fd9ce9f4",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/typescript.md": {
+    "mtime": 1791931328.958511,
+    "seen": 1791932104.499129,
+    "ast_hash": "24c0c90aa2da83e3e67d06d60a31d883",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/vue.md": {
+    "mtime": 1791931328.9588368,
+    "seen": 1791932104.499129,
+    "ast_hash": "bebb214a26b37b536ac5d875cafa6a9c",
+    "semantic_hash": ""
+  },
+  ".agents/skills/code-review-skill/reference/zig.md": {
+    "mtime": 1791931328.9590874,
+    "seen": 1791932104.49913,
+    "ast_hash": "033e40abd3bc63fd084517739e93d5ab",
+    "semantic_hash": ""
   }
 }
