@@ -1,40 +1,41 @@
-# Graph Report - IAD ED  (2026-10-13)
+# Graph Report - IAD ED  (2026-10-14)
 
 ## Corpus Check
-- 506 files · ~277,916 words
+- 508 files · ~282,871 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 28 file(s) not represented in the graph (top: (none) 15, .css 4, .map 2)
 
 ## Summary
-- 6103 nodes · 9130 edges · 505 communities (436 shown, 69 thin omitted)
-- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 257 edges (avg confidence: 0.89)
+- 6158 nodes · 9238 edges · 505 communities (432 shown, 73 thin omitted)
+- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 274 edges (avg confidence: 0.89)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `e8978263`
+- Built from commit: `1fb04045`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- campaign-analytics.dto.ts
-- edge-cv/app/main.py
-- AgeBarChart.tsx
-- test_onnx_optimization.py
+- CampaignAggregationService
+- onnx_optimization.py
+- mqtt.client.ts
+- campaigns.controller.ts
 - OfflinePlaylistManager
 - Roles
-- Button
+- CamerasPage.tsx
 - index.ts
-- AgeEstimator
-- LoginPage.tsx
+- InvalidInputError
+- frontend/src/main.tsx
 - ref_react
-- @nestjs/common
+- campaign-analytics.dto.ts
+- app.module.ts
 - @nestjs/swagger
 - CampaignsService
 - AuthService
-- PersonDetector
+- PerformanceLogger
 - MQTTClient
 - FleetPage.tsx
-- _make_frame
+- test_onnx_optimization.py
 - backend/package.json
 - MqttService
 - test_offline_playlist.py
@@ -43,14 +44,13 @@
 - frontend/package.json
 - make_det
 - dependencies
-- train.py
 - ByteTracker
 - 03 - Documentation Fonctionnelle
 - services/mqtt_client.py
 - offline_playlist.py
 - dependencies
 - DevicesController
-- KalmanTrack
+- test_bytetrack.py
 - .download_media
 - predict.py
 - devDependencies
@@ -62,7 +62,7 @@
 - test_mqtt_client.py
 - BaseEventDto
 - display-kiosk/package.json
-- lifespan
+- edge-cv/app/main.py
 - compilerOptions
 - smartqueue-ml/app/main.py
 - docs/README.md
@@ -72,7 +72,7 @@
 - mqtt.types.ts
 - SmartVision End-to-End Live Demonstration Guide
 - AudienceEventsService
-- patch
+- prediction.py
 - compilerOptions
 - make_client_with_mocks
 - DevicesTable.tsx
@@ -84,7 +84,7 @@
 - CreateUserDto
 - electron/main.ts
 - compilerOptions
-- test_bytetrack.py
+- train.py
 - 01 - Aperçu du projet
 - generate_dataset.py
 - 21 - Glossaire
@@ -94,21 +94,21 @@
 - scripts
 - CampaignsPage.tsx
 - README.md
-- frontend/src/main.tsx
+- AudienceAnalyticsPage.tsx
 - Rust Code Review Guide
 - OnnxInferenceSession
 - CSS / Less / Sass Review Guide
 - Java 8 / Legacy Stack Code Review Guide
-- _validate_detection
+- queue.py
 - alert-dialog.tsx
 - use-toast.ts
 - devDependencies
 - TestGenderFieldInDetections
 - Architecture Review Guide
 - AlertsService
-- CameraManager
+- StorageService
 - devDependencies
-- prediction.py
+- DevicesService
 - 07 - Base de Données
 - 8.1 API Backend Principale (NestJS - Port 3000)
 - React Code Review Guide
@@ -120,18 +120,18 @@
 - 2. Contrat MQTT
 - manager
 - Monitoring Stack — IAD & SmartQueue AI
-- DevicesService
+- health.controller.ts
 - 06 - Architecture Backend
 - 23 - Audit de la Documentation
 - Audit Technique — Sprint 0 (Rayen)
 - 4. JSON Schemas & TypeScript Types
 - 🛠️ Détail des Corrections Effectuées
 - Guide Utilisateur
-- mqtt.service.ts
+- @nestjs/common
 - NestJS Code Review Guide
 - UpdateDeviceDto
 - scripts
-- _iou_batch
+- DetectionsPayloadDto
 - TestSubscribeAndHandlers
 - 跨语言代码示例
 - Problèmes fréquents
@@ -156,8 +156,8 @@
 - 20 - Roadmap et Recommandations
 - reset.sh
 - seed.sh
-- 异步与并发模式 — 跨语言通用指南
-- TestInvalidDetections
+- 跨语言代码示例
+- storage.service.ts
 - SitesService
 - i18n.ts
 - 10 - Sécurité
@@ -231,14 +231,13 @@
 - Pacman Design System Skill (Universal)
 - Paper Design Design System Skill (Universal)
 - Perspective Design Design System Skill (Universal)
-- BaseModel
 - Power Design System Skill (Universal)
 - 2. Description des Tables
 - Premium Design System Skill (Universal)
 - Professional Design System Skill (Universal)
 - 02 - Contexte métier
-- MetricsController
-- _global_exception_handler
+- .source
+- CampaignScorer
 - 12 - Installation & Démarrage
 - Pulse Design System Skill (Universal)
 - Refined Design System Skill (Universal)
@@ -263,21 +262,19 @@
 - Common Bugs Checklist
 - PHP Code Review Guide
 - FileStats
-- IadMetricsService
+- CampaignDecisionService
 - Code Review Quick Checklist
 - 中文
 - SQL Injection Prevention Guide
 - XSS Prevention Guide
 - Contributing to AI Code Review Guide
 - Tasks
-- src/main.ts
 - Claude Code Skill 开发规范
 - English
 - .read
 - test_pr_analyzer.py
 - IsTestFileTest
 - CreateSiteDto
-- TestBenchmark
 - IsConfigFileTest
 - Hive Team Protocol
 - Error Handling
@@ -285,7 +282,7 @@
 - Review Checklist
 - Review Checklist
 - C Code Review Guide
-- 跨语言代码示例
+- 3.6. Devices
 - 8. 常见陷阱
 - 常见内存泄漏
 - Review Checklist
@@ -294,7 +291,6 @@
 - Rails Controllers and Security
 - 5. Swift Concurrency
 - TypeScript/JavaScript Code Review Guide
-- parse_diff
 - Review Checklist
 - Review Checklist
 - Secure Coding Practices
@@ -319,7 +315,6 @@
 - 2. 并发与 Goroutine
 - 3. Context 使用
 - 6. 性能优化
-- Review Checklist
 - 前端性能 (Core Web Vitals)
 - API 性能
 - Performance Review Guide
@@ -488,20 +483,21 @@
 - Store 迁移（→ $state）
 - 异步处理
 - 类型安全基础
-- TestStatusAndProperties
 - .record
 - 不可变性
 - Comptime & Generics
 - Style & API Design
 - Testing
+- 3.2 Vision par Ordinateur (Détection et Démographie)
+- TestPerformanceValidation
 
 ## God Nodes (most connected - your core abstractions)
-1. `@nestjs/common` - 63 edges
+1. `@nestjs/common` - 65 edges
 2. `MqttService` - 56 edges
 3. `OnnxInferenceSession` - 53 edges
 4. `MQTTClient` - 48 edges
 5. `Button` - 47 edges
-6. `PrismaService` - 40 edges
+6. `PrismaService` - 43 edges
 7. `lucide-react` - 32 edges
 8. `PageHeader()` - 30 edges
 9. `ByteTracker` - 28 edges
@@ -510,91 +506,83 @@
 ## Surprising Connections (you probably didn't know these)
 - `1. NestJS Backend (`apps/backend/`)` --references--> `MetricsController`  [INFERRED]
   infrastructure/monitoring/README.md → apps/backend/src/common/metrics/metrics.controller.ts
+- `Upload Streaming & Magic Bytes Validation` --references--> `detectMimeFromBuffer()`  [INFERRED]
+  docs/CODE_REVIEW_REMEDIATION_REPORT.md → apps/backend/src/common/storage/storage.service.ts
 - `Heartbeat & Presence` --references--> `PresenceService`  [INFERRED]
   docs/camera-auto-pairing.md → apps/backend/src/devices/presence.service.ts
 - `Architecture` --references--> `GenderEstimator`  [INFERRED]
   docs/gender-classification.md → apps/edge-cv/app/demographics/gender_estimation.py
 - `4.2 Plans de Mitigation` --references--> `VideoStream`  [INFERRED]
   docs/RAPPORT_AVANCEMENT_IAD_SMARTQUEUE.md → apps/edge-cv/app/video_stream.py
-- `6. Implementation Locations` --references--> `useMqtt()`  [INFERRED]
-  docs/mqtt-architecture.md → apps/frontend/src/mqtt/useMqtt.ts
 
 ## Import Cycles
 - None detected.
 
-## Communities (505 total, 69 thin omitted)
+## Communities (505 total, 73 thin omitted)
 
-### Community 0 - "campaign-analytics.dto.ts"
-Cohesion: 0.05
-Nodes (22): CampaignAggregationService, CampaignAnalyticsController, CampaignAnalyticsService, CampaignInsightsService, InsightInput, CampaignKpiService, KpiInputs, KpiScores (+14 more)
+### Community 0 - "CampaignAggregationService"
+Cohesion: 0.13
+Nodes (3): CampaignAggregationService, CampaignInsightsService, CampaignKpiService
 
-### Community 1 - "edge-cv/app/main.py"
-Cohesion: 0.05
-Nodes (9): main(), _load_or_create_identity(), save_identity(), GenderEstimator, TrackState, draw_detections(), draw_hud(), draw_tracked_persons() (+1 more)
+### Community 1 - "onnx_optimization.py"
+Cohesion: 0.04
+Nodes (23): main(), AgeEstimator, GenderEstimator, PersonDetector, TrackState, draw_detections(), draw_hud(), draw_tracked_persons() (+15 more)
 
-### Community 2 - "AgeBarChart.tsx"
-Cohesion: 0.29
-Nodes (6): AGE_COLORS, AgeBarChartProps, AgeGroupPoint, GenderByHourPoint, GenderHourChart, GenderHourChartProps
+### Community 2 - "mqtt.client.ts"
+Cohesion: 0.12
+Nodes (15): ErrorBoundary, Props, State, SidebarNav(), SidebarNavProps, useSiteSelector(), DashboardLayout(), ConnectionCallback (+7 more)
 
-### Community 3 - "test_onnx_optimization.py"
-Cohesion: 0.05
-Nodes (17): benchmark(), BenchmarkResult, OnnxConfig, _parse_input_size(), validate_model(), warmup(), _xywh_to_xyxy(), cfg() (+9 more)
+### Community 3 - "campaigns.controller.ts"
+Cohesion: 0.21
+Nodes (4): uploadMulterOptions, CreateCampaignDto, UpdateCampaignDto, @nestjs/platform-express
 
-### Community 6 - "Button"
+### Community 6 - "CamerasPage.tsx"
 Cohesion: 0.11
-Nodes (46): assignSiteDevice(), deleteDevice(), getDevices(), restartDevice(), unpairDevice(), updateDevice(), deleteSite(), getSites() (+38 more)
+Nodes (43): assignSiteDevice(), deleteDevice(), getDevices(), restartDevice(), unpairDevice(), updateDevice(), deleteSite(), getSites() (+35 more)
 
 ### Community 7 - "index.ts"
+Cohesion: 0.07
+Nodes (28): apiClient, AlertItem, AlertSeverity, AlertType, AudienceBreakdownDto, AudienceStats, CameraMetadata, CampaignComparisonItemDto (+20 more)
+
+### Community 8 - "InvalidInputError"
+Cohesion: 0.07
+Nodes (6): AgeEstimationError, InferenceError, InvalidInputError, ModelNotLoadedError, test_invalid_bbox(), test_invalid_frame()
+
+### Community 9 - "frontend/src/main.tsx"
 Cohesion: 0.06
-Nodes (34): apiClient, failedQueue, AlertItem, AlertSeverity, AlertType, ApiValidationError, AudienceBreakdownDto, AudienceEvent (+26 more)
-
-### Community 8 - "AgeEstimator"
-Cohesion: 0.05
-Nodes (14): AgeEstimationError, AgeEstimator, InferenceError, InvalidInputError, ModelNotLoadedError, dummy_frame(), estimator(), test_custom_age_groups() (+6 more)
-
-### Community 9 - "LoginPage.tsx"
-Cohesion: 0.14
-Nodes (19): AuthTokens, changePassword(), getProfile(), login(), LoginDto, RefreshTokenDto, updateProfile(), UserProfile (+11 more)
+Nodes (41): AuthTokens, changePassword(), getProfile(), login(), LoginDto, logout(), RefreshTokenDto, updateProfile() (+33 more)
 
 ### Community 10 - "ref_react"
-Cohesion: 0.08
-Nodes (25): logout(), densityConfig, DensityGaugeProps, DensityLevel, colorMap, KpiCardProps, KpiColor, KpiTrend (+17 more)
+Cohesion: 0.09
+Nodes (41): campaignAnalyticsApi, getSettings(), updateSettings(), colorMap, KpiCardProps, KpiColor, KpiTrend, trendConfig (+33 more)
 
-### Community 12 - "@nestjs/common"
+### Community 11 - "campaign-analytics.dto.ts"
+Cohesion: 0.08
+Nodes (15): CampaignAnalyticsController, CampaignAnalyticsService, AudienceBreakdownDto, CampaignComparisonItemDto, CampaignDailyStatDto, CampaignDetailResponseDto, CampaignInsightDto, CampaignLeaderboardItemDto (+7 more)
+
+### Community 12 - "app.module.ts"
 Cohesion: 0.06
-Nodes (21): AlertsModule, AudienceEventsModule, AuthModule, CampaignAnalyticsModule, CampaignsModule, MetricsModule, StorageModule, envValidationSchema (+13 more)
+Nodes (15): AlertsModule, AudienceEventsModule, AuthModule, CampaignAnalyticsModule, CampaignsModule, MetricsController, MetricsModule, StorageModule (+7 more)
 
 ### Community 13 - "@nestjs/swagger"
 Cohesion: 0.08
-Nodes (13): ChangePasswordDto, RefreshTokenDto, JwtPayload, JwtStrategy, CurrentUser, ROLES_KEY, JwtAuthGuard, RolesGuard (+5 more)
-
-### Community 14 - "CampaignsService"
-Cohesion: 0.05
-Nodes (8): CampaignDecisionService, AgeDetectionSample, CampaignScorer, CandidateCampaign, CampaignsController, CampaignsService, CreateCampaignDto, StorageService
+Nodes (12): RefreshTokenDto, JwtPayload, JwtStrategy, CurrentUser, ROLES_KEY, JwtAuthGuard, RolesGuard, UpdateSiteDto (+4 more)
 
 ### Community 15 - "AuthService"
-Cohesion: 0.08
-Nodes (5): AuthController, AuthService, LoginDto, UpdateProfileDto, UsersService
-
-### Community 16 - "PersonDetector"
 Cohesion: 0.07
-Nodes (9): PersonDetector, FPSCounter, LatencyTracker, PerformanceLogger, Fichiers trouvés, Fonctionnalités réellement implémentées, Risques, T-003 — POC Détection de Personnes YOLOv8n (+1 more)
-
-### Community 17 - "MQTTClient"
-Cohesion: 0.08
-Nodes (3): MQTTClient, TestConnectionFailure, TestConnectionState
+Nodes (5): AuthController, AuthService, ChangePasswordDto, LoginDto, UpdateProfileDto
 
 ### Community 18 - "FleetPage.tsx"
-Cohesion: 0.12
-Nodes (37): createDevice(), createSite(), updateSite(), updateSiteThresholds(), TopBarProps, CardDescription, DialogContent, DialogDescription (+29 more)
+Cohesion: 0.11
+Nodes (39): createDevice(), createSite(), updateSite(), updateSiteThresholds(), TopBarProps, DialogContent, DialogDescription, DialogFooter() (+31 more)
 
-### Community 19 - "_make_frame"
-Cohesion: 0.09
-Nodes (7): _letterbox(), _make_frame(), TestDynamicInputShapes, TestLetterbox, TestPreprocess, TestRunBatch, TestRunDetection
+### Community 19 - "test_onnx_optimization.py"
+Cohesion: 0.04
+Nodes (21): benchmark(), BenchmarkResult, _letterbox(), OnnxConfig, _parse_input_size(), validate_model(), warmup(), cfg() (+13 more)
 
 ### Community 20 - "backend/package.json"
-Cohesion: 0.05
-Nodes (38): dotenv, mqtt, @types/node, typescript, name, prisma, seed, private (+30 more)
+Cohesion: 0.04
+Nodes (43): dotenv, mqtt, @types/node, typescript, name, prisma, seed, private (+35 more)
 
 ### Community 22 - "test_offline_playlist.py"
 Cohesion: 0.09
@@ -602,38 +590,34 @@ Nodes (15): MediaItem, Playlist, test_cache_maintenance_lru(), test_campaign_act
 
 ### Community 23 - "test_t015.py"
 Cohesion: 0.10
-Nodes (5): AnomalyAlert, AnomalyDetector, clean_anomaly_detector(), test_ack_endpoint_200_path(), test_ack_endpoint_404_path()
+Nodes (10): AnomalyAlert, AnomalyDetector, clean_anomaly_detector(), test_ack_endpoint_200_path(), test_ack_endpoint_404_path(), test_concurrency(), test_min_samples_gating(), test_per_service_type_window_separation() (+2 more)
 
 ### Community 24 - "ndarray"
-Cohesion: 0.13
-Nodes (4): Detection, _iou(), _nms(), TestNMS
+Cohesion: 0.10
+Nodes (6): Detection, _iou(), _nms(), _xywh_to_xyxy(), TestCoordinateHelpers, TestNMS
 
 ### Community 25 - "frontend/package.json"
 Cohesion: 0.07
 Nodes (29): autoprefixer, axios, mqtt, postcss, react, react-dom, tailwindcss, @types/node (+21 more)
 
 ### Community 26 - "make_det"
-Cohesion: 0.11
-Nodes (7): make_det(), TestConfidenceFiltering, TestDisappearAndReappear, TestMultiplePeople, TestSinglePerson, TestTentativeState, TestTrackerReset
+Cohesion: 0.08
+Nodes (9): make_det(), TestConfidenceFiltering, TestDisappearAndReappear, TestInvalidDetections, TestMultiplePeople, TestSinglePerson, TestStatusAndProperties, TestTentativeState (+1 more)
 
 ### Community 27 - "dependencies"
 Cohesion: 0.07
 Nodes (29): dependencies, axios, class-variance-authority, clsx, framer-motion, @hookform/resolvers, i18next, i18next-browser-languagedetector (+21 more)
-
-### Community 28 - "train.py"
-Cohesion: 0.19
-Nodes (4): _build_pipeline(), _encode_categoricals(), _load_data(), train_and_evaluate()
 
 ### Community 29 - "ByteTracker"
 Cohesion: 0.10
 Nodes (5): ByteTracker, TrackerInitError, TrackingError, TestEnvConfig, TestTrackerInit
 
 ### Community 30 - "03 - Documentation Fonctionnelle"
-Cohesion: 0.07
-Nodes (27): 03 - Documentation Fonctionnelle, 3.1 Gestion des Sites et des Appareils (Fleet Management), 3.2 Vision par Ordinateur (Détection et Démographie), 3.3 Campagnes Publicitaires et Analytics (Impressions), 3.4 Prédiction de File d'Attente, 3.5 Gestion de la Configuration et des Identifiants MQTT, API utilisées, Fichiers concernés (+19 more)
+Cohesion: 0.09
+Nodes (21): 03 - Documentation Fonctionnelle, 3.1 Gestion des Sites et des Appareils (Fleet Management), 3.3 Campagnes Publicitaires et Analytics (Impressions), 3.4 Prédiction de File d'Attente, 3.5 Gestion de la Configuration et des Identifiants MQTT, API utilisées, Fichiers concernés, Fichiers concernés (+13 more)
 
 ### Community 31 - "services/mqtt_client.py"
-Cohesion: 0.14
+Cohesion: 0.13
 Nodes (15): BaseEvent, CameraCommand, CameraHealthPayload, ConfigUpdateCommand, CrowdDensityPayload, DemographicsItem, DemographicsPayload, DetectionItem (+7 more)
 
 ### Community 32 - "offline_playlist.py"
@@ -644,20 +628,20 @@ Nodes (4): DownloadError, InvalidPlaylistError, PlaylistManagerError, StorageErr
 Cohesion: 0.08
 Nodes (26): dependencies, bcryptjs, class-transformer, class-validator, compression, dotenv, helmet, joi (+18 more)
 
-### Community 35 - "KalmanTrack"
-Cohesion: 0.11
-Nodes (3): _associate(), KalmanTrack, _linear_assignment()
+### Community 35 - "test_bytetrack.py"
+Cohesion: 0.05
+Nodes (14): _associate(), InvalidDetectionError, _iou_batch(), KalmanTrack, _linear_assignment(), _validate_detection(), reset_id_counter(), strict_tracker() (+6 more)
 
 ### Community 37 - "predict.py"
-Cohesion: 0.12
-Nodes (13): predict(), predict_batch(), _predict_side_effects(), queue_anomalies(), queue_stats(), queue_status(), BatchPredictRequest, MQTTPredictionPayload (+5 more)
+Cohesion: 0.15
+Nodes (9): predict(), predict_batch(), _predict_side_effects(), queue_anomalies(), queue_stats(), queue_status(), PredictionServiceError, get_prediction_stats() (+1 more)
 
 ### Community 38 - "devDependencies"
 Cohesion: 0.08
 Nodes (24): devDependencies, eslint, eslint-config-prettier, eslint-plugin-prettier, jest, @nestjs/cli, @nestjs/schematics, @nestjs/testing (+16 more)
 
 ### Community 40 - "test_gender_estimation.py"
-Cohesion: 0.08
+Cohesion: 0.06
 Nodes (7): GenderEstimationError, InferenceError, InvalidInputError, client(), mock_gender_estimator(), test_extract_face_roi_invalid_input(), client()
 
 ### Community 42 - "compilerOptions"
@@ -665,8 +649,8 @@ Cohesion: 0.09
 Nodes (22): compilerOptions, allowImportingTsExtensions, allowSyntheticDefaultImports, baseUrl, esModuleInterop, isolatedModules, jsx, lib (+14 more)
 
 ### Community 44 - "test_mqtt_client.py"
-Cohesion: 0.15
-Nodes (7): CommandTopics, EdgeTopics, SystemTopics, client(), mock_paho(), reset_command_schemas(), TestTopicConstants
+Cohesion: 0.12
+Nodes (8): CommandTopics, EdgeTopics, SystemTopics, client(), mock_paho(), reset_command_schemas(), TestConnectionFailure, TestTopicConstants
 
 ### Community 45 - "BaseEventDto"
 Cohesion: 0.13
@@ -676,16 +660,16 @@ Nodes (9): BaseEventDto, CameraHealthPayloadDto, CrowdDensityPayloadDto, Demogra
 Cohesion: 0.10
 Nodes (20): axios, dotenv, mqtt, react, react-dom, @types/node, @types/react, @types/react-dom (+12 more)
 
-### Community 47 - "lifespan"
-Cohesion: 0.11
-Nodes (14): _cpu_usage_percent(), detect(), _get_device_status(), health(), lifespan(), discovery_loop(), _handle_config_update(), _memory_usage_bytes() (+6 more)
+### Community 47 - "edge-cv/app/main.py"
+Cohesion: 0.05
+Nodes (18): _load_or_create_identity(), save_identity(), _cpu_usage_percent(), detect(), _get_device_status(), _global_exception_handler(), health(), lifespan() (+10 more)
 
 ### Community 48 - "compilerOptions"
 Cohesion: 0.10
 Nodes (19): compilerOptions, allowArbitraryExtensions, allowImportingTsExtensions, erasableSyntaxOnly, jsx, lib, module, moduleDetection (+11 more)
 
 ### Community 49 - "smartqueue-ml/app/main.py"
-Cohesion: 0.11
+Cohesion: 0.13
 Nodes (7): lifespan(), read_root(), health_check(), get_encoder(), is_model_loaded(), load_model(), predict_with_uncertainty()
 
 ### Community 50 - "docs/README.md"
@@ -701,20 +685,20 @@ Cohesion: 0.11
 Nodes (18): compilerOptions, allowSyntheticDefaultImports, baseUrl, declaration, emitDecoratorMetadata, experimentalDecorators, forceConsistentCasingInFileNames, incremental (+10 more)
 
 ### Community 53 - "PrismaService"
-Cohesion: 0.10
-Nodes (15): prisma, AppModule, mockDevice, mockDeviceRegistryService, mockMqttService, mockPrismaService, mockSite, PresenceService (+7 more)
+Cohesion: 0.08
+Nodes (17): prisma, AppModule, ErrorResponse, HttpExceptionFilter, mockDevice, mockDeviceRegistryService, mockMqttService, mockPrismaService (+9 more)
 
 ### Community 54 - "mqtt.types.ts"
-Cohesion: 0.13
-Nodes (23): INITIAL_STATE, LiveDashboardState, ConnectionCallback, log, mqttClient, MqttConnectionState, FRONTEND_SUBSCRIPTIONS, AlertPayload (+15 more)
+Cohesion: 0.21
+Nodes (15): AlertPayload, BaseEvent, CameraHealthPayload, CrowdDensityPayload, DashboardPayload, DensityLevel, DetectionBoundingBox, DetectionPayload (+7 more)
 
 ### Community 55 - "SmartVision End-to-End Live Demonstration Guide"
 Cohesion: 0.17
 Nodes (12): 1. Prerequisites, 2. Installation, 3. Launching the Demonstration (Automatic), 4. Manual Startup (Alternative), 6. Monitoring & Swagger Documentation, 7. Troubleshooting, A. Docker Startup, A. Swagger API Docs (+4 more)
 
-### Community 57 - "patch"
-Cohesion: 0.17
-Nodes (5): test_concurrency(), test_min_samples_gating(), test_per_service_type_window_separation(), test_predict_side_effects_independent(), test_unconditional_publish_no_suppression()
+### Community 57 - "prediction.py"
+Cohesion: 0.19
+Nodes (6): AnomalyAlert, BatchPredictRequest, HealthResponse, MQTTPredictionPayload, PredictionResponse, PredictRequest
 
 ### Community 58 - "compilerOptions"
 Cohesion: 0.11
@@ -725,8 +709,8 @@ Cohesion: 0.18
 Nodes (3): make_client_with_mocks(), TestPublish, TestQoSLevels
 
 ### Community 60 - "DevicesTable.tsx"
-Cohesion: 0.19
-Nodes (18): Badge(), BadgeProps, badgeVariants, Table, TableBody, TableCaption, TableCell, TableFooter (+10 more)
+Cohesion: 0.13
+Nodes (26): Badge(), BadgeProps, badgeVariants, Table, TableBody, TableCaption, TableCell, TableFooter (+18 more)
 
 ### Community 62 - "Kotlin / Android Code Review Guide"
 Cohesion: 0.04
@@ -745,16 +729,16 @@ Cohesion: 0.12
 Nodes (11): CACHE_DIR, cachedPlaylist, electron_1, fs, http, https, identityPath, MediaCacheService (+3 more)
 
 ### Community 67 - "electron/main.ts"
-Cohesion: 0.13
+Cohesion: 0.14
 Nodes (4): CACHE_DIR, cachedPlaylist, identityPath, MediaCacheService
 
 ### Community 68 - "compilerOptions"
 Cohesion: 0.13
 Nodes (14): compilerOptions, allowSyntheticDefaultImports, esModuleInterop, lib, module, moduleResolution, outDir, resolveJsonModule (+6 more)
 
-### Community 69 - "test_bytetrack.py"
-Cohesion: 0.15
-Nodes (5): reset_id_counter(), strict_tracker(), TestNoDetections, TestPeopleCrossing, tracker()
+### Community 69 - "train.py"
+Cohesion: 0.19
+Nodes (4): _build_pipeline(), _encode_categoricals(), _load_data(), train_and_evaluate()
 
 ### Community 70 - "01 - Aperçu du projet"
 Cohesion: 0.13
@@ -773,8 +757,8 @@ Cohesion: 0.05
 Nodes (42): async for 迭代模式, Cookie 安全设置, CORS 配置, CSRF 防护, Django / DRF Code Review Guide, HTTPS 与安全头, N+1 查询, N+1 查询优化 (+34 more)
 
 ### Community 74 - "3. Contrat REST API"
-Cohesion: 0.13
-Nodes (15): 3.1. Authentication, 3.3. Queue, 3.4. Audience, 3.6. Devices, 3.7. Health, 3. Contrat REST API, `GET /api/v1/audience-events`, `GET /api/v1/devices` (+7 more)
+Cohesion: 0.17
+Nodes (12): 3.1. Authentication, 3.3. Queue, 3.4. Audience, 3.7. Health, 3. Contrat REST API, `GET /api/v1/audience-events`, `GET /api/v1/queue/predict`, `GET /api/v1/queue/status` (+4 more)
 
 ### Community 75 - "qa_t014.py"
 Cohesion: 0.33
@@ -785,24 +769,24 @@ Cohesion: 0.14
 Nodes (14): scripts, build, lint, prisma:generate, prisma:migrate, start, start:dev, start:prod (+6 more)
 
 ### Community 77 - "CampaignsPage.tsx"
-Cohesion: 0.44
-Nodes (9): Campaign, createCampaign(), deleteCampaign(), getCampaigns(), updateCampaign(), updateCampaignOrder(), uploadCampaignMedia(), CampaignForm() (+1 more)
+Cohesion: 0.38
+Nodes (10): Campaign, createCampaign(), deleteCampaign(), getCampaigns(), updateCampaign(), updateCampaignOrder(), uploadCampaignMedia(), CampaignsPage (+2 more)
 
 ### Community 78 - "README.md"
 Cohesion: 0.22
 Nodes (4): Camera Auto-Pairing Architecture, Heartbeat & Presence, Identity Flow, Troubleshooting Auto-Pairing
 
-### Community 79 - "frontend/src/main.tsx"
-Cohesion: 0.08
-Nodes (64): getAudienceEvents(), getAudienceStats(), getVisitorTimeseries(), campaignAnalyticsApi, getSettings(), updateSettings(), AgeBarChart, DemographicsPieChart (+56 more)
+### Community 79 - "AudienceAnalyticsPage.tsx"
+Cohesion: 0.07
+Nodes (45): getAudienceEvents(), getAudienceStats(), getVisitorTimeseries(), AGE_COLORS, AgeBarChart, AgeBarChartProps, AgeGroupPoint, GenderByHourPoint (+37 more)
 
 ### Community 80 - "Rust Code Review Guide"
 Cohesion: 0.05
 Nodes (42): Arc<Mutex<T>> 的使用, Cow (Copy-on-Write) 模式, JoinHandle 错误处理, Mutex 和 .await, Rust Code Review Guide, Rust Review Checklist, select! 中的取消安全, spawn vs await (+34 more)
 
 ### Community 81 - "OnnxInferenceSession"
-Cohesion: 0.04
-Nodes (15): CorruptedModelError, export_to_onnx(), InvalidInputError, load_model(), ModelNotFoundError, OnnxError, OnnxInferenceSession, ProviderError (+7 more)
+Cohesion: 0.03
+Nodes (16): CorruptedModelError, export_to_onnx(), InvalidInputError, load_model(), ModelNotFoundError, OnnxError, OnnxInferenceSession, ProviderError (+8 more)
 
 ### Community 82 - "CSS / Less / Sass Review Guide"
 Cohesion: 0.05
@@ -812,13 +796,13 @@ Nodes (41): 1. `transition: all` 问题, 2. box-shadow 动画, 3. 触发布局�
 Cohesion: 0.05
 Nodes (42): Be careful with `parallelStream()`, Captured variables must be effectively final, Collect with `Collectors` on Java 8, CompletableFuture, Concurrency, Concurrency: Thread Pools & CompletableFuture, Configuration, Date/Time API (`java.time`) (+34 more)
 
-### Community 84 - "_validate_detection"
+### Community 84 - "queue.py"
 Cohesion: 0.26
-Nodes (3): InvalidDetectionError, _validate_detection(), TestValidateDetection
+Nodes (4): acknowledge_alert(), AckRequestBody, AlertAcknowledgment, QueueStatusPayload
 
 ### Community 85 - "alert-dialog.tsx"
-Cohesion: 0.17
-Nodes (19): AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter(), AlertDialogHeader(), AlertDialogOverlay, AlertDialogTitle (+11 more)
+Cohesion: 0.30
+Nodes (12): AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter(), AlertDialogHeader(), AlertDialogOverlay, AlertDialogTitle (+4 more)
 
 ### Community 86 - "use-toast.ts"
 Cohesion: 0.13
@@ -832,13 +816,13 @@ Nodes (12): devDependencies, concurrently, cross-env, electron, oxlint, @types/n
 Cohesion: 0.05
 Nodes (41): Architecture Review Guide, Clean Architecture 层次检查, D - 依赖倒置原则 (DIP), I - 接口隔离原则 (ISP), L - 里氏替换原则 (LSP), O - 开闭原则 (OCP), S - 单一职责原则 (SRP), SOLID 原则检查清单 (+33 more)
 
+### Community 90 - "AlertsService"
+Cohesion: 0.06
+Nodes (20): AlertsController, AlertsService, 1. Summary of Review Findings & Confirmation, 3. Implementation Details, 5. Verification & Test Evidence, 6. Strict Constraint Verification: `apps/smartqueue-ml/`, 7. Remaining Issues & Blocked Tests, A. Backend Unit & Regression Tests (+12 more)
+
 ### Community 93 - "devDependencies"
 Cohesion: 0.18
 Nodes (11): devDependencies, autoprefixer, postcss, tailwindcss, @tailwindcss/postcss, @types/node, @types/react, @types/react-dom (+3 more)
-
-### Community 94 - "prediction.py"
-Cohesion: 0.15
-Nodes (3): acknowledge_alert(), AckRequestBody, AlertAcknowledgment
 
 ### Community 95 - "07 - Base de Données"
 Cohesion: 0.18
@@ -861,16 +845,16 @@ Cohesion: 0.27
 Nodes (5): App(), Campaign, OverlayState, Campaign, DisplayPlayer()
 
 ### Community 101 - "FrameProcessor"
-Cohesion: 0.11
-Nodes (9): Detection, DetectionResult, DetectionResult, inference(), FrameProcessor, ProcessedFrameResult, TrackedPerson, test_frame_processor_density_thresholds() (+1 more)
+Cohesion: 0.09
+Nodes (11): Detection, DetectionResult, DetectionResult, inference(), FrameProcessor, ProcessedFrameResult, TrackedPerson, test_frame_processor_density_thresholds() (+3 more)
 
 ### Community 102 - "FastAPI Code Review Guide"
 Cohesion: 0.05
 Nodes (39): A declared auth dependency is not an enforced authorization check, Aggregate and join in SQL, not in Python, Async, Async Correctness, Business logic belongs behind a dependency or service, not in the route, CPU-bound work belongs in a worker process, not the loop or the threadpool, Critique the PR's own tests, not just its source, Database (+31 more)
 
 ### Community 103 - "2. Contrat MQTT"
-Cohesion: 0.20
-Nodes (8): 2.1. Topic : `iad/audience/events`, 2.2. Topic : `iad/audience/aggregates`, 2.3. Topic : `smartqueue/status`, 2.4. Topic : `smartqueue/predictions`, 2.5. Topic : `iad/content/update`, 2.6. Topic : `system/health`, 2.7. Topic : `alerts/anomalies`, 2. Contrat MQTT
+Cohesion: 0.29
+Nodes (7): 2.1. Topic : `iad/audience/events`, 2.2. Topic : `iad/audience/aggregates`, 2.3. Topic : `smartqueue/status`, 2.4. Topic : `smartqueue/predictions`, 2.5. Topic : `iad/content/update`, 2.6. Topic : `system/health`, 2. Contrat MQTT
 
 ### Community 104 - "manager"
 Cohesion: 0.20
@@ -879,6 +863,10 @@ Nodes (5): dummy_image(), dummy_video(), manager(), temp_media_dir(), 5.6. RBAC 
 ### Community 105 - "Monitoring Stack — IAD & SmartQueue AI"
 Cohesion: 0.20
 Nodes (9): 1. NestJS Backend (`apps/backend/`), 2. FastAPI Services (`apps/edge-cv/` and `apps/smartqueue-ml/`), Accessing Grafana, Accessing Prometheus, Available Alerts, How to Add New Metrics, How to Create New Dashboards, How to Start Monitoring (+1 more)
+
+### Community 106 - "health.controller.ts"
+Cohesion: 0.21
+Nodes (4): HealthController, HealthResponse, SystemController, HealthModule
 
 ### Community 107 - "06 - Architecture Backend"
 Cohesion: 0.22
@@ -889,8 +877,8 @@ Cohesion: 0.22
 Nodes (8): 23.1 Fichiers Analysés, 23.2 Technologies Détectées, 23.3 API et Routes Détectées, 23.5 Tests Détectés, 23.6 Incohérences Notées, 23.7 Informations Manquantes, 23.8 Recommandations Prioritaires (Top 3), 23 - Audit de la Documentation
 
 ### Community 109 - "Audit Technique — Sprint 0 (Rayen)"
-Cohesion: 0.08
-Nodes (23): Audit Technique — Sprint 0 (Rayen), Détail par Tâche, Fichiers trouvés, Fichiers trouvés, Fonctionnalités réellement implémentées, Jobs déclarés dans `ci.yml`, Priorité 1 — Corrections bloquantes (avant prochain push), Priorité 2 — Compléter T-007 (+15 more)
+Cohesion: 0.07
+Nodes (26): Audit Technique — Sprint 0 (Rayen), Détail par Tâche, Fichiers trouvés, Fichiers trouvés, Fichiers trouvés, Fonctionnalités réellement implémentées, Jobs déclarés dans `ci.yml`, Priorité 1 — Corrections bloquantes (avant prochain push) (+18 more)
 
 ### Community 110 - "4. JSON Schemas & TypeScript Types"
 Cohesion: 0.22
@@ -904,9 +892,9 @@ Nodes (8): 1. Infrastructure & Docker Compose (T-002), 2. Service Edge CV FastAP
 Cohesion: 0.22
 Nodes (8): 1. Première Connexion, 2. Tableau de Bord (Overview), 3. Gestion des Sites (Sites), 4. Gestion de la Flotte (Fleet), 5. Analytique en direct (Live Analytics), 6. Création de Campagnes Publicitaires, 7. Performances des Campagnes, Guide Utilisateur
 
-### Community 113 - "mqtt.service.ts"
+### Community 113 - "@nestjs/common"
 Cohesion: 0.08
-Nodes (18): AlertItem, DetectionItemDto, DetectionsPayloadDto, DecisionState, MqttConfigService, MqttConnectionConfig, MqttMessageHandler, eventListeners (+10 more)
+Nodes (26): AlertItem, MAX_ALERT_CACHE_SIZE, InsightInput, KpiInputs, KpiScores, PerformanceGrade, DecisionState, MqttConfigService (+18 more)
 
 ### Community 114 - "NestJS Code Review Guide"
 Cohesion: 0.05
@@ -977,8 +965,8 @@ Cohesion: 0.33
 Nodes (5): plugins, rules, react/only-export-components, react/rules-of-hooks, $schema
 
 ### Community 135 - "Java Code Review Guide"
-Cohesion: 0.08
-Nodes (24): Entity 设计, Java Code Review Guide, JPA 与 数据库性能, Lombok 使用规范, N+1 查询问题, Optional 正确用法, Record (记录类), Spring Boot 最佳实践 (+16 more)
+Cohesion: 0.07
+Nodes (30): Entity 设计, Java Code Review Guide, JPA 与 数据库性能, Lombok 使用规范, N+1 查询问题, Optional 正确用法, Record (记录类), Review Checklist (+22 more)
 
 ### Community 137 - "scripts"
 Cohesion: 0.33
@@ -1004,13 +992,13 @@ Nodes (5): header(), info(), reset.sh script, success(), warn()
 Cohesion: 0.60
 Nodes (5): error(), header(), info(), seed.sh script, success()
 
-### Community 144 - "异步与并发模式 — 跨语言通用指南"
-Cohesion: 0.10
-Nodes (20): 1. 结构化并发, 2. 取消传播, 3. Backpressure（反压）, 4. 限制并发数, Review Checklist, 何时选择什么, 基本检查, 常见陷阱 (+12 more)
+### Community 144 - "跨语言代码示例"
+Cohesion: 0.07
+Nodes (28): 1. 结构化并发, 2. 取消传播, 3. Backpressure（反压）, 4. 限制并发数, C#: async/await + SemaphoreSlim + CancellationToken, Go: Goroutines + Channels + Context, Kotlin: Coroutines + Flow + Dispatchers, Python: asyncio + TaskGroup (+20 more)
 
-### Community 146 - "SitesService"
-Cohesion: 0.12
-Nodes (3): UpdateSiteDto, UpdateSiteThresholdsDto, SitesService
+### Community 145 - "storage.service.ts"
+Cohesion: 0.36
+Nodes (5): ALLOWED_MIME_TYPES, detectMimeFromBuffer(), MAX_FILE_SIZE_BYTES, UploadResult, minio
 
 ### Community 147 - "i18n.ts"
 Cohesion: 0.40
@@ -1049,8 +1037,8 @@ Cohesion: 0.50
 Nodes (3): Expanding the Oxlint configuration, React Compiler, React + TypeScript + Vite
 
 ### Community 157 - "pr-analyzer.py"
-Cohesion: 0.17
-Nodes (9): analyze_pr(), calculate_complexity(), categorize_size(), estimate_review_time(), generate_suggestions(), identify_risk_factors(), main(), PRAnalysis (+1 more)
+Cohesion: 0.10
+Nodes (13): analyze_pr(), calculate_complexity(), categorize_size(), detect_language(), estimate_review_time(), generate_suggestions(), identify_risk_factors(), is_config_file() (+5 more)
 
 ### Community 158 - "PR Review Template"
 Cohesion: 0.12
@@ -1260,10 +1248,6 @@ Nodes (14): Accessibility, Brand, Component Rule Expectations, Example Constrain
 Cohesion: 0.13
 Nodes (14): Accessibility, Brand, Component Rule Expectations, Example Constraint Language, Expected Behavior, Guideline Authoring Workflow, Mission, Perspective Design Design System Skill (Universal) (+6 more)
 
-### Community 241 - "BaseModel"
-Cohesion: 0.33
-Nodes (3): AnomalyAlert, HealthResponse, PredictRequest
-
 ### Community 242 - "Power Design System Skill (Universal)"
 Cohesion: 0.13
 Nodes (14): Accessibility, Brand, Component Rule Expectations, Example Constraint Language, Expected Behavior, Guideline Authoring Workflow, Mission, Power Design System Skill (Universal) (+6 more)
@@ -1283,6 +1267,14 @@ Nodes (14): Accessibility, Brand, Component Rule Expectations, Example Constrain
 ### Community 246 - "02 - Contexte métier"
 Cohesion: 0.29
 Nodes (6): 02 - Contexte métier, 2.1 Enjeux, 2.2.1 Utilisateurs Humains, 2.2.2 Acteurs Systèmes / Périphériques (Devices), 2.2 Acteurs et Rôles, 2.3 Cas d'utilisation (Use Cases) principaux
+
+### Community 247 - ".source"
+Cohesion: 0.33
+Nodes (4): deleteAlert(), 2. Files Changed and Justification, `apps/backend`, 2.7. Topic : `alerts/anomalies`
+
+### Community 248 - "CampaignScorer"
+Cohesion: 0.38
+Nodes (4): AgeDetectionSample, CampaignScorer, CandidateCampaign, HYSTERESIS_BONUS
 
 ### Community 250 - "12 - Installation & Démarrage"
 Cohesion: 0.40
@@ -1380,10 +1372,6 @@ Nodes (15): Common issues, Composer & Dependencies, Data & transactions, Depende
 Cohesion: 0.21
 Nodes (3): FileStats, GenerateSuggestionsTest, IdentifyRiskFactorsTest
 
-### Community 274 - "IadMetricsService"
-Cohesion: 0.14
-Nodes (6): IadMetricsService, MetricsInterceptor, requestCounter, requestDuration, prom-client, rxjs
-
 ### Community 275 - "Code Review Quick Checklist"
 Cohesion: 0.14
 Nodes (13): Architecture & Design (5 min), Code Quality (3 min), Code Review Quick Checklist, Decision Matrix, Documentation (2 min), Logic & Correctness (10 min), Performance (3 min), Pre-Review (2 min) (+5 more)
@@ -1408,10 +1396,6 @@ Nodes (13): Contributing to AI Code Review Guide, Skill 设计原则, 代码示�
 Cohesion: 0.15
 Nodes (12): Fix-5: Review-3 blocking/important 修复, Fix-C1: C + C++ + Qt 扩充, Fix-C2: Angular + TypeScript + security 扩充, Fix-D: 跨语言重复内容抽取, Review-3: Review 第三波, Review-4: 最终 review, Tasks, 已完成的审查 (+4 more)
 
-### Community 281 - "src/main.ts"
-Cohesion: 0.22
-Nodes (6): ErrorResponse, HttpExceptionFilter, LoggingInterceptor, bootstrap(), compression, helmet
-
 ### Community 282 - "Claude Code Skill 开发规范"
 Cohesion: 0.17
 Nodes (12): Claude Code Skill 开发规范, Description 写法规范, Frontmatter 规范, Progressive Disclosure（渐进式披露）, 内容组织原则, 可选字段, 命名约定, 必需字段 (+4 more)
@@ -1421,8 +1405,8 @@ Cohesion: 0.17
 Nodes (12): &#10024; Key Features, &#127760; Supported Languages & Frameworks, &#127991;&#65039; Severity Labels, &#128161; Usage, &#128193; Repository Structure, &#128196; License, &#128260; The Four-Phase Review Process, &#128300; Highlights by Language (+4 more)
 
 ### Community 284 - ".read"
-Cohesion: 0.20
-Nodes (6): Dart / Flutter, Bloc: `create` vs `value`, `buildWhen`, closed cubits, References, Riverpod: `watch` vs `read`, and rebuild scope, State management, State Management: Riverpod & Bloc
+Cohesion: 0.25
+Nodes (5): Dart / Flutter, Bloc: `create` vs `value`, `buildWhen`, closed cubits, References, Riverpod: `watch` vs `read`, and rebuild scope, State Management: Riverpod & Bloc
 
 ### Community 290 - "Hive Team Protocol"
 Cohesion: 0.22
@@ -1448,9 +1432,9 @@ Nodes (9): Form Actions, Load 函数, Review Checklist, Runes: $state / $derived
 Cohesion: 0.25
 Nodes (8): C Code Review Guide, CI integration checklist, Document ownership transfer, Free exactly once, set pointer to NULL, One allocation, one free, Ownership and Resource Management, Table of Contents, Tooling and Build Checks
 
-### Community 296 - "跨语言代码示例"
-Cohesion: 0.25
-Nodes (8): C#: async/await + SemaphoreSlim + CancellationToken, Go: Goroutines + Channels + Context, Kotlin: Coroutines + Flow + Dispatchers, Python: asyncio + TaskGroup, Rust: tokio + select + spawn_blocking, Swift: async/await + TaskGroup + Actors, TypeScript: Worker-pool 并发限制, 跨语言代码示例
+### Community 296 - "3.6. Devices"
+Cohesion: 0.67
+Nodes (3): 3.6. Devices, `GET /api/v1/devices`, `POST /api/v1/devices`
 
 ### Community 297 - "8. 常见陷阱"
 Cohesion: 0.25
@@ -1483,10 +1467,6 @@ Nodes (8): 5.1 Prefer async/await Over Nested Callbacks, 5.2 Use @MainActor for 
 ### Community 304 - "TypeScript/JavaScript Code Review Guide"
 Cohesion: 0.25
 Nodes (8): ESLint 规则, noUncheckedIndexedAccess 的影响, Strict 模式配置, TypeScript/JavaScript Code Review Guide, 常见 ESLint 错误修复, 推荐的 tsconfig.json, 推荐的 @typescript-eslint 规则, 目录
-
-### Community 305 - "parse_diff"
-Cohesion: 0.25
-Nodes (4): detect_language(), is_config_file(), is_test_file(), parse_diff()
 
 ### Community 306 - "Review Checklist"
 Cohesion: 0.29
@@ -1565,8 +1545,8 @@ Cohesion: 0.33
 Nodes (6): Framework selection, Google Test basics, Mock objects with GMock, Test exception safety, Test fixtures, Testing
 
 ### Community 325 - "Review Checklist"
-Cohesion: 0.33
-Nodes (6): Isolates & async, Null safety & `late`, Platform, keys, disposal, Review Checklist, Tests, Widgets & rebuilds
+Cohesion: 0.29
+Nodes (7): Isolates & async, Null safety & `late`, Platform, keys, disposal, Review Checklist, State management, Tests, Widgets & rebuilds
 
 ### Community 326 - "1. 错误处理"
 Cohesion: 0.33
@@ -1583,10 +1563,6 @@ Nodes (6): 3.1 Context 作为第一个参数, 3.2 传播而非创建新的根 Co
 ### Community 329 - "6. 性能优化"
 Cohesion: 0.33
 Nodes (6): 6.1 预分配 Slice, 6.2 避免不必要的堆分配, 6.3 使用 sync.Pool 复用对象, 6.4 字符串拼接优化, 6.5 避免 interface{} 转换开销, 6. 性能优化
-
-### Community 330 - "Review Checklist"
-Cohesion: 0.33
-Nodes (6): Review Checklist, Spring Boot, 可维护性, 基础与规范, 并发与性能, 数据库 & 事务
 
 ### Community 331 - "前端性能 (Core Web Vitals)"
 Cohesion: 0.33
@@ -2268,25 +2244,29 @@ Nodes (3): Follow Zig Naming Conventions, Keep Public APIs Small, Style & API De
 Cohesion: 0.67
 Nodes (3): Test Build Modes and Targets When Relevant, Testing, Use `std.testing` Assertions and Leak Detection
 
+### Community 508 - "3.2 Vision par Ordinateur (Détection et Démographie)"
+Cohesion: 0.33
+Nodes (6): 3.2 Vision par Ordinateur (Détection et Démographie), Fichiers concernés, Objectif, Règles métier, Utilisateur concerné, Étapes
+
 ## Knowledge Gaps
-- **3007 isolated node(s):** `entrypoint.sh script`, `$schema`, `collection`, `sourceRoot`, `deleteOutDir` (+3002 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 3850 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **69 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **3021 isolated node(s):** `entrypoint.sh script`, `$schema`, `collection`, `sourceRoot`, `deleteOutDir` (+3016 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 3866 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **73 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `Common Bugs Checklist` connect `Common Bugs Checklist` to `Error Handling`, `.record`, `Universal Issues`, `code-review-skill/SKILL.md`, `.read`?**
-  _High betweenness centrality (0.278) - this node is a cross-community bridge._
-- **Why does `HttpExceptionFilter` connect `src/main.ts` to `Error Handling`, `PrismaService`?**
-  _High betweenness centrality (0.186) - this node is a cross-community bridge._
+  _High betweenness centrality (0.224) - this node is a cross-community bridge._
+- **Why does `HttpExceptionFilter` connect `PrismaService` to `Error Handling`, `backend/package.json`?**
+  _High betweenness centrality (0.133) - this node is a cross-community bridge._
 - **Why does `PHP` connect `Error Handling` to `Common Bugs Checklist`?**
-  _High betweenness centrality (0.174) - this node is a cross-community bridge._
+  _High betweenness centrality (0.122) - this node is a cross-community bridge._
 - **Are the 10 inferred relationships involving `OnnxInferenceSession` (e.g. with `Detection` and `DetectionResult`) actually correct?**
   _`OnnxInferenceSession` has 10 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 8 inferred relationships involving `MQTTClient` (e.g. with `BaseEvent` and `EdgeTopics`) actually correct?**
   _`MQTTClient` has 8 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `entrypoint.sh script`, `$schema`, `collection` to the rest of the system?**
-  _3007 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `campaign-analytics.dto.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.05293383270911361 - nodes in this community are weakly interconnected._
+  _3021 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `CampaignAggregationService` be split into smaller, more focused modules?**
+  _Cohesion score 0.12698412698412698 - nodes in this community are weakly interconnected._

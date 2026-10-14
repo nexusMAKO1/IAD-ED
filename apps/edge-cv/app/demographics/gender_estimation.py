@@ -286,12 +286,14 @@ class GenderEstimator:
         results = []
         for i, idx in enumerate(valid_indices):
             gender_class, confidence = predictions[i]
-            results.append(
-                {
-                    "bbox": detections[idx]["bbox"],
-                    "gender": gender_class,
-                    "gender_confidence": round(confidence, 4),
-                }
-            )
+            orig_det = detections[idx]
+            res_item: Dict[str, Any] = {
+                "bbox": orig_det["bbox"],
+                "gender": gender_class,
+                "gender_confidence": round(confidence, 4),
+            }
+            if "track_id" in orig_det:
+                res_item["track_id"] = orig_det["track_id"]
+            results.append(res_item)
 
         return results

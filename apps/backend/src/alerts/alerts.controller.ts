@@ -62,7 +62,7 @@ export class AlertsController {
   @ApiBearerAuth()
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete an alert' })
-  delete(@Param('id') id: string) {
-    this.alertsService.delete(id);
+  async delete(@Param('id') id: string) {
+    await this.alertsService.delete(id);
   }
 }

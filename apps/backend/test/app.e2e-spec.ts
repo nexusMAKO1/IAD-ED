@@ -49,6 +49,12 @@ describe('AppController (e2e)', () => {
       }),
       findById: jest.fn(),
     },
+    campaignImpression: {
+      findMany: jest.fn().mockResolvedValue([]),
+    },
+    alert: {
+      findMany: jest.fn().mockResolvedValue([]),
+    },
     $connect: jest.fn().mockResolvedValue(null),
     $disconnect: jest.fn().mockResolvedValue(null),
   };
@@ -110,7 +116,7 @@ describe('AppController (e2e)', () => {
         .expect((res) => {
           expect(res.body).toHaveProperty(
             'message',
-            'Invalid email or password',
+            'Email ou mot de passe invalide',
           );
         });
     });
@@ -172,7 +178,7 @@ describe('AppController (e2e)', () => {
         .post('/api/v1/auth/logout')
         .expect(200)
         .expect((res) => {
-          expect(res.body).toHaveProperty('message', 'Logged out successfully');
+          expect(res.body).toHaveProperty('message', 'Déconnexion réussie');
         });
     });
   });

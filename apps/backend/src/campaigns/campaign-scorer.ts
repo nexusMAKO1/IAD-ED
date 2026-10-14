@@ -33,6 +33,8 @@ export interface AgeDetectionSample {
   ageGroup: string;
 }
 
+export const HYSTERESIS_BONUS = 2;
+
 export class CampaignScorer {
   /**
    * Determine dominant demographic group from a sliding time window.
@@ -150,7 +152,13 @@ export class CampaignScorer {
 
   /**
    * Select best campaign from a list given current conditions.
-   * Filters out ineligible campaigns, scores candidates, and picks highest score.
+   * Filters out ineligible campaigns, scores candidates, applies hysteresis for the currently playing campaign,
+   * and picks the highest score.
+   *
+   * Hysteresis Rule:
+   * When `currentCampaignId` matches an eligible candidate, that candidate receives a +2 hysteresis bonus.
+   * This prevents screen oscillation between equally-scored campaigns (e.g. tie-breaking flapping)
+   * while allowing genuinely higher-scoring campaigns (+5 priority, +15-20 targeting) to take over immediately.
    */
   static selectBestCampaign(
     campaigns: CandidateCampaign[],
@@ -166,7 +174,13 @@ export class CampaignScorer {
         continue;
       }
 
-      const score = this.scoreCampaign(campaign, dominantAgeGroup);
+      let score = this.scoreCampaign(campaign, dominantAgeGroup);
+
+      // Apply hysteresis sticky bonus to avoid flapping on ties
+      if (currentCampaignId && campaign.id === currentCampaignId) {
+        score += HYSTERESIS_BONUS;
+      }
+
       if (score > highestScore) {
         highestScore = score;
         bestCampaign = campaign;

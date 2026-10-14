@@ -468,13 +468,14 @@ class AgeEstimator:
             age_group = self.get_age_group(age)
             orig_det = detections[idx]
 
-            results.append(
-                {
-                    "bbox": orig_det["bbox"],
-                    "age": int(round(age)),
-                    "age_group": age_group,
-                    "confidence": round(confidence, 4),
-                }
-            )
+            res_item: Dict[str, Any] = {
+                "bbox": orig_det["bbox"],
+                "age": int(round(age)),
+                "age_group": age_group,
+                "confidence": round(confidence, 4),
+            }
+            if "track_id" in orig_det:
+                res_item["track_id"] = orig_det["track_id"]
+            results.append(res_item)
 
         return results

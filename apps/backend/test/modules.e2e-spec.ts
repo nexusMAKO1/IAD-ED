@@ -69,6 +69,12 @@ describe('Modules (e2e) - Sites, Devices, Settings', () => {
       findUnique: jest.fn().mockResolvedValue({ id: 'singleton', settings: { dashboard: { darkMode: true } } }),
       upsert: jest.fn().mockImplementation((args) => Promise.resolve({ id: 'singleton', settings: args.update.settings })),
     },
+    campaignImpression: {
+      findMany: jest.fn().mockResolvedValue([]),
+    },
+    alert: {
+      findMany: jest.fn().mockResolvedValue([]),
+    },
     $connect: jest.fn().mockResolvedValue(null),
     $disconnect: jest.fn().mockResolvedValue(null),
     $transaction: jest.fn().mockImplementation((cb) => cb(mockPrismaService)),
@@ -161,11 +167,11 @@ describe('Modules (e2e) - Sites, Devices, Settings', () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/devices')
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ name: 'New Cam', type: 'CAMERA', siteId: mockSite.id });
+        .send({ name: 'New Cam', type: 'EDGE_CAMERA', siteId: mockSite.id });
       if (res.status !== 201) console.error('POST DEVICES FAILED', res.body);
       expect(res.status).toBe(201);
       expect(res.body).toHaveProperty('name', 'New Cam');
-      expect(res.body).toHaveProperty('type', 'CAMERA');
+      expect(res.body).toHaveProperty('type', 'EDGE_CAMERA');
     });
   });
 

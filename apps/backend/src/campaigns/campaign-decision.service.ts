@@ -97,8 +97,12 @@ export class CampaignDecisionService implements OnModuleInit, OnModuleDestroy {
         where: { deviceId },
       });
 
-      if (!device || device.status !== DeviceStatus.ONLINE) {
-        this.logger.debug(`Camera ${deviceId} is not paired or online. Ignoring demographics.`);
+      if (
+        !device ||
+        device.status === DeviceStatus.OFFLINE ||
+        device.status === DeviceStatus.UNPAIRED
+      ) {
+        this.logger.debug(`Camera ${deviceId} is not paired or active. Ignoring demographics.`);
         return;
       }
 

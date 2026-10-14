@@ -86,7 +86,8 @@ class FrameProcessor:
         detections_list: List[Dict[str, Any]] = []
         if tracked_people:
             raw_detections = [
-                {"bbox": p.bbox, "confidence": p.confidence} for p in tracked_people
+                {"track_id": p.track_id, "bbox": p.bbox, "confidence": p.confidence}
+                for p in tracked_people
             ]
 
             age_results = []
@@ -103,6 +104,30 @@ class FrameProcessor:
                 except Exception as exc:
                     log.warning("Gender estimation failed: %s", exc)
 
+            # Build explicit lookup tables by track_id and by normalized bbox
+            age_by_track: Dict[Any, Dict[str, Any]] = {}
+            age_by_bbox: Dict[str, Dict[str, Any]] = {}
+            for r in (age_results or []):
+                if isinstance(r, dict):
+                    if "track_id" in r and r["track_id"] is not None:
+                        age_by_track[r["track_id"]] = r
+                    if "bbox" in r and isinstance(r["bbox"], (list, tuple)):
+                        key = ",".join(str(round(float(c), 1)) for c in r["bbox"])
+                        age_by_bbox[key] = r
+
+            gender_by_track: Dict[Any, Dict[str, Any]] = {}
+            gender_by_bbox: Dict[str, Dict[str, Any]] = {}
+            for r in (gender_results or []):
+                if isinstance(r, dict):
+                    if "track_id" in r and r["track_id"] is not None:
+                        gender_by_track[r["track_id"]] = r
+                    if "bbox" in r and isinstance(r["bbox"], (list, tuple)):
+                        key = ",".join(str(round(float(c), 1)) for c in r["bbox"])
+                        gender_by_bbox[key] = r
+
+            has_explicit_age = bool(age_by_track or age_by_bbox)
+            has_explicit_gender = bool(gender_by_track or gender_by_bbox)
+
             for i, p in enumerate(tracked_people):
                 det_info: Dict[str, Any] = {
                     "track_id": p.track_id,
@@ -114,14 +139,27 @@ class FrameProcessor:
                     "class_id": 0,
                     "label": p.class_name,
                 }
-                if i < len(age_results):
-                    det_info["age"] = age_results[i].get("age")
-                    det_info["age_group"] = age_results[i].get("age_group")
-                    det_info["age_confidence"] = age_results[i].get("confidence")
 
-                if i < len(gender_results):
-                    det_info["gender"] = gender_results[i].get("gender")
-                    det_info["gender_confidence"] = gender_results[i].get("gender_confidence")
+                bbox_key = ",".join(str(round(float(c), 1)) for c in p.bbox)
+
+                # Match age by track_id first, then bbox; fallback to 1:1 positional only if mock omitted keys
+                age_data = age_by_track.get(p.track_id) or age_by_bbox.get(bbox_key)
+                if not age_data and not has_explicit_age and i < len(age_results):
+                    age_data = age_results[i]
+
+                if age_data:
+                    det_info["age"] = age_data.get("age")
+                    det_info["age_group"] = age_data.get("age_group")
+                    det_info["age_confidence"] = age_data.get("confidence")
+
+                # Match gender by track_id first, then bbox; fallback to 1:1 positional only if mock omitted keys
+                gender_data = gender_by_track.get(p.track_id) or gender_by_bbox.get(bbox_key)
+                if not gender_data and not has_explicit_gender and i < len(gender_results):
+                    gender_data = gender_results[i]
+
+                if gender_data:
+                    det_info["gender"] = gender_data.get("gender")
+                    det_info["gender_confidence"] = gender_data.get("gender_confidence")
 
                 detections_list.append(det_info)
 

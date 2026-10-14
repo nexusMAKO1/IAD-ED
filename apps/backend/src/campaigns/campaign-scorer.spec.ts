@@ -189,5 +189,84 @@ describe('CampaignScorer', () => {
       const result = CampaignScorer.selectBestCampaign(campaigns, 'adult');
       expect(result.campaign).toBeNull();
     });
+
+    describe('hysteresis prevention', () => {
+      const tiedCampaigns: CandidateCampaign[] = [
+        {
+          id: 'camp-A',
+          name: 'Campaign A',
+          mediaUrl: 'http://cdn/a.mp4',
+          mediaType: 'video',
+          priority: 'standard', // 5
+          targetAge: 'adult',   // 20
+          active: true,
+          status: 'active',
+        },
+        {
+          id: 'camp-B',
+          name: 'Campaign B',
+          mediaUrl: 'http://cdn/b.mp4',
+          mediaType: 'video',
+          priority: 'standard', // 5
+          targetAge: 'adult',   // 20
+          active: true,
+          status: 'active',
+        },
+      ];
+
+      it('favors currently playing campaign when scores are tied to prevent flapping', () => {
+        // Without currentCampaignId, camp-A wins by order of iteration
+        const resNone = CampaignScorer.selectBestCampaign(tiedCampaigns, 'adult', null);
+        expect(resNone.campaign?.id).toBe('camp-A');
+        expect(resNone.score).toBe(25);
+
+        // With camp-B currently playing, camp-B receives +2 hysteresis bonus (score 27) and stays active
+        const resB = CampaignScorer.selectBestCampaign(tiedCampaigns, 'adult', 'camp-B');
+        expect(resB.campaign?.id).toBe('camp-B');
+        expect(resB.score).toBe(27);
+      });
+
+      it('allows legitimate higher-scoring campaigns to take over despite hysteresis', () => {
+        const higherCampaign: CandidateCampaign = {
+          id: 'camp-C',
+          name: 'High Priority Campaign C',
+          mediaUrl: 'http://cdn/c.mp4',
+          mediaType: 'video',
+          priority: 'high',     // 10
+          targetAge: 'adult',   // 20
+          active: true,
+          status: 'active',
+        };
+
+        const list = [...tiedCampaigns, higherCampaign];
+        // camp-B is playing with score 25 + 2 = 27, but camp-C scores 30
+        const result = CampaignScorer.selectBestCampaign(list, 'adult', 'camp-B');
+        expect(result.campaign?.id).toBe('camp-C');
+        expect(result.score).toBe(30);
+      });
+
+      it('does not apply hysteresis bonus if currently playing campaign has expired', () => {
+        const expiredPlaying: CandidateCampaign = {
+          id: 'camp-B',
+          name: 'Campaign B Expired',
+          mediaUrl: 'http://cdn/b.mp4',
+          mediaType: 'video',
+          active: false,
+          status: 'active',
+        };
+        const candidate: CandidateCampaign = {
+          id: 'camp-A',
+          name: 'Campaign A',
+          mediaUrl: 'http://cdn/a.mp4',
+          mediaType: 'video',
+          priority: 'standard',
+          active: true,
+          status: 'active',
+        };
+
+        const result = CampaignScorer.selectBestCampaign([expiredPlaying, candidate], 'adult', 'camp-B');
+        expect(result.campaign?.id).toBe('camp-A');
+      });
+    });
   });
 });

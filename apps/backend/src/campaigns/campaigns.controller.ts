@@ -18,8 +18,26 @@ import { CampaignsService } from './campaigns.service';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import * as os from 'os';
+import * as path from 'path';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { MAX_FILE_SIZE_BYTES } from '../common/storage/storage.service';
+
+const uploadMulterOptions = {
+  limits: {
+    fileSize: MAX_FILE_SIZE_BYTES,
+  },
+  storage: diskStorage({
+    destination: os.tmpdir(),
+    filename: (_req, file, cb) => {
+      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+      const ext = path.extname(file.originalname || '');
+      cb(null, `iad-upload-${uniqueSuffix}${ext}`);
+    },
+  }),
+};
 
 @ApiTags('campaigns')
 @Controller('campaigns')
@@ -36,7 +54,7 @@ export class CampaignsController {
   @Post('upload')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('file', uploadMulterOptions))
   async uploadFile(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new BadRequestException('Aucun fichier uploadé');

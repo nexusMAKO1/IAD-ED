@@ -391,3 +391,30 @@ model CampaignInsight {
   @@map("campaign_insights")
 }
 
+// ─── Alerts (Durable Storage) ──────────────────────────────────────────────────
+
+model Alert {
+  id             String    @id
+  type           String
+  severity       String    @default("warning")
+  message        String
+  deviceId       String?
+  deviceName     String?
+  siteId         String?
+  siteName       String?
+  timestamp      DateTime  @default(now())
+  acknowledged   Boolean   @default(false)
+  acknowledgedBy String?
+  acknowledgedAt DateTime?
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([siteId])
+  @@index([severity])
+  @@index([acknowledged])
+  @@index([timestamp])
+  @@index([deviceId])
+  @@map("alerts")
+}
+
